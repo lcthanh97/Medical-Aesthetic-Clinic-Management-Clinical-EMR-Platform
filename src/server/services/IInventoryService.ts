@@ -1,0 +1,1 @@
+export interface IInventoryService { getById(id:string):Promise<unknown|null>; getList():Promise<unknown[]>; }

@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id String @id @default(cuid())
+  username String @unique
+  passwordHash String
+  email String? @unique
+  status String @default("ACTIVE")
+  employee Employee?
+  roles AccountRole[]
+  auditLogs AuditLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id String @id @default(cuid())
+  name String @unique
+  accounts AccountRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id String @id @default(cuid())
+  code String @unique
+  roles RolePermission[]
+}
+
+model AccountRole {
+  accountId String
+  roleId String
+  account Account @relation(fields: [accountId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+  @@id([accountId, roleId])
+}
+
+model RolePermission {
+  roleId String
+  permissionId String
+  role Role @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+  @@id([roleId, permissionId])
+}
+
+model ClinicFacility {
+  id String @id @default(cuid())
+  name String
+  departments Department[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department {
+  id String @id @default(cuid())
+  facilityId String
+  name String
+  facility ClinicFacility @relation(fields: [facilityId], references: [id])
+  rooms Room[]
+  employees Employee[]
+}
+
+model Room {
+  id String @id @default(cuid())
+  departmentId String
+  name String
+  department Department @relation(fields: [departmentId], references: [id])
+  visits Visit[]
+  appointments Appointment[]
+}
+
+model Employee {
+  id String @id @default(cuid())
+  accountId String? @unique
+  departmentId String?
+  employeeCode String @unique
+  fullName String
+  account Account? @relation(fields: [accountId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+  schedules WorkSchedule[]
+  visits Visit[]
+  prescriptions Prescription[]
+}
+
+model WorkSchedule {
+  id String @id @default(cuid())
+  employeeId String
+  workDate DateTime
+  startTime DateTime
+  endTime DateTime
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Patient {
+  id String @id @default(cuid())
+  patientCode String @unique
+  fullName String
+  dateOfBirth DateTime?
+  phone String?
+  allergies Allergy[]
+  histories MedicalHistory[]
+  appointments Appointment[]
+  visits Visit[]
+}
+
+model Allergy {
+  id String @id @default(cuid())
+  patientId String
+  substance String
+  reaction String?
+  severity String?
+  patient Patient @relation(fields: [patientId], references: [id])
+}
+
+model MedicalHistory {
+  id String @id @default(cuid())
+  patientId String
+  type String
+  content String
+  patient Patient @relation(fields: [patientId], references: [id])
+}
+
+model Appointment {
+  id String @id @default(cuid())
+  patientId String
+  roomId String?
+  scheduledAt DateTime
+  status String
+  patient Patient @relation(fields: [patientId], references: [id])
+  room Room? @relation(fields: [roomId], references: [id])
+}
+
+model Visit {
+  id String @id @default(cuid())
+  patientId String
+  employeeId String?
+  roomId String?
+  visitDate DateTime @default(now())
+  status String
+  patient Patient @relation(fields: [patientId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+  room Room? @relation(fields: [roomId], references: [id])
+  medicalRecord MedicalRecord?
+  orders ClinicalOrder[]
+  treatmentPlans TreatmentPlan[]
+  prescriptions Prescription[]
+  invoices Invoice[]
+  equipmentUsages EquipmentUsage[]
+  consents SignedConsent[]
+}
+
+model MedicalRecord {
+  id String @id @default(cuid())
+  visitId String @unique
+  preliminaryDiagnosis String?
+  finalDiagnosis String?
+  notes String?
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+model ClinicalOrder {
+  id String @id @default(cuid())
+  visitId String
+  type String
+  status String
+  visit Visit @relation(fields: [visitId], references: [id])
+  labResults LabResult[]
+  imagingResults ImagingResult[]
+}
+
+model LabResult {
+  id String @id @default(cuid())
+  orderId String
+  testName String
+  result String
+  unit String?
+  order ClinicalOrder @relation(fields: [orderId], references: [id])
+}
+
+model ImagingResult {
+  id String @id @default(cuid())
+  orderId String
+  imagingType String
+  conclusion String
+  fileUrl String?
+  order ClinicalOrder @relation(fields: [orderId], references: [id])
+}
+
+model TreatmentPlan {
+  id String @id @default(cuid())
+  visitId String
+  name String
+  stage String
+  status String
+  visit Visit @relation(fields: [visitId], references: [id])
+  steps TreatmentStep[]
+}
+
+model TreatmentStep {
+  id String @id @default(cuid())
+  planId String
+  orderNo Int
+  content String
+  status String
+  plan TreatmentPlan @relation(fields: [planId], references: [id])
+}
+
+model Medicine {
+  id String @id @default(cuid())
+  name String
+  activeIngredient String?
+  stock Decimal @default(0)
+  items PrescriptionItem[]
+}
+
+model Prescription {
+  id String @id @default(cuid())
+  visitId String
+  employeeId String
+  status String
+  visit Visit @relation(fields: [visitId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+  items PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id String @id @default(cuid())
+  prescriptionId String
+  medicineId String
+  quantity Decimal
+  dosage String
+  prescription Prescription @relation(fields: [prescriptionId], references: [id])
+  medicine Medicine @relation(fields: [medicineId], references: [id])
+}
+
+model Supply {
+  id String @id @default(cuid())
+  name String
+  unit String
+  stock Decimal @default(0)
+}
+
+model Equipment {
+  id String @id @default(cuid())
+  name String
+  serial String @unique
+  status String
+  usages EquipmentUsage[]
+}
+
+model EquipmentUsage {
+  id String @id @default(cuid())
+  equipmentId String
+  visitId String
+  startedAt DateTime
+  endedAt DateTime?
+  parameters Json?
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+model ConsentTemplate {
+  id String @id @default(cuid())
+  name String
+  version Int
+  content String
+  signedConsents SignedConsent[]
+}
+
+model SignedConsent {
+  id String @id @default(cuid())
+  templateId String
+  visitId String
+  signerName String
+  signatureUrl String
+  signedAt DateTime
+  template ConsentTemplate @relation(fields: [templateId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+model Invoice {
+  id String @id @default(cuid())
+  visitId String
+  total Decimal
+  status String
+  visit Visit @relation(fields: [visitId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id String @id @default(cuid())
+  invoiceId String
+  amount Decimal
+  method String
+  paidAt DateTime
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Notification {
+  id String @id @default(cuid())
+  recipient String
+  type String
+  content String
+  status String
+  scheduledAt DateTime?
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  accountId String?
+  action String
+  entity String
+  entityId String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  account Account? @relation(fields: [accountId], references: [id])
+}
