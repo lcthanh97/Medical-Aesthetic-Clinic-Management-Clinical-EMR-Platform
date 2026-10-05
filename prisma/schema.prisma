@@ -90,21 +90,27 @@ model Room {
 }
 
 model Employee {
-  id                     String                 @id @default(cuid())
-  accountId              String?                @unique
-  departmentId           String?
-  employeeCode           String                 @unique
-  fullName               String
-  account                Account?               @relation(fields: [accountId], references: [id])
-  department             Department?            @relation(fields: [departmentId], references: [id])
-  schedules              WorkSchedule[]
-  visits                 Visit[]
-  prescriptions          Prescription[]
-  appointments           Appointment[]
-  clinicalOrders         ClinicalOrder[]
-  treatmentSessions      TreatmentSession[]
-  equipmentMaintenances  EquipmentMaintenance[]
-  assignedTreatmentSteps TreatmentStep[]
+  id                      String                      @id @default(cuid())
+  accountId               String?                     @unique
+  departmentId            String?
+  employeeCode            String                      @unique
+  fullName                String
+  account                 Account?                    @relation(fields: [accountId], references: [id])
+  department              Department?                 @relation(fields: [departmentId], references: [id])
+  schedules               WorkSchedule[]
+  visits                  Visit[]
+  prescriptions           Prescription[]
+  appointments            Appointment[]
+  clinicalOrders          ClinicalOrder[]
+  treatmentSessions       TreatmentSession[]          @relation("SessionPerformer")
+  createdTreatmentPlans   TreatmentPlan[]             @relation("PlanCreator")
+  createdProtocols        TreatmentProtocolTemplate[]
+  capturedTreatmentImages TreatmentImage[]
+  operatedEquipmentUsages EquipmentUsage[]            @relation("EquipmentOperator")
+  recordedConsumptions    TreatmentConsumption[]
+  inventoryTransactions   InventoryTransaction[]
+  employeeConsents        SignedConsent[]             @relation("ConsentEmployeeSigner")
+  equipmentMaintenances   EquipmentMaintenance[]
 }
 
 model WorkSchedule {
@@ -117,16 +123,17 @@ model WorkSchedule {
 }
 
 model Patient {
-  id           String           @id @default(cuid())
-  patientCode  String           @unique
-  fullName     String
-  dateOfBirth  DateTime?
-  phone        String?
-  allergies    Allergy[]
-  histories    MedicalHistory[]
-  appointments Appointment[]
-  visits       Visit[]
-  skinImages   SkinImage[]
+  id              String           @id @default(cuid())
+  patientCode     String           @unique
+  fullName        String
+  dateOfBirth     DateTime?
+  phone           String?
+  allergies       Allergy[]
+  histories       MedicalHistory[]
+  appointments    Appointment[]
+  visits          Visit[]
+  treatmentPlans  TreatmentPlan[]
+  patientConsents SignedConsent[]  @relation("ConsentPatientSigner")
 }
 
 model Allergy {
@@ -175,11 +182,12 @@ model Visit {
   medicalRecord     MedicalRecord?
   orders            ClinicalOrder[]
   treatmentPlans    TreatmentPlan[]
+  treatmentSessions TreatmentSession[]
   prescriptions     Prescription[]
   invoices          Invoice[]
   equipmentUsages   EquipmentUsage[]
   consents          SignedConsent[]
-  skinImages        SkinImage[]
+  treatmentImages   TreatmentImage[]
   interactionAlerts InteractionAlert[]
 }
 
@@ -218,7 +226,6 @@ model ServiceCatalog {
   basePrice      Decimal         @default(0)
   active         Boolean         @default(true)
   clinicalOrders ClinicalOrder[]
-  treatmentPlans TreatmentPlan[]
   invoiceItems   InvoiceItem[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -243,105 +250,230 @@ model ImagingResult {
 }
 
 model TreatmentPlan {
-  id                String                @id @default(cuid())
-  visitId           String
-  serviceId         String?
-  name              String
-  stage             String
-  status            String
-  visit             Visit                 @relation(fields: [visitId], references: [id])
-  service           ServiceCatalog?       @relation(fields: [serviceId], references: [id])
-  steps             TreatmentStep[]
-  sessions          TreatmentSession[]
-  supplyNorms       TreatmentSupplyNorm[]
-  interactionAlerts InteractionAlert[]
+  id                 String                     @id @default(cuid())
+  patientId          String
+  visitId            String
+  protocolTemplateId String?
+  name               String
+  diagnosisSummary   String?
+  goal               String?
+  status             String                     @default("DRAFT")
+  version            Int                        @default(1)
+  createdById        String
+  startDate          DateTime?
+  expectedEndDate    DateTime?
+  completedAt        DateTime?
+  notes              String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  patient            Patient                    @relation(fields: [patientId], references: [id])
+  visit              Visit                      @relation(fields: [visitId], references: [id])
+  protocolTemplate   TreatmentProtocolTemplate? @relation(fields: [protocolTemplateId], references: [id])
+  createdBy          Employee                   @relation("PlanCreator", fields: [createdById], references: [id])
+  stages             TreatmentStage[]
+  images             TreatmentImage[]
+  signedConsents     SignedConsent[]
+  interactionAlerts  InteractionAlert[]
+
+  @@index([patientId, status])
+  @@index([visitId])
+}
+
+model TreatmentProtocolTemplate {
+  id               String                  @id @default(cuid())
+  code             String
+  name             String
+  description      String?
+  indication       String?
+  contraindication String?
+  version          Int                     @default(1)
+  status           String
+  createdById      String
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  createdBy        Employee                @relation(fields: [createdById], references: [id])
+  stages           ProtocolStageTemplate[]
+  treatmentPlans   TreatmentPlan[]
+
+  @@unique([code, version])
+}
+
+model ProtocolStageTemplate {
+  id           String                    @id @default(cuid())
+  protocolId   String
+  stageType    String
+  name         String
+  orderNo      Int
+  goal         String?
+  durationDays Int?
+  notes        String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  protocol     TreatmentProtocolTemplate @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  steps        ProtocolStepTemplate[]
+
+  @@unique([protocolId, orderNo])
+}
+
+model ProtocolStepTemplate {
+  id                     String                 @id @default(cuid())
+  stageTemplateId        String
+  procedureId            String?
+  orderNo                Int
+  instruction            String
+  repeatCount            Int                    @default(1)
+  intervalDays           Int?
+  plannedDurationMinutes Int?
+  defaultParameters      Json?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  stageTemplate          ProtocolStageTemplate  @relation(fields: [stageTemplateId], references: [id], onDelete: Cascade)
+  procedure              ProcedureCatalog?      @relation(fields: [procedureId], references: [id])
+  materials              ProtocolStepMaterial[]
+
+  @@unique([stageTemplateId, orderNo])
+}
+
+model ProtocolStepMaterial {
+  id              String               @id @default(cuid())
+  stepTemplateId  String
+  medicineId      String?
+  supplyId        String?
+  plannedQuantity Decimal
+  unit            String
+  notes           String?
+  createdAt       DateTime             @default(now())
+  stepTemplate    ProtocolStepTemplate @relation(fields: [stepTemplateId], references: [id], onDelete: Cascade)
+  medicine        Medicine?            @relation(fields: [medicineId], references: [id])
+  supply          Supply?              @relation(fields: [supplyId], references: [id])
+
+  @@index([stepTemplateId])
+}
+
+model ProcedureCatalog {
+  id                     String                 @id @default(cuid())
+  code                   String                 @unique
+  name                   String
+  category               String
+  description            String?
+  defaultDurationMinutes Int?
+  basePrice              Decimal?
+  requiresConsent        Boolean                @default(false)
+  isActive               Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  protocolSteps          ProtocolStepTemplate[]
+  treatmentSteps         TreatmentStep[]
+}
+
+model TreatmentStage {
+  id               String             @id @default(cuid())
+  planId           String
+  stageType        String
+  name             String
+  orderNo          Int
+  goal             String?
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+  status           String             @default("PENDING")
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  plan             TreatmentPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  steps            TreatmentStep[]
+  sessions         TreatmentSession[]
+
+  @@unique([planId, orderNo])
+  @@index([planId, status])
 }
 
 model TreatmentStep {
-  id         String                   @id @default(cuid())
-  planId     String
-  orderNo    Int
-  content    String
-  status     String
-  executorId String?
-  time       DateTime?
-  plan       TreatmentPlan            @relation(fields: [planId], references: [id])
-  executor   Employee?                @relation(fields: [executorId], references: [id])
-  executions TreatmentStepExecution[]
+  id                     String             @id @default(cuid())
+  stageId                String
+  procedureId            String?
+  orderNo                Int
+  content                String
+  repeatCount            Int                @default(1)
+  intervalDays           Int?
+  plannedDurationMinutes Int?
+  defaultParameters      Json?
+  status                 String
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  stage                  TreatmentStage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  procedure              ProcedureCatalog?  @relation(fields: [procedureId], references: [id])
+  sessions               TreatmentSession[]
+
+  @@unique([stageId, orderNo])
 }
 
 model TreatmentSession {
-  id              String                   @id @default(cuid())
-  planId          String
-  employeeId      String?
-  sequenceNo      Int
+  id              String                 @id @default(cuid())
+  stageId         String
+  stepId          String?
+  visitId         String
+  sessionNo       Int
   scheduledAt     DateTime?
   startedAt       DateTime?
-  endedAt         DateTime?
-  status          String
-  notes           String?
-  plan            TreatmentPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
-  employee        Employee?                @relation(fields: [employeeId], references: [id])
-  stepExecutions  TreatmentStepExecution[]
-  supplyUsages    TreatmentSupplyUsage[]
+  completedAt     DateTime?
+  performedById   String?
+  treatmentArea   String?
+  clinicalNotes   String?
+  patientResponse String?
+  adverseReaction String?
+  status          String                 @default("SCHEDULED")
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  stage           TreatmentStage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  step            TreatmentStep?         @relation(fields: [stepId], references: [id])
+  visit           Visit                  @relation(fields: [visitId], references: [id])
+  performedBy     Employee?              @relation("SessionPerformer", fields: [performedById], references: [id])
+  consumptions    TreatmentConsumption[]
   equipmentUsages EquipmentUsage[]
-  skinImages      SkinImage[]
+  images          TreatmentImage[]
 
-  @@unique([planId, sequenceNo])
+  @@unique([stageId, sessionNo])
+  @@index([visitId, status])
 }
 
-model TreatmentStepExecution {
-  id              String           @id @default(cuid())
-  sessionId       String
-  treatmentStepId String
-  status          String
-  performedAt     DateTime?
-  notes           String?
-  session         TreatmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  treatmentStep   TreatmentStep    @relation(fields: [treatmentStepId], references: [id])
+model TreatmentImage {
+  id           String            @id @default(cuid())
+  planId       String
+  sessionId    String?
+  visitId      String
+  imageUrl     String
+  imageType    String
+  phase        String
+  bodyArea     String?
+  description  String?
+  capturedAt   DateTime
+  capturedById String?
+  createdAt    DateTime          @default(now())
+  plan         TreatmentPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  session      TreatmentSession? @relation(fields: [sessionId], references: [id])
+  visit        Visit             @relation(fields: [visitId], references: [id])
+  capturedBy   Employee?         @relation(fields: [capturedById], references: [id])
 
-  @@unique([sessionId, treatmentStepId])
-}
-
-model SkinImage {
-  id                 String            @id @default(cuid())
-  patientId          String
-  visitId            String?
-  treatmentSessionId String?
-  bodyArea           String
-  phase              String
-  fileUrl            String
-  capturedAt         DateTime          @default(now())
-  metadata           Json?
-  patient            Patient           @relation(fields: [patientId], references: [id])
-  visit              Visit?            @relation(fields: [visitId], references: [id])
-  treatmentSession   TreatmentSession? @relation(fields: [treatmentSessionId], references: [id])
-
-  @@index([patientId, capturedAt])
+  @@index([planId, capturedAt])
 }
 
 model Medicine {
-  id               String                @id @default(cuid())
-  name             String
-  activeIngredient String?
-  stock            Decimal               @default(0)
-  items            PrescriptionItem[]
-  transactions     MedicineTransaction[]
-}
-
-model MedicineTransaction {
-  id            String   @id @default(cuid())
-  medicineId    String
-  type          String
-  quantity      Decimal
-  unitCost      Decimal?
-  referenceType String?
-  referenceId   String?
-  occurredAt    DateTime @default(now())
-  note          String?
-  medicine      Medicine @relation(fields: [medicineId], references: [id])
-
-  @@index([medicineId, occurredAt])
+  id                    String                 @id @default(cuid())
+  name                  String
+  unit                  String
+  stock                 Decimal                @default(0)
+  unitCost              Decimal                @default(0)
+  minStock              Decimal                @default(0)
+  status                String                 @default("ACTIVE")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  items                 PrescriptionItem[]
+  ingredients           MedicineIngredient[]
+  protocolMaterials     ProtocolStepMaterial[]
+  consumptions          TreatmentConsumption[]
+  inventoryTransactions InventoryTransaction[]
 }
 
 model Prescription {
@@ -365,53 +497,104 @@ model PrescriptionItem {
 }
 
 model Supply {
-  id              String                 @id @default(cuid())
-  name            String
+  id                    String                 @id @default(cuid())
+  name                  String
+  unit                  String
+  stock                 Decimal                @default(0)
+  unitCost              Decimal                @default(0)
+  minStock              Decimal                @default(0)
+  status                String                 @default("ACTIVE")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  protocolMaterials     ProtocolStepMaterial[]
+  consumptions          TreatmentConsumption[]
+  inventoryTransactions InventoryTransaction[]
+}
+
+model TreatmentConsumption {
+  id              String           @id @default(cuid())
+  sessionId       String
+  medicineId      String?
+  supplyId        String?
+  plannedQuantity Decimal?
+  actualQuantity  Decimal
   unit            String
-  stock           Decimal                @default(0)
-  transactions    SupplyTransaction[]
-  treatmentNorms  TreatmentSupplyNorm[]
-  treatmentUsages TreatmentSupplyUsage[]
+  unitCost        Decimal
+  totalCost       Decimal
+  recordedById    String
+  createdAt       DateTime         @default(now())
+  session         TreatmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  medicine        Medicine?        @relation(fields: [medicineId], references: [id])
+  supply          Supply?          @relation(fields: [supplyId], references: [id])
+  recordedBy      Employee         @relation(fields: [recordedById], references: [id])
+
+  @@index([sessionId])
 }
 
-model SupplyTransaction {
-  id            String   @id @default(cuid())
-  supplyId      String
-  type          String
-  quantity      Decimal
-  unitCost      Decimal?
-  referenceType String?
-  referenceId   String?
-  occurredAt    DateTime @default(now())
-  note          String?
-  supply        Supply   @relation(fields: [supplyId], references: [id])
+model InventoryTransaction {
+  id              String    @id @default(cuid())
+  medicineId      String?
+  supplyId        String?
+  transactionType String
+  quantity        Decimal
+  unit            String
+  referenceType   String?
+  referenceId     String?
+  balanceBefore   Decimal
+  balanceAfter    Decimal
+  createdById     String
+  notes           String?
+  createdAt       DateTime  @default(now())
+  medicine        Medicine? @relation(fields: [medicineId], references: [id])
+  supply          Supply?   @relation(fields: [supplyId], references: [id])
+  createdBy       Employee  @relation(fields: [createdById], references: [id])
 
-  @@index([supplyId, occurredAt])
+  @@index([medicineId, createdAt])
+  @@index([supplyId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
-model TreatmentSupplyNorm {
-  id               String        @id @default(cuid())
-  treatmentPlanId  String
-  supplyId         String
-  standardQuantity Decimal
-  unitCost         Decimal?
-  treatmentPlan    TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
-  supply           Supply        @relation(fields: [supplyId], references: [id])
-
-  @@unique([treatmentPlanId, supplyId])
+model ActiveIngredient {
+  id                 String                  @id @default(cuid())
+  code               String                  @unique
+  name               String                  @unique
+  description        String?
+  status             String                  @default("ACTIVE")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  medicines          MedicineIngredient[]
+  sourceInteractions IngredientInteraction[] @relation("IngredientA")
+  targetInteractions IngredientInteraction[] @relation("IngredientB")
 }
 
-model TreatmentSupplyUsage {
-  id                 String           @id @default(cuid())
-  treatmentSessionId String
-  supplyId           String
-  actualQuantity     Decimal
-  unitCost           Decimal?
-  recordedAt         DateTime         @default(now())
-  treatmentSession   TreatmentSession @relation(fields: [treatmentSessionId], references: [id], onDelete: Cascade)
-  supply             Supply           @relation(fields: [supplyId], references: [id])
+model MedicineIngredient {
+  medicineId        String
+  ingredientId      String
+  concentration     Decimal?
+  concentrationUnit String?
+  medicine          Medicine         @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  ingredient        ActiveIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
-  @@index([treatmentSessionId])
+  @@id([medicineId, ingredientId])
+}
+
+model IngredientInteraction {
+  id               String             @id @default(cuid())
+  ingredientAId    String
+  ingredientBId    String
+  interactionType  String
+  severity         String
+  description      String
+  recommendation   String?
+  minIntervalHours Int?
+  status           String             @default("ACTIVE")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  ingredientA      ActiveIngredient   @relation("IngredientA", fields: [ingredientAId], references: [id])
+  ingredientB      ActiveIngredient   @relation("IngredientB", fields: [ingredientBId], references: [id])
+  alerts           InteractionAlert[]
+
+  @@unique([ingredientAId, ingredientBId, interactionType])
 }
 
 model Equipment {
@@ -428,12 +611,15 @@ model EquipmentUsage {
   equipmentId        String
   visitId            String
   treatmentSessionId String?
+  operatorId         String?
   startedAt          DateTime
   endedAt            DateTime?
   parameters         Json?
+  createdAt          DateTime          @default(now())
   equipment          Equipment         @relation(fields: [equipmentId], references: [id])
   visit              Visit             @relation(fields: [visitId], references: [id])
   treatmentSession   TreatmentSession? @relation(fields: [treatmentSessionId], references: [id])
+  operator           Employee?         @relation("EquipmentOperator", fields: [operatorId], references: [id])
 }
 
 model EquipmentMaintenance {
@@ -461,15 +647,26 @@ model ConsentTemplate {
 }
 
 model SignedConsent {
-  id           String          @id @default(cuid())
-  templateId   String
-  visitId      String
-  signerName   String
-  signatureUrl String
-  signedAt     DateTime
-  template     ConsentTemplate @relation(fields: [templateId], references: [id])
-  visit        Visit           @relation(fields: [visitId], references: [id])
-  audits       ConsentAudit[]
+  id                 String          @id @default(cuid())
+  templateId         String
+  visitId            String
+  treatmentPlanId    String?
+  planVersion        Int?
+  signedByPatientId  String?
+  signedByEmployeeId String?
+  signerName         String
+  signatureUrl       String
+  documentUrl        String?
+  signedAt           DateTime
+  createdAt          DateTime        @default(now())
+  template           ConsentTemplate @relation(fields: [templateId], references: [id])
+  visit              Visit           @relation(fields: [visitId], references: [id])
+  treatmentPlan      TreatmentPlan?  @relation(fields: [treatmentPlanId], references: [id])
+  signedByPatient    Patient?        @relation("ConsentPatientSigner", fields: [signedByPatientId], references: [id])
+  signedByEmployee   Employee?       @relation("ConsentEmployeeSigner", fields: [signedByEmployeeId], references: [id])
+  audits             ConsentAudit[]
+
+  @@index([treatmentPlanId])
 }
 
 model ConsentAudit {
@@ -559,33 +756,19 @@ model NotificationDelivery {
   @@index([notificationId, attemptedAt])
 }
 
-model InteractionRule {
-  id          String             @id @default(cuid())
-  code        String             @unique
-  name        String
-  sourceType  String
-  sourceValue String
-  targetType  String
-  targetValue String
-  severity    String
-  message     String
-  active      Boolean            @default(true)
-  alerts      InteractionAlert[]
-}
-
 model InteractionAlert {
-  id              String           @id @default(cuid())
+  id              String                 @id @default(cuid())
   visitId         String
   treatmentPlanId String?
-  ruleId          String?
+  interactionId   String?
   severity        String
   message         String
-  status          String           @default("OPEN")
-  createdAt       DateTime         @default(now())
+  status          String                 @default("OPEN")
+  createdAt       DateTime               @default(now())
   resolvedAt      DateTime?
-  visit           Visit            @relation(fields: [visitId], references: [id])
-  treatmentPlan   TreatmentPlan?   @relation(fields: [treatmentPlanId], references: [id])
-  rule            InteractionRule? @relation(fields: [ruleId], references: [id])
+  visit           Visit                  @relation(fields: [visitId], references: [id])
+  treatmentPlan   TreatmentPlan?         @relation(fields: [treatmentPlanId], references: [id])
+  interaction     IngredientInteraction? @relation(fields: [interactionId], references: [id])
 
   @@index([visitId, status])
 }

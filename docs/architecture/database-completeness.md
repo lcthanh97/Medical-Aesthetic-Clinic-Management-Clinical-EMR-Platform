@@ -23,3 +23,7 @@ The migration contains no table or column drops. Existing `Allergy.diagnosisDate
 ## Migration
 
 `prisma/migrations/20261006000000_complete_clinic_modules/migration.sql`
+
+The treatment-specific portion of this design was subsequently superseded by
+[`treatment-schema-redesign.md`](./treatment-schema-redesign.md), which migrates
+the additive prototype into the normalized plan/stage/step/session model.
