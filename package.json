@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run --pool=threads --maxWorkers=1",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:demo": "node scripts/seed-comprehensive-demo.mjs --apply",
+    "seed:demo:dry-run": "node scripts/seed-comprehensive-demo.mjs"
   },
   "dependencies": {
     "@prisma/client": "7.10.0",
