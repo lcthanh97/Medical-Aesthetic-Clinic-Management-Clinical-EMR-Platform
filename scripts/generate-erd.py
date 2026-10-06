@@ -89,7 +89,7 @@ def pack_domain(model_names, models, box_x, box_y, box_w, box_h):
     positions = {}
     for model_name in sorted(model_names, key=lambda item: len(models[item]), reverse=True):
         field_count = len(models[model_name])
-        table_h = 58 + field_count * 31 + 14
+        table_h = 60 + field_count * 33 + 14
         column = min(range(columns), key=lambda idx: column_heights[idx])
         x = box_x + padding + column * (table_w + gap_x)
         y = column_heights[column]
@@ -140,7 +140,7 @@ def main():
         svg.append(svg_text(x + 30, y + 40, title, 25, "700", "#000000"))
 
     # Draw relationships beneath the tables. Cross-domain links are slightly darker.
-    for relation in relations:
+    for edge_index, relation in enumerate(relations):
         child, parent = relation["child"], relation["parent"]
         if child not in positions or parent not in positions:
             continue
@@ -154,10 +154,13 @@ def main():
         else:
             start = (px, py + ph / 2)
             finish = (cx + cw, cy + ch / 2)
-        mid_x = (start[0] + finish[0]) / 2
+        lane_offset = ((edge_index % 11) - 5) * 13
+        mid_x = (start[0] + finish[0]) / 2 + lane_offset
         color = "#000000"
         dash = ' stroke-dasharray="8 6"' if relation["optional"] else ""
-        svg.append(f'<path d="M {start[0]} {start[1]} H {mid_x} V {finish[1]} H {finish[0]}" fill="none" stroke="{color}" stroke-width="2.2"{dash} marker-end="url(#arrow)"/>')
+        path_data = f'M {start[0]} {start[1]} H {mid_x} V {finish[1]} H {finish[0]}'
+        svg.append(f'<path d="{path_data}" fill="none" stroke="#FFFFFF" stroke-width="8"/>')
+        svg.append(f'<path d="{path_data}" fill="none" stroke="{color}" stroke-width="2.4"{dash} marker-end="url(#arrow)"/>')
         diamond_y = (start[1] + finish[1]) / 2
         svg.append(f'<polygon points="{mid_x},{diamond_y - 15} {mid_x + 22},{diamond_y} {mid_x},{diamond_y + 15} {mid_x - 22},{diamond_y}" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>')
         svg.append(svg_text(mid_x, diamond_y - 23, ", ".join(relation["fields"]), 12, "normal", "#000000", "middle"))
@@ -166,15 +169,15 @@ def main():
 
     for model_name, (x, y, w, h) in positions.items():
         color = domain_color[model_name]
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="3"/>')
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="52" fill="#EEEEEE" stroke="#000000" stroke-width="3"/>')
-        svg.append(f'<rect x="{x}" y="{y + 52}" width="74" height="{h - 52}" fill="#F7F7F7"/>')
-        svg.append(f'<line x1="{x + 74}" y1="{y + 52}" x2="{x + 74}" y2="{y + h}" stroke="#000000" stroke-width="1.8"/>')
-        svg.append(svg_text(x + w / 2, y + 35, model_name, 22, "700", "#000000", "middle"))
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="4.5"/>')
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="54" fill="#E8E8E8" stroke="#000000" stroke-width="4.5"/>')
+        svg.append(f'<rect x="{x}" y="{y + 54}" width="78" height="{h - 54}" fill="#F3F3F3"/>')
+        svg.append(f'<line x1="{x + 78}" y1="{y + 54}" x2="{x + 78}" y2="{y + h}" stroke="#000000" stroke-width="2.2"/>')
+        svg.append(svg_text(x + w / 2, y + 37, model_name, 23, "700", "#000000", "middle"))
         for index, field in enumerate(models[model_name]):
-            row_y = y + 61 + index * 31
+            row_y = y + 64 + index * 33
             if index % 2:
-                svg.append(f'<rect x="{x + 75}" y="{row_y - 22}" width="{w - 76}" height="31" fill="#FAFAFA"/>')
+                svg.append(f'<rect x="{x + 79}" y="{row_y - 23}" width="{w - 80}" height="33" fill="#F8F8F8"/>')
             badges = []
             if field["pk"]: badges.append("PK")
             if field["fk"]: badges.append("FK")
@@ -182,9 +185,9 @@ def main():
             badge_text = "/".join(badges)
             if badge_text:
                 badge_color = "#000000"
-                svg.append(svg_text(x + 10, row_y, badge_text, 14, "700", badge_color))
-            svg.append(svg_text(x + 84, row_y, field["name"] + ("?" if field["nullable"] else ""), 17, "600" if badges else "normal", "#000000"))
-            svg.append(svg_text(x + w - 12, row_y, field["type"], 14, "normal", "#000000", "end"))
+                svg.append(svg_text(x + 10, row_y, badge_text, 15, "700", badge_color))
+            svg.append(svg_text(x + 88, row_y, field["name"] + ("?" if field["nullable"] else ""), 18, "600" if badges else "normal", "#000000"))
+            svg.append(svg_text(x + w - 12, row_y, field["type"], 15, "normal", "#000000", "end"))
 
     legend_y = canvas_h - 42
     svg.append(svg_text(110, legend_y, "Chú giải:", 18, "700", "#000000"))
@@ -199,7 +202,7 @@ def main():
     SVG_PATH.write_text("".join(svg), encoding="utf-8")
 
     # Render a high-resolution PNG using the same geometry.
-    scale = 0.75
+    scale = 1.0
     image = Image.new("RGB", (int(canvas_w * scale), int(canvas_h * scale)), "#FFFFFF")
     draw = ImageDraw.Draw(image)
     regular_path = "C:/Windows/Fonts/arial.ttf"
@@ -217,37 +220,39 @@ def main():
     for title, color, x, y, w, h in domain_boxes:
         box((x, y, x + w, y + h), "#FFFFFF", "#777777", 2, 0)
         txt(x + 30, y + 22, title, 24, "#000000", True)
-    for relation in relations:
+    for edge_index, relation in enumerate(relations):
         child, parent = relation["child"], relation["parent"]
         if child not in positions or parent not in positions: continue
         cx, cy, cw, ch = positions[child]; px, py, pw, ph = positions[parent]
         if px + pw / 2 <= cx + cw / 2: start, finish = (px + pw, py + ph / 2), (cx, cy + ch / 2)
         else: start, finish = (px, py + ph / 2), (cx + cw, cy + ch / 2)
-        mid_x = (start[0] + finish[0]) / 2
+        lane_offset = ((edge_index % 11) - 5) * 13
+        mid_x = (start[0] + finish[0]) / 2 + lane_offset
         color = "#000000"
         pts = [(int(start[0]*scale), int(start[1]*scale)), (int(mid_x*scale), int(start[1]*scale)), (int(mid_x*scale), int(finish[1]*scale)), (int(finish[0]*scale), int(finish[1]*scale))]
-        draw.line(pts, fill=color, width=1)
+        draw.line(pts, fill="#FFFFFF", width=8, joint="curve")
+        draw.line(pts, fill=color, width=2, joint="curve")
         diamond_y = (start[1] + finish[1]) / 2
         diamond = [(int(mid_x*scale), int((diamond_y-15)*scale)), (int((mid_x+22)*scale), int(diamond_y*scale)), (int(mid_x*scale), int((diamond_y+15)*scale)), (int((mid_x-22)*scale), int(diamond_y*scale))]
         draw.polygon(diamond, fill="#FFFFFF", outline="#000000")
         txt(start[0] + (10 if start[0] < finish[0] else -10), start[1] - 18, "1", 16, color, True, "la" if start[0] < finish[0] else "ra")
         txt(finish[0] + (-10 if start[0] < finish[0] else 10), finish[1] - 18, "0..N" if relation["optional"] else "N", 16, color, True, "ra" if start[0] < finish[0] else "la")
     for model_name, (x, y, w, h) in positions.items():
-        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 3, 0)
-        box((x, y, x + w, y + 52), "#EEEEEE", "#000000", 3, 0)
-        box((x, y + 52, x + 74, y + h), "#F7F7F7", None, 0, 0)
-        draw.line([(int((x+74)*scale), int((y+52)*scale)), (int((x+74)*scale), int((y+h)*scale))], fill="#000000", width=1)
-        txt(x + w / 2, y + 26, model_name, 20, "#000000", True, "mm")
+        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 5, 0)
+        box((x, y, x + w, y + 54), "#E8E8E8", "#000000", 5, 0)
+        box((x, y + 54, x + 78, y + h), "#F3F3F3", None, 0, 0)
+        draw.line([(int((x+78)*scale), int((y+54)*scale)), (int((x+78)*scale), int((y+h)*scale))], fill="#000000", width=2)
+        txt(x + w / 2, y + 27, model_name, 20, "#000000", True, "mm")
         for index, field in enumerate(models[model_name]):
-            row_y = y + 61 + index * 31
+            row_y = y + 64 + index * 33
             badges = []
             if field["pk"]: badges.append("PK")
             if field["fk"]: badges.append("FK")
             if field["uk"]: badges.append("UK")
             badge_text = "/".join(badges)
-            if badge_text: txt(x + 10, row_y - 8, badge_text, 13, "#000000", True)
-            txt(x + 84, row_y - 8, field["name"] + ("?" if field["nullable"] else ""), 15, "#000000", bool(badges))
-            txt(x + w - 12, row_y - 8, field["type"], 13, "#000000", False, "ra")
+            if badge_text: txt(x + 10, row_y - 9, badge_text, 15, "#000000", True)
+            txt(x + 88, row_y - 9, field["name"] + ("?" if field["nullable"] else ""), 17, "#000000", bool(badges))
+            txt(x + w - 12, row_y - 9, field["type"], 15, "#000000", False, "ra")
     image.save(PNG_PATH, optimize=True)
     image.save(PDF_PATH, "PDF", resolution=300.0)
     print(f"Generated {SVG_PATH}")
