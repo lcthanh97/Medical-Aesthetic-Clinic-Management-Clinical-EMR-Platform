@@ -102,6 +102,27 @@ def svg_text(x, y, text, size=18, weight="normal", color="#000000", anchor="star
     return f'<text x="{x}" y="{y}" font-family="Arial, sans-serif" font-size="{size}" font-weight="{weight}" fill="{color}" text-anchor="{anchor}">{html.escape(str(text))}</text>'
 
 
+def build_relation_ports(relations, positions):
+    """Give every relationship its own connection point on each table edge."""
+    incident = defaultdict(list)
+    for edge_index, relation in enumerate(relations):
+        incident[relation["child"]].append(edge_index)
+        incident[relation["parent"]].append(edge_index)
+
+    ports = {}
+    for model_name, edge_indexes in incident.items():
+        x, y, w, h = positions[model_name]
+        ordered = sorted(edge_indexes, key=lambda idx: (
+            positions[relations[idx]["parent"] if relations[idx]["child"] == model_name else relations[idx]["child"]][1],
+            idx,
+        ))
+        usable_top, usable_bottom = y + 68, y + h - 18
+        step = (usable_bottom - usable_top) / (len(ordered) + 1)
+        for slot, edge_index in enumerate(ordered, start=1):
+            ports[(edge_index, model_name)] = usable_top + slot * step
+    return ports
+
+
 def main():
     models, relations = parse_schema(SCHEMA_PATH.read_text(encoding="utf-8"))
     expected = {model for _, _, names in DOMAINS for model in names}
@@ -126,6 +147,7 @@ def main():
         positions.update(pack_domain(names, models, x, y, domain_w, domain_h))
         for model in names:
             domain_color[model] = color
+    relation_ports = build_relation_ports(relations, positions)
 
     svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{canvas_w}" height="{canvas_h}" viewBox="0 0 {canvas_w} {canvas_h}">']
     svg.append('<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#000000"/></marker></defs>')
@@ -146,15 +168,15 @@ def main():
             continue
         cx, cy, cw, ch = positions[child]
         px, py, pw, ph = positions[parent]
-        child_center = (cx + cw / 2, cy + ch / 2)
-        parent_center = (px + pw / 2, py + ph / 2)
+        child_center = (cx + cw / 2, relation_ports[(edge_index, child)])
+        parent_center = (px + pw / 2, relation_ports[(edge_index, parent)])
         if parent_center[0] <= child_center[0]:
-            start = (px + pw, py + ph / 2)
-            finish = (cx, cy + ch / 2)
+            start = (px + pw, parent_center[1])
+            finish = (cx, child_center[1])
         else:
-            start = (px, py + ph / 2)
-            finish = (cx + cw, cy + ch / 2)
-        lane_offset = ((edge_index % 11) - 5) * 13
+            start = (px, parent_center[1])
+            finish = (cx + cw, child_center[1])
+        lane_offset = ((edge_index % 29) - 14) * 11
         mid_x = (start[0] + finish[0]) / 2 + lane_offset
         color = "#000000"
         dash = ' stroke-dasharray="8 6"' if relation["optional"] else ""
@@ -169,9 +191,10 @@ def main():
 
     for model_name, (x, y, w, h) in positions.items():
         color = domain_color[model_name]
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="4.5"/>')
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="54" fill="#E8E8E8" stroke="#000000" stroke-width="4.5"/>')
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF"/>')
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="54" fill="#E8E8E8"/>')
         svg.append(f'<rect x="{x}" y="{y + 54}" width="78" height="{h - 54}" fill="#F3F3F3"/>')
+        svg.append(f'<line x1="{x}" y1="{y + 54}" x2="{x + w}" y2="{y + 54}" stroke="#000000" stroke-width="4.5"/>')
         svg.append(f'<line x1="{x + 78}" y1="{y + 54}" x2="{x + 78}" y2="{y + h}" stroke="#000000" stroke-width="2.2"/>')
         svg.append(svg_text(x + w / 2, y + 37, model_name, 23, "700", "#000000", "middle"))
         for index, field in enumerate(models[model_name]):
@@ -188,6 +211,8 @@ def main():
                 svg.append(svg_text(x + 10, row_y, badge_text, 15, "700", badge_color))
             svg.append(svg_text(x + 88, row_y, field["name"] + ("?" if field["nullable"] else ""), 18, "600" if badges else "normal", "#000000"))
             svg.append(svg_text(x + w - 12, row_y, field["type"], 15, "normal", "#000000", "end"))
+        # Draw the outer frame last so body fills can never cover any border segment.
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="none" stroke="#000000" stroke-width="5"/>')
 
     legend_y = canvas_h - 42
     svg.append(svg_text(110, legend_y, "Chú giải:", 18, "700", "#000000"))
@@ -224,9 +249,11 @@ def main():
         child, parent = relation["child"], relation["parent"]
         if child not in positions or parent not in positions: continue
         cx, cy, cw, ch = positions[child]; px, py, pw, ph = positions[parent]
-        if px + pw / 2 <= cx + cw / 2: start, finish = (px + pw, py + ph / 2), (cx, cy + ch / 2)
-        else: start, finish = (px, py + ph / 2), (cx + cw, cy + ch / 2)
-        lane_offset = ((edge_index % 11) - 5) * 13
+        if px + pw / 2 <= cx + cw / 2:
+            start, finish = (px + pw, relation_ports[(edge_index, parent)]), (cx, relation_ports[(edge_index, child)])
+        else:
+            start, finish = (px, relation_ports[(edge_index, parent)]), (cx + cw, relation_ports[(edge_index, child)])
+        lane_offset = ((edge_index % 29) - 14) * 11
         mid_x = (start[0] + finish[0]) / 2 + lane_offset
         color = "#000000"
         pts = [(int(start[0]*scale), int(start[1]*scale)), (int(mid_x*scale), int(start[1]*scale)), (int(mid_x*scale), int(finish[1]*scale)), (int(finish[0]*scale), int(finish[1]*scale))]
@@ -238,9 +265,10 @@ def main():
         txt(start[0] + (10 if start[0] < finish[0] else -10), start[1] - 18, "1", 16, color, True, "la" if start[0] < finish[0] else "ra")
         txt(finish[0] + (-10 if start[0] < finish[0] else 10), finish[1] - 18, "0..N" if relation["optional"] else "N", 16, color, True, "ra" if start[0] < finish[0] else "la")
     for model_name, (x, y, w, h) in positions.items():
-        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 5, 0)
-        box((x, y, x + w, y + 54), "#E8E8E8", "#000000", 5, 0)
+        box((x, y, x + w, y + h), "#FFFFFF", None, 0, 0)
+        box((x, y, x + w, y + 54), "#E8E8E8", None, 0, 0)
         box((x, y + 54, x + 78, y + h), "#F3F3F3", None, 0, 0)
+        draw.line([(int(x*scale), int((y+54)*scale)), (int((x+w)*scale), int((y+54)*scale))], fill="#000000", width=5)
         draw.line([(int((x+78)*scale), int((y+54)*scale)), (int((x+78)*scale), int((y+h)*scale))], fill="#000000", width=2)
         txt(x + w / 2, y + 27, model_name, 20, "#000000", True, "mm")
         for index, field in enumerate(models[model_name]):
@@ -253,6 +281,7 @@ def main():
             if badge_text: txt(x + 10, row_y - 9, badge_text, 15, "#000000", True)
             txt(x + 88, row_y - 9, field["name"] + ("?" if field["nullable"] else ""), 17, "#000000", bool(badges))
             txt(x + w - 12, row_y - 9, field["type"], 15, "#000000", False, "ra")
+        box((x, y, x + w, y + h), None, "#000000", 5, 0)
     image.save(PNG_PATH, optimize=True)
     image.save(PDF_PATH, "PDF", resolution=300.0)
     print(f"Generated {SVG_PATH}")
