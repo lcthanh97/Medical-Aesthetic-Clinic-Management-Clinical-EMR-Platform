@@ -131,14 +131,15 @@ def main():
         stale = sorted(expected - set(models))
         raise RuntimeError(f"Domain map mismatch. Missing={missing}; stale={stale}")
 
-    canvas_w, canvas_h = 7800, 4350
+    canvas_w, diagram_h, canvas_h = 7800, 4350, 5650
     margin_x, margin_y = 70, 165
     gap_x, gap_y = 46, 48
     domain_w = int((canvas_w - margin_x * 2 - gap_x * 2) / 3)
-    domain_h = int((canvas_h - margin_y - 65 - gap_y * 2) / 3)
+    domain_h = int((diagram_h - margin_y - 65 - gap_y * 2) / 3)
     positions = {}
     domain_boxes = []
     domain_color = {}
+    domain_index = {}
     for index, (title, color, names) in enumerate(DOMAINS):
         row, col = divmod(index, 3)
         x = margin_x + col * (domain_w + gap_x)
@@ -147,7 +148,13 @@ def main():
         positions.update(pack_domain(names, models, x, y, domain_w, domain_h))
         for model in names:
             domain_color[model] = color
+            domain_index[model] = index
     relation_ports = build_relation_ports(relations, positions)
+    cross_domain_edges = [
+        edge_index for edge_index, relation in enumerate(relations)
+        if domain_index[relation["child"]] != domain_index[relation["parent"]]
+    ]
+    connector_codes = {edge_index: f"R{number:02d}" for number, edge_index in enumerate(cross_domain_edges, start=1)}
 
     svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{canvas_w}" height="{canvas_h}" viewBox="0 0 {canvas_w} {canvas_h}">']
     svg.append('<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#000000"/></marker></defs>')
@@ -161,10 +168,13 @@ def main():
         svg.append(f'<rect x="{x + 18}" y="{y + 12}" width="{min(620, len(title) * 18 + 70)}" height="40" fill="#FFFFFF"/>')
         svg.append(svg_text(x + 30, y + 40, title, 25, "700", "#000000"))
 
-    # Draw relationships beneath the tables. Cross-domain links are slightly darker.
+    # Draw only local relationships as wires. Long cross-domain relationships use
+    # paired reference connectors, preventing the overview from becoming spaghetti.
     for edge_index, relation in enumerate(relations):
         child, parent = relation["child"], relation["parent"]
         if child not in positions or parent not in positions:
+            continue
+        if edge_index in connector_codes:
             continue
         cx, cy, cw, ch = positions[child]
         px, py, pw, ph = positions[parent]
@@ -214,6 +224,38 @@ def main():
         # Draw the outer frame last so body fills can never cover any border segment.
         svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="none" stroke="#000000" stroke-width="5"/>')
 
+    # Paired connector tags replace every long cross-domain wire.
+    for edge_index in cross_domain_edges:
+        relation = relations[edge_index]
+        code = connector_codes[edge_index]
+        for model_name, cardinality in ((relation["parent"], "1"), (relation["child"], "0..N" if relation["optional"] else "N")):
+            x, y, w, h = positions[model_name]
+            other = relation["child"] if model_name == relation["parent"] else relation["parent"]
+            other_x = positions[other][0] + positions[other][2] / 2
+            on_left = other_x < x + w / 2
+            tag_x = x - 84 if on_left else x + w + 4
+            tag_y = relation_ports[(edge_index, model_name)] - 15
+            svg.append(f'<rect x="{tag_x}" y="{tag_y}" width="80" height="30" fill="#FFFFFF" stroke="#000000" stroke-width="2.5"/>')
+            svg.append(svg_text(tag_x + 40, tag_y + 21, f"{code}·{cardinality}", 13, "700", "#000000", "middle"))
+            stub_x1 = x if on_left else x + w
+            stub_x2 = tag_x + 80 if on_left else tag_x
+            svg.append(f'<line x1="{stub_x1}" y1="{tag_y + 15}" x2="{stub_x2}" y2="{tag_y + 15}" stroke="#000000" stroke-width="2.5"/>')
+
+    directory_y = diagram_h + 35
+    svg.append(f'<rect x="70" y="{directory_y}" width="7660" height="1195" fill="#FFFFFF" stroke="#000000" stroke-width="3"/>')
+    svg.append(svg_text(110, directory_y + 42, "DANH MỤC ĐẦU NỐI LIÊN NHÓM – tra mã Rxx tại hai đầu bảng", 25, "700", "#000000"))
+    columns = 4
+    rows = (len(cross_domain_edges) + columns - 1) // columns
+    col_w = 1900
+    for item_index, edge_index in enumerate(cross_domain_edges):
+        relation = relations[edge_index]
+        col, row = divmod(item_index, rows)
+        item_x = 110 + col * col_w
+        item_y = directory_y + 82 + row * 46
+        required = "0..N" if relation["optional"] else "N"
+        label = f'{connector_codes[edge_index]}   {relation["parent"]} (1)  ↔  {relation["child"]}.{",".join(relation["fields"])} ({required})'
+        svg.append(svg_text(item_x, item_y, label, 16, "normal", "#000000"))
+
     legend_y = canvas_h - 42
     svg.append(svg_text(110, legend_y, "Chú giải:", 18, "700", "#000000"))
     svg.append(svg_text(225, legend_y, "PK = khóa chính", 17, "normal", "#000000"))
@@ -248,6 +290,7 @@ def main():
     for edge_index, relation in enumerate(relations):
         child, parent = relation["child"], relation["parent"]
         if child not in positions or parent not in positions: continue
+        if edge_index in connector_codes: continue
         cx, cy, cw, ch = positions[child]; px, py, pw, ph = positions[parent]
         if px + pw / 2 <= cx + cw / 2:
             start, finish = (px + pw, relation_ports[(edge_index, parent)]), (cx, relation_ports[(edge_index, child)])
@@ -282,6 +325,35 @@ def main():
             txt(x + 88, row_y - 9, field["name"] + ("?" if field["nullable"] else ""), 17, "#000000", bool(badges))
             txt(x + w - 12, row_y - 9, field["type"], 15, "#000000", False, "ra")
         box((x, y, x + w, y + h), None, "#000000", 5, 0)
+    for edge_index in cross_domain_edges:
+        relation = relations[edge_index]
+        code = connector_codes[edge_index]
+        for model_name, cardinality in ((relation["parent"], "1"), (relation["child"], "0..N" if relation["optional"] else "N")):
+            x, y, w, h = positions[model_name]
+            other = relation["child"] if model_name == relation["parent"] else relation["parent"]
+            other_x = positions[other][0] + positions[other][2] / 2
+            on_left = other_x < x + w / 2
+            tag_x = x - 84 if on_left else x + w + 4
+            tag_y = relation_ports[(edge_index, model_name)] - 15
+            box((tag_x, tag_y, tag_x + 80, tag_y + 30), "#FFFFFF", "#000000", 3, 0)
+            txt(tag_x + 40, tag_y + 15, f"{code}·{cardinality}", 13, "#000000", True, "mm")
+            stub_x1 = x if on_left else x + w
+            stub_x2 = tag_x + 80 if on_left else tag_x
+            draw.line([(int(stub_x1*scale), int((tag_y+15)*scale)), (int(stub_x2*scale), int((tag_y+15)*scale))], fill="#000000", width=3)
+    directory_y = diagram_h + 35
+    box((70, directory_y, 7730, directory_y + 1195), "#FFFFFF", "#000000", 3, 0)
+    txt(110, directory_y + 20, "DANH MỤC ĐẦU NỐI LIÊN NHÓM – tra mã Rxx tại hai đầu bảng", 24, "#000000", True)
+    columns = 4
+    rows = (len(cross_domain_edges) + columns - 1) // columns
+    col_w = 1900
+    for item_index, edge_index in enumerate(cross_domain_edges):
+        relation = relations[edge_index]
+        col, row = divmod(item_index, rows)
+        item_x = 110 + col * col_w
+        item_y = directory_y + 72 + row * 46
+        required = "0..N" if relation["optional"] else "N"
+        label = f'{connector_codes[edge_index]}   {relation["parent"]} (1)  <->  {relation["child"]}.{",".join(relation["fields"])} ({required})'
+        txt(item_x, item_y, label, 15, "#000000")
     image.save(PNG_PATH, optimize=True)
     image.save(PDF_PATH, "PDF", resolution=300.0)
     print(f"Generated {SVG_PATH}")
