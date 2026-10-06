@@ -79,17 +79,17 @@ def parse_schema(text: str):
 
 
 def pack_domain(model_names, models, box_x, box_y, box_w, box_h):
-    padding = 46
+    padding = 34
     title_h = 62
-    gap_x = 34
-    gap_y = 30
-    columns = 3 if len(model_names) >= 6 else 2
+    gap_x = 24
+    gap_y = 24
+    columns = 4 if len(model_names) >= 7 else 3
     table_w = int((box_w - padding * 2 - gap_x * (columns - 1)) / columns)
     column_heights = [box_y + title_h + padding for _ in range(columns)]
     positions = {}
     for model_name in sorted(model_names, key=lambda item: len(models[item]), reverse=True):
         field_count = len(models[model_name])
-        table_h = 52 + field_count * 27 + 14
+        table_h = 58 + field_count * 31 + 14
         column = min(range(columns), key=lambda idx: column_heights[idx])
         x = box_x + padding + column * (table_w + gap_x)
         y = column_heights[column]
@@ -110,11 +110,11 @@ def main():
         stale = sorted(expected - set(models))
         raise RuntimeError(f"Domain map mismatch. Missing={missing}; stale={stale}")
 
-    canvas_w, canvas_h = 7800, 6000
-    margin_x, margin_y = 90, 180
-    gap_x, gap_y = 70, 80
+    canvas_w, canvas_h = 7800, 4350
+    margin_x, margin_y = 70, 165
+    gap_x, gap_y = 46, 48
     domain_w = int((canvas_w - margin_x * 2 - gap_x * 2) / 3)
-    domain_h = int((canvas_h - margin_y - 100 - gap_y * 2) / 3)
+    domain_h = int((canvas_h - margin_y - 65 - gap_y * 2) / 3)
     positions = {}
     domain_boxes = []
     domain_color = {}
@@ -135,8 +135,9 @@ def main():
     svg.append(svg_text(canvas_w / 2, 130, f"Nguồn: prisma/schema.prisma · {len(models)} bảng · {len(relations)} quan hệ khóa ngoại", 20, "normal", "#000000", "middle"))
 
     for title, color, x, y, w, h in domain_boxes:
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="2" stroke-dasharray="12 8"/>')
-        svg.append(svg_text(x + 30, y + 40, title, 24, "700", "#000000"))
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#777777" stroke-width="2" stroke-dasharray="10 7"/>')
+        svg.append(f'<rect x="{x + 18}" y="{y + 12}" width="{min(620, len(title) * 18 + 70)}" height="40" fill="#FFFFFF"/>')
+        svg.append(svg_text(x + 30, y + 40, title, 25, "700", "#000000"))
 
     # Draw relationships beneath the tables. Cross-domain links are slightly darker.
     for relation in relations:
@@ -165,14 +166,15 @@ def main():
 
     for model_name, (x, y, w, h) in positions.items():
         color = domain_color[model_name]
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="2.4"/>')
-        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="46" fill="#FFFFFF" stroke="#000000" stroke-width="2.4"/>')
-        svg.append(f'<line x1="{x + 68}" y1="{y + 46}" x2="{x + 68}" y2="{y + h}" stroke="#000000" stroke-width="1.4"/>')
-        svg.append(svg_text(x + w / 2, y + 31, model_name, 20, "700", "#000000", "middle"))
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#FFFFFF" stroke="#000000" stroke-width="3"/>')
+        svg.append(f'<rect x="{x}" y="{y}" width="{w}" height="52" fill="#EEEEEE" stroke="#000000" stroke-width="3"/>')
+        svg.append(f'<rect x="{x}" y="{y + 52}" width="74" height="{h - 52}" fill="#F7F7F7"/>')
+        svg.append(f'<line x1="{x + 74}" y1="{y + 52}" x2="{x + 74}" y2="{y + h}" stroke="#000000" stroke-width="1.8"/>')
+        svg.append(svg_text(x + w / 2, y + 35, model_name, 22, "700", "#000000", "middle"))
         for index, field in enumerate(models[model_name]):
-            row_y = y + 52 + index * 27
+            row_y = y + 61 + index * 31
             if index % 2:
-                svg.append(f'<rect x="{x + 1}" y="{row_y - 18}" width="{w - 2}" height="27" fill="#F8FAFC"/>')
+                svg.append(f'<rect x="{x + 75}" y="{row_y - 22}" width="{w - 76}" height="31" fill="#FAFAFA"/>')
             badges = []
             if field["pk"]: badges.append("PK")
             if field["fk"]: badges.append("FK")
@@ -180,9 +182,9 @@ def main():
             badge_text = "/".join(badges)
             if badge_text:
                 badge_color = "#000000"
-                svg.append(svg_text(x + 12, row_y, badge_text, 13, "700", badge_color))
-            svg.append(svg_text(x + 75, row_y, field["name"] + ("?" if field["nullable"] else ""), 15, "600" if badges else "normal", "#000000"))
-            svg.append(svg_text(x + w - 12, row_y, field["type"], 13, "normal", "#000000", "end"))
+                svg.append(svg_text(x + 10, row_y, badge_text, 14, "700", badge_color))
+            svg.append(svg_text(x + 84, row_y, field["name"] + ("?" if field["nullable"] else ""), 17, "600" if badges else "normal", "#000000"))
+            svg.append(svg_text(x + w - 12, row_y, field["type"], 14, "normal", "#000000", "end"))
 
     legend_y = canvas_h - 42
     svg.append(svg_text(110, legend_y, "Chú giải:", 18, "700", "#000000"))
@@ -197,7 +199,7 @@ def main():
     SVG_PATH.write_text("".join(svg), encoding="utf-8")
 
     # Render a high-resolution PNG using the same geometry.
-    scale = 0.5
+    scale = 0.75
     image = Image.new("RGB", (int(canvas_w * scale), int(canvas_h * scale)), "#FFFFFF")
     draw = ImageDraw.Draw(image)
     regular_path = "C:/Windows/Fonts/arial.ttf"
@@ -213,7 +215,7 @@ def main():
     txt(canvas_w / 2, 62, "ERD TỔNG THỂ – HỆ THỐNG QUẢN TRỊ PHÒNG KHÁM DA LIỄU & BỆNH ÁN ĐIỆN TỬ", 38, "#000000", True, "ma")
     txt(canvas_w / 2, 120, f"Nguồn: prisma/schema.prisma · {len(models)} bảng · {len(relations)} quan hệ khóa ngoại", 20, "#000000", False, "ma")
     for title, color, x, y, w, h in domain_boxes:
-        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 2, 0)
+        box((x, y, x + w, y + h), "#FFFFFF", "#777777", 2, 0)
         txt(x + 30, y + 22, title, 24, "#000000", True)
     for relation in relations:
         child, parent = relation["child"], relation["parent"]
@@ -231,20 +233,21 @@ def main():
         txt(start[0] + (10 if start[0] < finish[0] else -10), start[1] - 18, "1", 16, color, True, "la" if start[0] < finish[0] else "ra")
         txt(finish[0] + (-10 if start[0] < finish[0] else 10), finish[1] - 18, "0..N" if relation["optional"] else "N", 16, color, True, "ra" if start[0] < finish[0] else "la")
     for model_name, (x, y, w, h) in positions.items():
-        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 2, 0)
-        box((x, y, x + w, y + 46), "#FFFFFF", "#000000", 2, 0)
-        draw.line([(int((x+68)*scale), int((y+46)*scale)), (int((x+68)*scale), int((y+h)*scale))], fill="#000000", width=1)
-        txt(x + w / 2, y + 23, model_name, 20, "#000000", True, "mm")
+        box((x, y, x + w, y + h), "#FFFFFF", "#000000", 3, 0)
+        box((x, y, x + w, y + 52), "#EEEEEE", "#000000", 3, 0)
+        box((x, y + 52, x + 74, y + h), "#F7F7F7", None, 0, 0)
+        draw.line([(int((x+74)*scale), int((y+52)*scale)), (int((x+74)*scale), int((y+h)*scale))], fill="#000000", width=1)
+        txt(x + w / 2, y + 26, model_name, 20, "#000000", True, "mm")
         for index, field in enumerate(models[model_name]):
-            row_y = y + 52 + index * 27
+            row_y = y + 61 + index * 31
             badges = []
             if field["pk"]: badges.append("PK")
             if field["fk"]: badges.append("FK")
             if field["uk"]: badges.append("UK")
             badge_text = "/".join(badges)
-            if badge_text: txt(x + 12, row_y - 7, badge_text, 13, "#000000", True)
-            txt(x + 75, row_y - 7, field["name"] + ("?" if field["nullable"] else ""), 15, "#000000", bool(badges))
-            txt(x + w - 12, row_y - 7, field["type"], 13, "#000000", False, "ra")
+            if badge_text: txt(x + 10, row_y - 8, badge_text, 13, "#000000", True)
+            txt(x + 84, row_y - 8, field["name"] + ("?" if field["nullable"] else ""), 15, "#000000", bool(badges))
+            txt(x + w - 12, row_y - 8, field["type"], 13, "#000000", False, "ra")
     image.save(PNG_PATH, optimize=True)
     image.save(PDF_PATH, "PDF", resolution=300.0)
     print(f"Generated {SVG_PATH}")
