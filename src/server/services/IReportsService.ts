@@ -1,1 +1,6 @@
-export interface IReportsService { getById(id:string):Promise<unknown|null>; getList():Promise<unknown[]>; }
+export interface IReportsService {
+  getInventoryAndRevenueReport(startDate: Date, endDate: Date): Promise<{
+    revenue: any;
+    inventory: any;
+  }>;
+}

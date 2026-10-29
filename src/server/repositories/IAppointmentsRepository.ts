@@ -1,6 +1,10 @@
+import type { Appointment, Prisma } from '@prisma/client';
+
 export interface IAppointmentsRepository {
-  findById(id:string):Promise<unknown|null>;
-  findMany():Promise<unknown[]>;
-  create(input:unknown):Promise<unknown>;
-  update(id:string,input:unknown):Promise<unknown>;
+  findById(id: string): Promise<Appointment | null>;
+  findMany(): Promise<Appointment[]>;
+  findConflicts(scheduledAt: Date, windowMinutes?: number): Promise<Appointment[]>;
+  create(input: Prisma.AppointmentUncheckedCreateInput): Promise<Appointment>;
+  update(id: string, input: Prisma.AppointmentUpdateInput): Promise<Appointment>;
+  delete(id: string): Promise<Appointment>;
 }

@@ -1,2 +1,5 @@
-import { NotificationsPanel } from '@/features/notifications';
-export default function Page(){return <main><h1>Notifications</h1><NotificationsPanel /></main>}
+import { redirect } from 'next/navigation';
+
+export default function NotificationsRedirectPage() {
+  redirect('/admin/notifications');
+}
