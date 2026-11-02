@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "next": "latest",
     "react": "latest",
@@ -18,15 +19,19 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "latest",
     "@types/pg": "^8.23.1",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "autoprefixer": "^10.6.2",
     "dotenv": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "pg": "^8.23.1",
+    "postcss": "^8.5.32",
     "prisma": "7.10.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "latest",
     "vitest": "latest"
   }

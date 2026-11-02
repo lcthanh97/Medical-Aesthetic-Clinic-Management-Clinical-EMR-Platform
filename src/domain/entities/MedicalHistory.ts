@@ -1,5 +1,6 @@
 export interface MedicalHistory {
-  id:string;
-  createdAt:Date;
-  updatedAt:Date;
+  id: string;
+  patientId: string;
+  type: string;
+  content: string;
 }

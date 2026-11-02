@@ -1,3 +1,9 @@
-import { notImplemented } from '@/server/common/notImplemented';
-export async function GET(){return notImplemented('reception');}
-export async function POST(){return notImplemented('reception');}
+import { receptionController } from '@/server/common/container';
+
+export async function GET(request: Request) {
+  return receptionController.listPatients(request);
+}
+
+export async function POST(request: Request) {
+  return receptionController.createPatient(request);
+}
