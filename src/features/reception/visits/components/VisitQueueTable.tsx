@@ -162,7 +162,7 @@ export function VisitQueueTable({
               Tự động cập nhật 10s
             </span>
             <Button variant="secondary" size="sm" onClick={onRefresh} className="text-xs shadow-none">
-              ↻ Làm mới
+              Làm mới
             </Button>
           </div>
         </div>
@@ -178,7 +178,6 @@ export function VisitQueueTable({
           <div className="p-8">
             <EmptyState>
               <div className="flex flex-col items-center justify-center gap-2">
-                <span className="text-3xl">🎫</span>
                 <p className="font-semibold text-slate-700">Hiện tại không có lượt khám nào trong hàng đợi</p>
                 <p className="text-xs text-slate-500">
                   Bệnh nhân đến trực tiếp tại quầy sẽ được cấp số thứ tự và xuất hiện tại đây theo thứ tự.
@@ -260,7 +259,6 @@ export function VisitQueueTable({
                       {/* Phòng khám */}
                       <td className="px-6 py-4">
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">
-                          <span>🏥</span>
                           <span>{item.roomName}</span>
                         </div>
                       </td>
@@ -293,7 +291,7 @@ export function VisitQueueTable({
                                 className="text-xs shadow-none border-[#cbdff2] text-[#0e3a78] hover:bg-[#e8f1fc]"
                                 title="Chuyển sang phòng khám khác"
                               >
-                                🔄 Đổi phòng
+                                Đổi phòng
                               </Button>
                               <Button
                                 size="sm"

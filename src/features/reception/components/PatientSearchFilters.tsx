@@ -44,7 +44,7 @@ export function PatientSearchFilters({
           disabled={isLoading}
           title="Tải lại dữ liệu"
         >
-          {isLoading ? 'Đang tải...' : '↻ Làm mới'}
+          {isLoading ? 'Đang tải...' : 'Làm mới'}
         </Button>
 
         <Link href="/reception/new">

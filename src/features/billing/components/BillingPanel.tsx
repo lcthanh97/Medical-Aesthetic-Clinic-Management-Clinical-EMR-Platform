@@ -82,16 +82,10 @@ export function BillingPanel() {
       {/* Header Module */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded bg-teal-100 text-teal-800">
-              Phân hệ BIL-01 & BIL-02
-            </span>
-            <span className="text-xs text-slate-500 font-medium">Tài chính phòng khám & Thanh toán</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">
-            Hóa Đơn & Thanh Toán Cuối Lượt Khám (Final Medical Billing)
+          <h1 className="text-2xl font-bold text-slate-900">
+            Hóa Đơn & Thanh Toán Cuối Lượt Khám
           </h1>
-          <p className="text-sm text-slate-600 mt-0.5">
+          <p className="text-sm text-slate-600 mt-1">
             Tổng hợp tiền khám, tiền thuốc, loại trừ các khoản CLS đã trả trước, hỗ trợ thu tiền mặt và VNPay Sandbox.
           </p>
         </div>
@@ -106,7 +100,7 @@ export function BillingPanel() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🧾 Bảng kê & Thanh toán cuối lượt
+            Bảng kê & Thanh toán cuối lượt
           </button>
           <button
             onClick={() => setActiveTab('INVOICE_LIST')}
@@ -116,7 +110,7 @@ export function BillingPanel() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            📋 Danh sách tất cả hóa đơn ({invoices.length})
+            Danh sách tất cả hóa đơn ({invoices.length})
           </button>
         </div>
       </div>
@@ -254,11 +248,10 @@ export function BillingPanel() {
                   {/* Chú thích CLS đã trả trước */}
                   {summary.prepaidAmount > 0 && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-start gap-2">
-                      <span className="text-base">ℹ️</span>
                       <div>
                         <strong>Quy tắc loại trừ tiền CLS đã trả trước:</strong> Khoản tiền Cận lâm sàng{' '}
                         <strong>{summary.prepaidAmount.toLocaleString('vi-VN')} VNĐ</strong> đã được thanh toán trước đó
-                        qua quy trình CLS-04 để thực hiện dịch vụ. Hệ thống <strong>không cộng dồn</strong> khoản này vào
+                        qua quy trình CLS để thực hiện dịch vụ. Hệ thống <strong>không cộng dồn</strong> khoản này vào
                         số tiền phải thanh toán lần cuối.
                       </div>
                     </div>
@@ -316,11 +309,11 @@ export function BillingPanel() {
                         disabled={isSubmitting}
                         className="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-bold shadow transition-colors cursor-pointer flex items-center justify-center gap-2"
                       >
-                        {isSubmitting ? 'Đang tạo...' : '📝 Lập Hóa Đơn Cuối Lượt (Finalize)'}
+                        {isSubmitting ? 'Đang tạo...' : 'Lập Hóa Đơn Cuối Lượt'}
                       </button>
                     ) : summary.finalInvoiceStatus === 'PAID' ? (
                       <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-lg text-center text-xs font-bold text-emerald-800">
-                        ✅ Hóa đơn đã được thanh toán đầy đủ. Đơn thuốc đã sẵn sàng cấp phát tại Quầy Dược.
+                        Hóa đơn đã được thanh toán đầy đủ. Đơn thuốc đã sẵn sàng cấp phát tại Quầy Dược.
                       </div>
                     ) : (
                       <button
@@ -328,7 +321,7 @@ export function BillingPanel() {
                         onClick={handleOpenPaymentModal}
                         className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow transition-colors cursor-pointer flex items-center justify-center gap-2"
                       >
-                        💳 Tiến Hành Thanh Toán ({summary.amountDue.toLocaleString('vi-VN')} đ)
+                        Tiến Hành Thanh Toán ({summary.amountDue.toLocaleString('vi-VN')} đ)
                       </button>
                     )}
                   </div>
@@ -447,8 +440,7 @@ export function BillingPanel() {
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="text-xl">💵</span>
-                  <span className="text-xs">Tiền Mặt (CASH)</span>
+                  <span className="text-xs font-semibold">Tiền Mặt (CASH)</span>
                 </button>
                 <button
                   type="button"
@@ -459,8 +451,7 @@ export function BillingPanel() {
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="text-xl">📱</span>
-                  <span className="text-xs">VNPay Sandbox (QR/ATM)</span>
+                  <span className="text-xs font-semibold">VNPay Sandbox (QR/ATM)</span>
                 </button>
               </div>
             </div>
@@ -558,7 +549,7 @@ export function BillingPanel() {
                     disabled={isSubmitting}
                     className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow cursor-pointer flex items-center gap-1.5"
                   >
-                    {isSubmitting ? 'Đang chuyển hướng...' : '🚀 Chuyển Hướng Đến VNPay'}
+                    {isSubmitting ? 'Đang chuyển hướng...' : 'Chuyển Hướng Đến VNPay'}
                   </button>
                 </div>
               </div>

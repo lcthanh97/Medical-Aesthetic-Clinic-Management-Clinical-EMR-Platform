@@ -17,10 +17,6 @@ export function VisitTicketModal({ visit, isOpen, onClose, onNext }: VisitTicket
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border border-[#e2ebf5] text-center space-y-4">
-        {/* Success badge */}
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e6f9f0] text-2xl font-bold text-emerald-700">
-          ✓
-        </div>
         <div>
           <h3 className="text-lg font-bold text-slate-800">Đăng ký lượt khám thành công!</h3>
           <p className="text-xs text-slate-500 mt-0.5">

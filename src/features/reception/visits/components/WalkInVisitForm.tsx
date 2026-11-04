@@ -246,7 +246,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
                 </div>
               </div>
               <span className="text-xs font-semibold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
-                ✓ Đã chọn
+                Đã chọn
               </span>
             </div>
           ) : (
@@ -301,7 +301,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
                   target="_blank"
                   className="text-[#0e3a78] font-semibold underline hover:text-[#124794]"
                 >
-                  Tạo hồ sơ bệnh nhân mới tại đây (REC-01) ↗
+                  Tạo hồ sơ bệnh nhân mới tại đây ↗
                 </Link>
               </p>
             </div>
@@ -395,7 +395,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
         {selectedRoomObj && (
           <div className="rounded-2xl border border-[#e2ebf5] bg-[#f8fafc] p-5 shadow-sm space-y-3">
             <h3 className="font-bold text-[#0e3a78] text-xs uppercase tracking-wider">
-              📊 Thông tin hàng đợi tại phòng khám đã chọn
+              Thông tin hàng đợi tại phòng khám đã chọn
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
               <div className="rounded-xl border border-[#cbdff2] bg-white p-3">

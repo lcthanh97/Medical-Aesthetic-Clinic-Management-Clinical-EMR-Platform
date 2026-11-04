@@ -36,7 +36,7 @@ export function ReceptionPanel() {
 
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center justify-between">
-          <span>⚠️ {error}</span>
+          <span>{error}</span>
           <button
             onClick={refresh}
             className="text-xs underline font-semibold cursor-pointer"

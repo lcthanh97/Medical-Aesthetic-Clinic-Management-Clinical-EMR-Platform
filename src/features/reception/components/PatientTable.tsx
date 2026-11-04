@@ -51,7 +51,6 @@ export function PatientTable({
         <div className="p-8">
           <EmptyState>
             <div className="flex flex-col items-center justify-center gap-2">
-              <span className="text-3xl">📁</span>
               <p className="font-semibold text-slate-700">Chưa tìm thấy hồ sơ bệnh nhân nào</p>
               <p className="text-xs text-slate-500">
                 Hãy thử tìm kiếm với từ khóa khác hoặc bấm nút "+ Tiếp nhận bệnh nhân" để tạo mới.
@@ -115,7 +114,7 @@ export function PatientTable({
                         {hasAllergies ? (
                           <div className="flex flex-wrap gap-1 items-center">
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#fef2f2] px-2.5 py-0.5 text-xs font-semibold text-[#dc2626] border border-[#fecaca]">
-                              ⚠️ {p.allergies.length} dị ứng
+                              {p.allergies.length} dị ứng
                             </span>
                             <span className="text-xs text-slate-500 truncate max-w-[150px]">
                               ({p.allergies.map((a) => a.substance).join(', ')})

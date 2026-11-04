@@ -1,7 +1,7 @@
 import { VisitsQueuePanel } from '@/features/reception/visits';
 
 export const metadata = {
-  title: 'Hàng đợi khám bệnh (REC-02) | DERMACARE',
+  title: 'Hàng đợi khám bệnh | DERMACARE',
   description: 'Theo dõi và quản lý bệnh nhân đang chờ tại các phòng khám da liễu thẩm mỹ.',
 };
 

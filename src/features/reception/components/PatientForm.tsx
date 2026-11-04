@@ -176,7 +176,6 @@ export function PatientForm({ initialData, isEdit = false }: PatientFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {formError && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-center gap-2">
-          <span>⚠️</span>
           <span>{formError}</span>
         </div>
       )}
@@ -185,7 +184,6 @@ export function PatientForm({ initialData, isEdit = false }: PatientFormProps) {
       {duplicateWarning && duplicateWarning.isDuplicate && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800 shadow-sm">
           <div className="flex items-center gap-2 font-bold mb-2 text-amber-900">
-            <span>⚠️</span>
             <span>CẢNH BÁO: Phát hiện hồ sơ bệnh nhân có khả năng trùng lặp</span>
           </div>
           <ul className="list-disc pl-5 space-y-1 text-xs mb-3">

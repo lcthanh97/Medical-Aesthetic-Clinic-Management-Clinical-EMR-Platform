@@ -26,11 +26,6 @@ export function VisitsQueuePanel() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e8f1fc] text-[#0e3a78] text-xs font-bold mb-2">
-            <span>REC-02</span>
-            <span>•</span>
-            <span>Hàng đợi tiếp nhận tại quầy</span>
-          </div>
           <h1 className="text-2xl font-black text-[#0e3a78]">Hàng đợi khám bệnh</h1>
           <p className="text-xs text-slate-500 mt-1">
             Theo dõi danh sách bệnh nhân đang chờ tại các phòng khám và điều phối số thứ tự thời gian thực.
@@ -39,7 +34,7 @@ export function VisitsQueuePanel() {
         <div className="flex items-center gap-2">
           <Link href="/reception">
             <Button variant="secondary" size="md" className="border-[#cbdff2] text-[#0e3a78]">
-              📁 Danh sách bệnh nhân
+              Danh sách bệnh nhân
             </Button>
           </Link>
           <Link href="/reception/visits/new">

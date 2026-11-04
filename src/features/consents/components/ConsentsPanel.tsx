@@ -184,16 +184,10 @@ export function ConsentsPanel() {
       {/* Header Module */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-semibold uppercase tracking-wider rounded bg-teal-100 text-teal-800">
-              Phân hệ CON-01 & CON-02
-            </span>
-            <span className="text-xs text-slate-500 font-medium">Bản cam kết điều trị điện tử</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">
-            Bản Cam Kết & Chữ Ký Điện Tử (Electronic Medical Consents)
+          <h1 className="text-2xl font-bold text-slate-900">
+            Bản Cam Kết & Chữ Ký Điện Tử
           </h1>
-          <p className="text-sm text-slate-600 mt-0.5">
+          <p className="text-sm text-slate-600 mt-1">
             Quản lý biểu mẫu y khoa, phiên bản lựa chọn và chữ ký trực tiếp của người bệnh / người đại diện.
           </p>
         </div>
@@ -208,7 +202,7 @@ export function ConsentsPanel() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            ✍️ Ký cam kết trên thiết bị
+            Ký cam kết trên thiết bị
           </button>
           <button
             onClick={() => setActiveTab('TEMPLATES')}
@@ -218,7 +212,7 @@ export function ConsentsPanel() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            📄 Quản lý Biểu mẫu (v1, v2...)
+            Quản lý biểu mẫu
           </button>
           <button
             onClick={() => setActiveTab('SIGNED_LIST')}
@@ -228,7 +222,7 @@ export function ConsentsPanel() {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            🗂️ Danh sách đã ký ({signedConsents.length})
+            Danh sách đã ký ({signedConsents.length})
           </button>
         </div>
       </div>
@@ -441,7 +435,7 @@ export function ConsentsPanel() {
                     </>
                   ) : (
                     <>
-                      <span>✍️ Xác nhận Ký Cam Kết</span>
+                      <span>Xác nhận Ký Cam Kết</span>
                     </>
                   )}
                 </button>

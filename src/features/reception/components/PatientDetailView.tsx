@@ -54,12 +54,12 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-500">
                 <span>
-                  🎂 Ngày sinh: <strong className="text-slate-700">{formatDate(patient.dateOfBirth)}</strong>
+                  Ngày sinh: <strong className="text-slate-700">{formatDate(patient.dateOfBirth)}</strong>
                   {age !== null && ` (${age} tuổi)`}
                 </span>
                 <span>•</span>
                 <span>
-                  📞 Số điện thoại: <strong className="text-slate-700">{patient.phone || 'Chưa cập nhật'}</strong>
+                  Số điện thoại: <strong className="text-slate-700">{patient.phone || 'Chưa cập nhật'}</strong>
                 </span>
               </div>
             </div>
@@ -73,7 +73,7 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
             </Link>
             <Link href={`/reception/${patient.id}/edit`}>
               <Button variant="primary">
-                ✎ Chỉnh sửa hồ sơ
+                Chỉnh sửa hồ sơ
               </Button>
             </Link>
           </div>
@@ -88,7 +88,6 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
           <div className="rounded-2xl border border-[#e2ebf5] bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b border-[#e2ebf5] pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xl">⚠️</span>
                 <h2 className="text-base font-bold text-[#0e3a78]">Cảnh báo Dị ứng</h2>
               </div>
               <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-600 border border-[#e2ebf5]">
@@ -137,7 +136,6 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
           <div className="rounded-2xl border border-[#e2ebf5] bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b border-[#e2ebf5] pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xl">📋</span>
                 <h2 className="text-base font-bold text-[#0e3a78]">Tiền sử y khoa</h2>
               </div>
               <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-600 border border-[#e2ebf5]">
@@ -169,7 +167,6 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
           <div className="rounded-2xl border border-[#e2ebf5] bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b border-[#e2ebf5] pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🩺</span>
                 <h2 className="text-base font-bold text-[#0e3a78]">Lịch sử khám</h2>
               </div>
               <span className="rounded-full bg-[#e8f1fc] px-2.5 py-0.5 text-xs font-bold text-[#0e3a78]">

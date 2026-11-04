@@ -53,8 +53,8 @@ export function CancelVisitModal({
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-[#e2ebf5]">
         <form onSubmit={handleCancel} className="space-y-4">
           <div>
-            <h3 className="text-lg font-bold text-rose-700 flex items-center gap-2">
-              <span>⚠️</span> Hủy lượt khám của bệnh nhân
+            <h3 className="text-lg font-bold text-rose-700">
+              Hủy lượt khám của bệnh nhân
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Bạn có chắc chắn muốn hủy lượt khám của{' '}

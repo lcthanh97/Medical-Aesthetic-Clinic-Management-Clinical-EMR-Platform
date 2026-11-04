@@ -84,8 +84,8 @@ export function TransferRoomModal({
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-[#e2ebf5]">
         <form onSubmit={handleTransfer} className="space-y-4">
           <div>
-            <h3 className="text-lg font-bold text-[#0e3a78] flex items-center gap-2">
-              <span>🔄</span> Điều chuyển phòng khám
+            <h3 className="text-lg font-bold text-[#0e3a78]">
+              Điều chuyển phòng khám
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Chuyển bệnh nhân đang chờ sang phòng khám chuyên khoa khác để giảm tải thời gian chờ.

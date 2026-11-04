@@ -80,7 +80,7 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
                 onClick={() => setTransferOpen(true)}
                 className="text-[#0e3a78] border-[#cbdff2]"
               >
-                🔄 Đổi phòng khám
+                Đổi phòng khám
               </Button>
               <Button
                 variant="secondary"
@@ -106,7 +106,6 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
             #{String(visit.queueNumber).padStart(2, '0')}
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
-            <span>🏥</span>
             <span>{visit.roomName}</span>
           </div>
           <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
@@ -119,7 +118,7 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
           {/* Card Bệnh nhân */}
           <div className="rounded-2xl border border-[#e2ebf5] bg-white p-6 shadow-sm space-y-3">
             <h3 className="font-bold text-[#0e3a78] text-sm flex items-center justify-between border-b border-[#e2ebf5] pb-2">
-              <span>👤 Thông tin bệnh nhân</span>
+              <span>Thông tin bệnh nhân</span>
               <Link
                 href={`/reception/${visit.patientId}`}
                 className="text-xs text-[#0e3a78] underline hover:text-[#124794]"
@@ -152,7 +151,7 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
           {/* Card Lượt khám */}
           <div className="rounded-2xl border border-[#e2ebf5] bg-white p-6 shadow-sm space-y-3">
             <h3 className="font-bold text-[#0e3a78] text-sm border-b border-[#e2ebf5] pb-2">
-              📋 Chi tiết lượt khám tại quầy
+              Chi tiết lượt khám tại quầy
             </h3>
             <div className="space-y-3 text-xs">
               <div>
