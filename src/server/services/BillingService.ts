@@ -415,7 +415,26 @@ export class BillingService implements IBillingService {
       accountId,
     });
 
-    // 4. Kích hoạt cập nhật đơn thuốc của lượt khám sang PAID (sẵn sàng cấp phát thuốc)
+    // 4. Kích hoạt liên kết nếu là hóa đơn CLS (Luồng thanh toán trước CLS - CLS-04)
+    let linkedOrderId: string | null = null;
+    let linkedOrderStatus: string | null = null;
+    if (this.clinicalServicesRepository) {
+      const linkLog = await this.clinicalServicesRepository.findAuditLogByActionAndEntity(
+        `CLS_INVOICE_LINK: Invoice ${invoice.id}`,
+        'ClinicalOrder',
+        ''
+      );
+      if (linkLog?.entityId) {
+        linkedOrderId = linkLog.entityId;
+        const currentOrder = await this.clinicalServicesRepository.findOrderById(linkLog.entityId);
+        if (currentOrder && currentOrder.status === OrderStatus.AWAITING_PAYMENT) {
+          await this.clinicalServicesRepository.updateOrderStatus(linkLog.entityId, OrderStatus.READY);
+          linkedOrderStatus = OrderStatus.READY;
+        }
+      }
+    }
+
+    // 5. Kích hoạt cập nhật đơn thuốc của lượt khám sang PAID (sẵn sàng cấp phát thuốc)
     let prescriptionsUpdated = 0;
     const visit = await this.billingRepository.findVisitWithDetails(invoice.visitId);
     if (visit?.prescriptions && visit.prescriptions.length > 0) {
@@ -439,8 +458,10 @@ export class BillingService implements IBillingService {
         total: updatedInvoice.total,
         status: PaymentStatus.PAID,
       },
+      orderId: linkedOrderId,
+      orderStatus: linkedOrderStatus,
       prescriptionsUpdated,
-      message: 'Xác nhận thanh toán qua VNPay thành công. Hóa đơn và đơn thuốc đã chuyển sang ĐÃ THANH TOÁN.',
+      message: 'Xác nhận thanh toán qua VNPay thành công. Hóa đơn và trạng thái dịch vụ đã được cập nhật.',
     };
   }
 

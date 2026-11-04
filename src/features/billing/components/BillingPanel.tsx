@@ -21,8 +21,9 @@ export function BillingPanel() {
 
   const [activeTab, setActiveTab] = useState<'FINAL_BILLING' | 'INVOICE_LIST'>('FINAL_BILLING');
 
-  // State Modal thanh toán (BIL-02)
+  // State Modal thanh toán (BIL-02 & CLS-04: CASH & VNPAY)
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; total: number; title: string } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'VNPAY'>('CASH');
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [cashNotes, setCashNotes] = useState<string>('Thanh toán tiền mặt đủ tại quầy thu ngân');
@@ -37,32 +38,50 @@ export function BillingPanel() {
 
   const handleOpenPaymentModal = () => {
     if (!summary?.finalInvoiceId) return;
+    setSelectedInvoice({
+      id: summary.finalInvoiceId,
+      total: summary.amountDue,
+      title: 'Thanh Toán Hóa Đơn Cuối Lượt Khám',
+    });
     setCashReceived(summary.amountDue);
+    setShowPaymentModal(true);
+  };
+
+  const handleOpenInvoicePayment = (inv: typeof invoices[0]) => {
+    setSelectedInvoice({
+      id: inv.id,
+      total: inv.total,
+      title: `Thanh Toán Hóa Đơn: ${inv.id}`,
+    });
+    setCashReceived(inv.total);
     setShowPaymentModal(true);
   };
 
   const handleProcessCashPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!summary?.finalInvoiceId) return;
+    const invoiceId = selectedInvoice?.id || summary?.finalInvoiceId;
+    if (!invoiceId) return;
 
     try {
       await confirmCashPayment({
-        invoiceId: summary.finalInvoiceId,
+        invoiceId,
         amountReceived: cashReceived,
         notes: cashNotes,
       });
       setShowPaymentModal(false);
+      setSelectedInvoice(null);
     } catch {
       // Error handled by hook
     }
   };
 
   const handleProcessVNPayPayment = async () => {
-    if (!summary?.finalInvoiceId) return;
+    const invoiceId = selectedInvoice?.id || summary?.finalInvoiceId;
+    if (!invoiceId) return;
 
     try {
       const result = await createVNPayPayment({
-        invoiceId: summary.finalInvoiceId,
+        invoiceId,
         bankCode: vnpayBankCode || undefined,
       });
 
@@ -75,7 +94,8 @@ export function BillingPanel() {
     }
   };
 
-  const changeDue = Math.max(0, cashReceived - (summary?.amountDue || 0));
+  const activeInvoiceTotal = selectedInvoice?.total ?? summary?.amountDue ?? 0;
+  const changeDue = Math.max(0, cashReceived - activeInvoiceTotal);
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
@@ -357,6 +377,7 @@ export function BillingPanel() {
                   <th className="py-3 px-4 text-right">Tổng tiền</th>
                   <th className="py-3 px-4 text-center">Trạng thái</th>
                   <th className="py-3 px-4 text-center">Giao dịch thanh toán</th>
+                  <th className="py-3 px-4 text-center">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -387,6 +408,19 @@ export function BillingPanel() {
                         <span className="text-slate-400">Chưa có giao dịch</span>
                       )}
                     </td>
+                    <td className="py-3 px-4 text-center">
+                      {inv.status !== 'PAID' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenInvoicePayment(inv)}
+                          className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                        >
+                          Thu tiền (Cash/VNPay)
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-xs">Hoàn tất</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -395,17 +429,20 @@ export function BillingPanel() {
         </div>
       )}
 
-      {/* MODAL THANH TOÁN (BIL-02: CASH & VNPAY SANDBOX) */}
-      {showPaymentModal && summary && (
+      {/* MODAL THANH TOÁN (BIL-02 & CLS-04: CASH & VNPAY SANDBOX) */}
+      {showPaymentModal && (selectedInvoice || summary) && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-5">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-lg font-bold text-slate-900">
-                Thanh Toán Hóa Đơn Cuối Lượt Khám
+                {selectedInvoice?.title || 'Thanh Toán Hóa Đơn'}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowPaymentModal(false)}
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setSelectedInvoice(null);
+                }}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer font-bold"
               >
                 ✕
@@ -415,12 +452,12 @@ export function BillingPanel() {
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
               <div>
                 <span className="text-slate-500">Mã hóa đơn:</span>{' '}
-                <strong className="font-mono">{summary.finalInvoiceId}</strong>
+                <strong className="font-mono">{selectedInvoice?.id || summary?.finalInvoiceId}</strong>
               </div>
               <div>
                 <span className="text-slate-500">Số tiền phải thu:</span>{' '}
                 <strong className="font-mono text-teal-700 text-sm">
-                  {summary.amountDue.toLocaleString('vi-VN')} đ
+                  {activeInvoiceTotal.toLocaleString('vi-VN')} đ
                 </strong>
               </div>
             </div>
@@ -467,7 +504,7 @@ export function BillingPanel() {
                     type="number"
                     value={cashReceived}
                     onChange={(e) => setCashReceived(Number(e.target.value))}
-                    min={summary.amountDue}
+                    min={activeInvoiceTotal}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono font-bold"
                     required
                   />

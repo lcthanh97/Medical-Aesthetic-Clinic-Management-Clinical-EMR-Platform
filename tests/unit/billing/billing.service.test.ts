@@ -275,7 +275,79 @@ describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-chan
       expect(mockBillingRepo.updatePrescriptionStatus).toHaveBeenCalledWith('rx-02', 'PAID');
     });
 
-    it('7. Chặn VNPay callback nếu chữ ký bị giả mạo (Checksum failed)', async () => {
+    it('7. Xác minh VNPay Callback cho hóa đơn CLS (CLS-04) -> Invoice chuyển PAID và Lệnh CLS chuyển READY', async () => {
+      const { txnRef } = VNPayService.buildPaymentUrl({
+        invoiceId: 'inv-cls-01',
+        amount: 250000,
+        orderInfo: 'Thanh toan CLS',
+      });
+
+      const callbackQuery: Record<string, string> = {
+        vnp_Amount: '25000000',
+        vnp_BankCode: 'NCB',
+        vnp_CardType: 'ATM',
+        vnp_Command: 'pay',
+        vnp_CreateDate: '20261104200000',
+        vnp_CurrCode: 'VND',
+        vnp_OrderInfo: 'Thanh toan CLS',
+        vnp_PayDate: '20261104200500',
+        vnp_ResponseCode: '00',
+        vnp_TmnCode: '2QXUI4B4',
+        vnp_TransactionNo: '14567891',
+        vnp_TransactionStatus: '00',
+        vnp_TxnRef: txnRef,
+        vnp_Version: '2.1.0',
+      };
+      callbackQuery.vnp_SecureHash = VNPayService.createSecureHash(callbackQuery);
+
+      vi.mocked(mockBillingRepo.findInvoiceById).mockResolvedValue({
+        id: 'inv-cls-01',
+        visitId: 'visit-01',
+        total: 250000,
+        status: PaymentStatus.UNPAID,
+      });
+
+      vi.mocked(mockBillingRepo.createPayment).mockResolvedValue({
+        id: 'pay-cls-01',
+        invoiceId: 'inv-cls-01',
+        amount: 250000,
+        method: 'VNPAY',
+        paidAt: new Date(),
+      });
+
+      vi.mocked(mockBillingRepo.updateInvoiceStatus).mockResolvedValue({
+        id: 'inv-cls-01',
+        visitId: 'visit-01',
+        total: 250000,
+        status: PaymentStatus.PAID,
+      });
+
+      // Giả lập liên kết CLS_INVOICE_LINK
+      vi.mocked(mockClsRepo.findAuditLogByActionAndEntity).mockResolvedValue({
+        id: 'audit-cls-01',
+        entityId: 'ord-cls-01',
+        entity: 'ClinicalOrder',
+        action: 'CLS_INVOICE_LINK: Invoice inv-cls-01',
+        createdAt: new Date(),
+      });
+
+      vi.mocked(mockClsRepo.findOrderById).mockResolvedValue({
+        id: 'ord-cls-01',
+        visitId: 'visit-01',
+        type: 'LABORATORY',
+        status: OrderStatus.AWAITING_PAYMENT,
+      });
+
+      const result = await billingService.verifyVNPayCallback(callbackQuery);
+
+      expect(result.invoice.status).toBe(PaymentStatus.PAID);
+      expect(result.payment.method).toBe('VNPAY');
+      expect(result.orderId).toBe('ord-cls-01');
+      expect(result.orderStatus).toBe(OrderStatus.READY);
+      expect(mockClsRepo.updateOrderStatus).toHaveBeenCalledWith('ord-cls-01', OrderStatus.READY);
+    });
+
+    it('8. Chặn VNPay callback nếu chữ ký bị giả mạo (Checksum failed)', async () => {
       const fakeQuery: Record<string, string> = {
         vnp_Amount: '51000000',
         vnp_ResponseCode: '00',
