@@ -1,5 +1,9 @@
 import { prisma } from '@/infrastructure/database/prisma';
-import type { IBillingRepository, CreateInvoiceInput, CreatePaymentInput } from '@/server/repositories/IBillingRepository';
+import type {
+  IBillingRepository,
+  CreateInvoiceInput,
+  CreatePaymentInput,
+} from '@/server/repositories/IBillingRepository';
 
 export class PrismaBillingRepository implements IBillingRepository {
   async findById(id: string): Promise<any | null> {
@@ -10,12 +14,21 @@ export class PrismaBillingRepository implements IBillingRepository {
     const list = await prisma.invoice.findMany({
       include: {
         payments: true,
+        visit: {
+          include: {
+            patient: true,
+          },
+        },
       },
       orderBy: { id: 'desc' },
     });
     return list.map((inv) => ({
       ...inv,
       total: Number(inv.total),
+      payments: inv.payments.map((p) => ({
+        ...p,
+        amount: Number(p.amount),
+      })),
     }));
   }
 
@@ -27,6 +40,15 @@ export class PrismaBillingRepository implements IBillingRepository {
         visit: {
           include: {
             patient: true,
+            prescriptions: {
+              include: {
+                items: {
+                  include: {
+                    medicine: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -63,6 +85,18 @@ export class PrismaBillingRepository implements IBillingRepository {
     const updated = await prisma.invoice.update({
       where: { id },
       data: { status },
+      include: { payments: true },
+    });
+    return {
+      ...updated,
+      total: Number(updated.total),
+    };
+  }
+
+  async updateInvoiceTotal(id: string, total: number): Promise<any> {
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: { total },
       include: { payments: true },
     });
     return {
@@ -108,7 +142,7 @@ export class PrismaBillingRepository implements IBillingRepository {
         },
       });
     } catch (err) {
-      console.warn('AuditLog creation warning:', err);
+      console.warn('AuditLog creation warning in BillingRepository:', err);
     }
   }
 
@@ -116,12 +150,94 @@ export class PrismaBillingRepository implements IBillingRepository {
     return prisma.auditLog.findFirst({
       where: {
         entity,
-        entityId,
+        entityId: entityId || undefined,
         action: {
           startsWith: actionPrefix,
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findVisitWithDetails(visitId: string): Promise<any | null> {
+    return prisma.visit.findUnique({
+      where: { id: visitId },
+      include: {
+        patient: true,
+        employee: true,
+        prescriptions: {
+          include: {
+            items: {
+              include: {
+                medicine: true,
+              },
+            },
+          },
+        },
+        orders: true,
+        invoices: {
+          include: {
+            payments: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findInvoicesByVisitId(visitId: string): Promise<any[]> {
+    const list = await prisma.invoice.findMany({
+      where: { visitId },
+      include: { payments: true },
+      orderBy: { id: 'asc' },
+    });
+    return list.map((inv) => ({
+      ...inv,
+      total: Number(inv.total),
+      payments: inv.payments.map((p) => ({
+        ...p,
+        amount: Number(p.amount),
+      })),
+    }));
+  }
+
+  async findFinalInvoiceForVisit(visitId: string): Promise<any | null> {
+    // 1. Tìm hóa đơn được đánh dấu là Hóa đơn cuối lượt qua AuditLog
+    const linkLog = await prisma.auditLog.findFirst({
+      where: {
+        entity: 'Visit',
+        entityId: visitId,
+        action: {
+          startsWith: 'FINAL_VISIT_INVOICE_LINK:',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (linkLog && linkLog.accountId) {
+      return this.findInvoiceById(linkLog.accountId);
+    }
+
+    // 2. Fallback: Lấy hóa đơn của visit mà KHÔNG phải là hóa đơn CLS
+    const allInvoices = await this.findInvoicesByVisitId(visitId);
+    for (const inv of allInvoices) {
+      const isClsLink = await prisma.auditLog.findFirst({
+        where: {
+          entity: 'ClinicalOrder',
+          action: `CLS_INVOICE_LINK: Invoice ${inv.id}`,
+        },
+      });
+      if (!isClsLink) {
+        return inv;
+      }
+    }
+
+    return null;
+  }
+
+  async updatePrescriptionStatus(prescriptionId: string, status: string): Promise<any> {
+    return prisma.prescription.update({
+      where: { id: prescriptionId },
+      data: { status },
     });
   }
 }

@@ -1,2 +1,9 @@
 import { BillingPanel } from '@/features/billing';
-export default function Page(){return <main><h1>Billing</h1><BillingPanel /></main>}
+
+export default function BillingPage() {
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <BillingPanel />
+    </main>
+  );
+}
