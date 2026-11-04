@@ -1,2 +1,9 @@
 import { ConsentsPanel } from '@/features/consents';
-export default function Page(){return <main><h1>Consents</h1><ConsentsPanel /></main>}
+
+export default function ConsentsPage() {
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <ConsentsPanel />
+    </main>
+  );
+}

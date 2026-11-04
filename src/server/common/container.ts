@@ -13,6 +13,10 @@ import { BillingController } from '@/server/controllers/BillingController';
 import { ClinicalServicesService } from '@/server/services/ClinicalServicesService';
 import { ClinicalServicesController } from '@/server/controllers/ClinicalServicesController';
 
+import { PrismaConsentsRepository } from '@/infrastructure/database/repositories/PrismaConsentsRepository';
+import { ConsentsService } from '@/server/services/ConsentsService';
+import { ConsentsController } from '@/server/controllers/ConsentsController';
+
 // 1. Reception & Patient module container (REC-01)
 const receptionRepository = new PrismaReceptionRepository();
 export const receptionService = new ReceptionService(receptionRepository);
@@ -32,6 +36,11 @@ export const billingController = new BillingController(billingService);
 
 export const clinicalServicesService = new ClinicalServicesService(clinicalServicesRepository, billingService);
 export const clinicalServicesController = new ClinicalServicesController(clinicalServicesService, billingService);
+
+// 4. Consents & Electronic Signature module container (CON-01 & CON-02)
+export const consentsRepository = new PrismaConsentsRepository();
+export const consentsService = new ConsentsService(consentsRepository);
+export const consentsController = new ConsentsController(consentsService);
 
 // Alias cho backward compatibility
 export const paymentService = billingService;
