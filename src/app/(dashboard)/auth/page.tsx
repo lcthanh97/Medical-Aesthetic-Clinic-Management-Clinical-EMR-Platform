@@ -1,2 +1,5 @@
-import { AuthPanel } from '@/features/auth';
-export default function Page(){return <main><h1>Auth</h1><AuthPanel /></main>}
+import { redirect } from 'next/navigation';
+
+export default function AuthRedirectPage() {
+  redirect('/admin/auth');
+}

@@ -1,2 +1,5 @@
-import { AuditPanel } from '@/features/audit';
-export default function Page(){return <main><h1>Audit</h1><AuditPanel /></main>}
+import { redirect } from 'next/navigation';
+
+export default function AuditRedirectPage() {
+  redirect('/admin/audit');
+}

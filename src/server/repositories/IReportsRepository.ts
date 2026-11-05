@@ -1,6 +1,6 @@
 export interface IReportsRepository {
-  findById(id:string):Promise<unknown|null>;
-  findMany():Promise<unknown[]>;
-  create(input:unknown):Promise<unknown>;
-  update(id:string,input:unknown):Promise<unknown>;
+  getInventoryAndRevenueReport(startDate: Date, endDate: Date): Promise<{
+    revenue: any;
+    inventory: any;
+  }>;
 }

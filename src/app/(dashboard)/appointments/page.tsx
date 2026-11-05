@@ -1,2 +1,5 @@
-import { AppointmentsPanel } from '@/features/appointments';
-export default function Page(){return <main><h1>Appointments</h1><AppointmentsPanel /></main>}
+import { redirect } from 'next/navigation';
+
+export default function AppointmentsRedirectPage() {
+  redirect('/khachhang/appointments');
+}
