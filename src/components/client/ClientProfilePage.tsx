@@ -5,7 +5,7 @@ import type { ClientPortalData } from '@/features/client-portal/server/getClient
 const card='rounded-2xl border border-[#dce7f2] bg-white p-5 shadow-sm'
 const fmt=(v:string|null)=>v?new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Chưa cập nhật'
 const cash=(v:number)=>`${v.toLocaleString('vi-VN')}₫`
-function Heading({title,desc}:{title:string;desc:string}){return <div className="mb-7"><h1 className="font-serif text-3xl font-black text-[#0c3865]">{title}</h1><p className="mt-2 text-sm text-[#718196]">{desc}</p></div>}
+function Heading({title,desc}:{title:string;desc:string}){return <div className="mb-7 grid min-h-40 overflow-hidden rounded-[26px] bg-[#eaf4ff] md:grid-cols-[1fr_320px]"><div className="self-center p-7"><h1 className="font-serif text-4xl font-black text-[#0c3865]">{title}</h1><p className="mt-2 text-sm leading-6 text-[#718196]">{desc}</p></div><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80" alt="" className="hidden h-full w-full object-cover md:block"/></div>}
 function Empty({text}:{text:string}){return <div className="rounded-2xl border border-dashed border-[#bcd2e5] bg-white p-10 text-center text-sm text-[#718196]">{text}</div>}
 
 export function ClientProfilePage({type,data}:{type:string;data:ClientPortalData}){

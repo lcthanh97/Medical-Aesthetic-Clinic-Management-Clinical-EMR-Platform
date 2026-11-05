@@ -1,23 +1,23 @@
 import Link from 'next/link'
-import { Activity, ArrowRight, Stethoscope } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
 
-const cash = (value: number) => `${value.toLocaleString('vi-VN')}₫`
+const images=['https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85']
+const faq=[['Dịch vụ có an toàn không?','Mỗi chỉ định được bác sĩ đánh giá dựa trên tình trạng da và hồ sơ bệnh án trước khi thực hiện.'],['Cần chuẩn bị gì trước khi điều trị?','Mang theo giấy tờ cần thiết, danh sách thuốc đang dùng và đến trước giờ hẹn.'],['Mất bao lâu để thấy hiệu quả?','Thời gian phụ thuộc tình trạng da và phác đồ được bác sĩ chỉ định.'],['Có cần kiêng gì sau khi điều trị?','Bác sĩ sẽ ghi dặn dò cụ thể trong hồ sơ sau từng buổi điều trị.']]
 
 export default async function Page(){
-  const data=await getClientPublicData()
-  const groups=Object.entries(data.services.reduce<Record<string,typeof data.services>>((result,service)=>{
-    const category=service.category||'Khác'
-    ;(result[category]??=[]).push(service)
-    return result
-  },{}))
-  return <main>
-    <section className="bg-[#eaf4ff] py-16 text-center"><p className="text-sm text-[#176cce]">Trang chủ › Dịch vụ</p><h1 className="mt-4 font-serif text-5xl font-black text-[#102f4d]">Dịch vụ chuyên sâu<br/><span className="text-[#176cce]">Cho làn da khỏe đẹp bền vững</span></h1><p className="mx-auto mt-4 max-w-2xl text-[#718196]">Danh mục và mức giá đang áp dụng được lấy trực tiếp từ cơ sở dữ liệu phòng khám.</p></section>
-    <section className="mx-auto max-w-[1160px] px-6 py-16">
-      {!data.connected&&<div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">Không thể kết nối Neon. Hệ thống không hiển thị dữ liệu dịch vụ giả.</div>}
-      {data.connected&&!data.services.length&&<div className="rounded-2xl border border-dashed p-10 text-center text-[#718196]">Database chưa có dịch vụ đang hoạt động.</div>}
-      {groups.map(([category,services],groupIndex)=><section className="mb-14" key={category}><div className="flex items-end justify-between border-b border-[#d8e5f1] pb-4"><div><p className="text-xs font-black tracking-[.15em] text-[#176cce]">NHÓM DỊCH VỤ {String(groupIndex+1).padStart(2,'0')}</p><h2 className="mt-1 font-serif text-3xl font-black text-[#102f4d]">{category}</h2></div><span className="text-sm text-[#718196]">{services?.length??0} dịch vụ</span></div><div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{services?.map((service,index)=><article className="group rounded-[24px] border border-[#b9cee0] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl" key={service.id}><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eaf4ff] text-[#176cce]">{index%2?<Activity/>:<Stethoscope/>}</span><small className="mt-5 block font-bold text-[#176cce]">{service.code}</small><h3 className="mt-1 min-h-14 text-xl font-black text-[#102f4d]">{service.name}</h3><p className="mt-4 text-sm text-[#718196]">Nhóm: {service.category}</p><div className="mt-6 flex items-center justify-between border-t pt-5"><strong className="text-[#176cce]">{cash(service.price)}</strong><Link href={`/khachhang/services/${service.id}`} className="inline-flex items-center gap-2 text-sm font-bold">Chi tiết <ArrowRight size={15}/></Link></div></article>)}</div></section>)}
-      {data.services.length>0&&<div className="rounded-[28px] bg-[#123b62] p-8 text-white md:flex md:items-center md:justify-between"><div><h2 className="font-serif text-3xl font-black">Bạn cần bác sĩ tư vấn dịch vụ phù hợp?</h2><p className="mt-2 text-blue-100">Đặt lịch và lựa chọn bác sĩ thật đang có trong hệ thống.</p></div><Link href="/khachhang/appointments" className="mt-5 inline-flex rounded-full bg-white px-6 py-3 font-bold text-[#176cce] md:mt-0">Đặt lịch ngay →</Link></div>}
-    </section>
-  </main>
+ const data=await getClientPublicData()
+ return <main className="bg-[#f7fbff]">
+  <section className="bg-[#eaf4ff]"><div className="mx-auto grid max-w-[1240px] items-center gap-6 px-7 py-10 lg:grid-cols-[.9fr_.85fr_.9fr]">
+   <div><p className="text-sm text-[#176cce]">Trang chủ › Dịch vụ</p><h1 className="mt-3 font-serif text-6xl font-black leading-[.98] text-[#0c3865]">Dịch vụ chuyên sâu<br/><span className="text-[#176cce]">Cho làn da khỏe đẹp bền vững</span></h1><p className="mt-5 leading-7 text-[#60778d]">Danh mục và mức giá đang áp dụng được lấy trực tiếp từ cơ sở dữ liệu phòng khám.</p></div>
+   <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=85" alt="Khách hàng DERMACARE" className="h-[330px] w-full rounded-[50px] object-cover"/>
+   <div className="rounded-[28px] border border-white bg-white p-7 shadow-sm"><h2 className="font-serif text-2xl font-black text-[#0c3865]">Không chỉ điều trị,<br/>chúng tôi đồng hành cùng bạn</h2><p className="mt-4 leading-7 text-[#718196]">Từ thăm khám, điều trị đến chăm sóc dài hạn, DERMACARE quản lý hành trình bằng hồ sơ điện tử.</p><Link href="/khachhang#dat-lich" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#176cce] px-5 py-3 text-sm font-bold text-white">Đặt lịch tư vấn dịch vụ <ArrowRight size={15}/></Link></div>
+  </div></section>
+  <section className="mx-auto max-w-[1180px] px-7 py-14"><h2 className="font-serif text-4xl font-black text-[#0c3865]">Dịch vụ của DERMACARE</h2><p className="mt-2 text-sm text-[#718196]">Khám phá các dịch vụ đang hoạt động trong database.</p>
+   {!data.connected&&<div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">Không thể kết nối Neon; không dùng dữ liệu mẫu.</div>}
+   <div className="mt-7 grid gap-5 md:grid-cols-2">{data.services.map((service,index)=><article className="overflow-hidden rounded-[26px] border border-[#cbddeb] bg-white shadow-sm" key={service.id}><div className="p-6"><small className="font-bold text-[#176cce]">{service.code}</small><h3 className="mt-1 text-2xl font-black text-[#0c3865]">{service.name}</h3><p className="mt-2 text-sm text-[#718196]">{service.category}</p></div><img src={images[index%images.length]} alt="" className="h-44 w-full object-cover"/><div className="p-6"><div className="grid gap-1 text-sm text-[#60778d]"><span>✓ Dịch vụ đang hoạt động</span><span>✓ Mức giá từ database</span><span>✓ Theo dõi trong bệnh án điện tử</span></div><div className="mt-5 flex items-center justify-between"><strong className="text-[#176cce]">{service.price.toLocaleString('vi-VN')}₫</strong><Link href={`/khachhang/services/${service.id}`} className="rounded-xl bg-[#176cce] px-5 py-2.5 text-sm font-bold text-white">Xem dịch vụ →</Link></div></div></article>)}</div>
+   <div className="mt-14 rounded-[28px] bg-[#eef7ff] p-7"><h2 className="font-serif text-3xl font-black text-[#0c3865]">Quy trình trải nghiệm dịch vụ</h2><div className="mt-6 grid gap-4 md:grid-cols-5">{['Đặt lịch tư vấn','Thăm khám & phân tích da','Xây dựng phác đồ cá nhân hóa','Thực hiện dịch vụ','Theo dõi & chăm sóc sau dịch vụ'].map((name,index)=><div key={name}><span className="font-serif text-3xl font-black text-[#176cce]">0{index+1}</span><strong className="mt-2 block text-sm text-[#0c3865]">{name}</strong></div>)}</div></div>
+   <div className="mx-auto mt-14 max-w-3xl"><h2 className="text-center font-serif text-4xl font-black text-[#0c3865]">Câu hỏi thường gặp</h2><div className="mt-6 space-y-3">{faq.map(([question,answer])=><details className="rounded-2xl border border-[#cbddeb] bg-white p-5" key={question}><summary className="cursor-pointer font-bold text-[#0c3865]">{question}</summary><p className="mt-3 text-sm leading-6 text-[#718196]">{answer}</p></details>)}</div></div>
+  </section>
+ </main>
 }
