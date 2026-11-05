@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+output
+tools
+tmp
+*.log
+.env*
+query*.ts
+scratch-*
+seed*.js
