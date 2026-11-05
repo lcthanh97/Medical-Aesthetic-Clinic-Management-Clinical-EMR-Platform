@@ -1,3 +1,4 @@
-import { notImplemented } from '@/server/common/notImplemented';
-export async function GET(){return notImplemented('administration');}
-export async function POST(){return notImplemented('administration');}
+import { NextRequest,NextResponse } from 'next/server';
+import prisma from '@/infrastructure/database/prisma';
+export async function GET(){const [facilities,departments,rooms,employees]=await Promise.all([prisma.clinicFacility.findMany(),prisma.department.findMany({include:{facility:true}}),prisma.room.findMany({include:{department:true}}),prisma.employee.findMany({include:{department:true,account:true}})]);return NextResponse.json({success:true,data:{facilities,departments,rooms,employees}})}
+export async function POST(req:NextRequest){try{const b=await req.json();let data;if(b.type==='facility')data=await prisma.clinicFacility.create({data:{name:b.name}});else if(b.type==='department')data=await prisma.department.create({data:{name:b.name,facilityId:b.facilityId}});else if(b.type==='room')data=await prisma.room.create({data:{name:b.name,departmentId:b.departmentId}});else return NextResponse.json({success:false,message:'Loại cấu hình không hợp lệ.'},{status:400});return NextResponse.json({success:true,data},{status:201})}catch(e){return NextResponse.json({success:false,message:e instanceof Error?e.message:'Không thể lưu cấu hình.'},{status:400})}}
