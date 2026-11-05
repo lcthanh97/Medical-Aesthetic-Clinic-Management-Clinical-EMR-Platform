@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { VNPayService } from '../../../src/server/common/vnpay';
+import { beforeAll, describe, it, expect } from 'vitest';
+import { VNPAY_CONFIG, VNPayService } from '../../../src/server/common/vnpay';
 
 describe('BIL-02: VNPayService Sandbox Unit Tests', () => {
+  beforeAll(() => {
+    VNPAY_CONFIG.tmnCode = '2QXUI4B4';
+    VNPAY_CONFIG.hashSecret = 'test-only-vnpay-signing-secret';
+    VNPAY_CONFIG.paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    VNPAY_CONFIG.returnUrl = 'http://localhost:3000/api/payments/vnpay/return';
+  });
   it('1. Sinh URL thanh toán có đầy đủ các tham số VNPay và chữ ký HMAC-SHA512', () => {
     const { paymentUrl, txnRef } = VNPayService.buildPaymentUrl({
       invoiceId: 'inv-test-100',

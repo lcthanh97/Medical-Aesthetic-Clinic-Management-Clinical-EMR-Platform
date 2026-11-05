@@ -8,10 +8,10 @@ export interface VNPayConfig {
 }
 
 export const VNPAY_CONFIG: VNPayConfig = {
-  tmnCode: process.env.VNPAY_TMN_CODE || '2QXUI4B4', // Sandbox default demo code
-  hashSecret: process.env.VNPAY_HASH_SECRET || 'RAOSecretKeyDemoSandboxVNPay2026VN',
+  tmnCode: process.env.VNPAY_TMN_CODE || '',
+  hashSecret: process.env.VNPAY_HASH_SECRET || '',
   paymentUrl: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  returnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:3000/api/payments/vnpay/return',
+  returnUrl: process.env.VNPAY_RETURN_URL || '',
 };
 
 export class VNPayService {
@@ -27,6 +27,9 @@ export class VNPayService {
     locale?: string;
     returnUrl?: string;
   }): { paymentUrl: string; txnRef: string } {
+    if (!VNPAY_CONFIG.tmnCode || !VNPAY_CONFIG.hashSecret || !(params.returnUrl || VNPAY_CONFIG.returnUrl)) {
+      throw new Error('VNPay chưa được cấu hình. Vui lòng bổ sung VNPAY_TMN_CODE, VNPAY_HASH_SECRET và VNPAY_RETURN_URL.');
+    }
     const date = new Date();
     const createDate = this.formatDate(date);
     const txnRef = `${params.invoiceId}_${Date.now()}`;
@@ -66,6 +69,7 @@ export class VNPayService {
    * Sinh mã băm HMAC-SHA512 cho tập tham số VNPay.
    */
   static createSecureHash(params: Record<string, string>): string {
+    if (!VNPAY_CONFIG.hashSecret) throw new Error('VNPay chưa được cấu hình khóa ký.');
     const vnpParams: Record<string, string> = {};
     for (const key in params) {
       if (key.startsWith('vnp_') && key !== 'vnp_SecureHash' && key !== 'vnp_SecureHashType') {
