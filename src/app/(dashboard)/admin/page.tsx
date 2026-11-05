@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { Package, Settings, ShieldAlert, ArrowRight } from 'lucide-react';
+import prisma from '@/infrastructure/database/prisma';
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const [accounts, employees, inventoryItems, auditLogs] = await Promise.all([
+    prisma.account.count(), prisma.employee.count(),
+    Promise.all([prisma.medicine.count(), prisma.supply.count(), prisma.equipment.count()]).then(values=>values.reduce((sum,value)=>sum+value,0)),
+    prisma.auditLog.count(),
+  ]);
   const sections = [
     {
       title: 'Quản lý Kho & Thiết bị',
@@ -36,6 +42,10 @@ export default function AdminDashboardPage() {
         <p className="text-slate-500 text-sm mt-1">
           Điều hành hoạt động phòng khám, kiểm soát kho dược, giám sát số liệu kinh doanh và an toàn hệ thống.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[[accounts,'Tài khoản'],[employees,'Nhân viên'],[inventoryItems,'Danh mục kho'],[auditLogs,'Nhật ký audit']].map(([value,label])=><div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4"><strong className="text-2xl text-slate-900">{Number(value).toLocaleString('vi-VN')}</strong><p className="mt-1 text-xs text-slate-500">{label}</p></div>)}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

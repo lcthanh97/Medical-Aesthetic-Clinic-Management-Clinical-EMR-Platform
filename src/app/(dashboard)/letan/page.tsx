@@ -1,7 +1,14 @@
 import Link from 'next/link';
 import { Users, CalendarDays, CreditCard, ClipboardSignature, ArrowRight } from 'lucide-react';
+import prisma from '@/infrastructure/database/prisma';
 
-export default function LetanDashboardPage() {
+export default async function LetanDashboardPage() {
+  const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+1);
+  const [patients,appointments,waiting,invoices,consents]=await Promise.all([
+    prisma.patient.count(), prisma.appointment.count({where:{scheduledAt:{gte:start,lt:end}}}),
+    prisma.visit.count({where:{status:{in:['WAITING','REGISTERED']}}}), prisma.invoice.count({where:{status:{not:'PAID'}}}),
+    prisma.signedConsent.count({where:{signedAt:{gte:start,lt:end}}}),
+  ]);
   const sections = [
     {
       title: 'Tiếp đón bệnh nhân',
@@ -44,6 +51,10 @@ export default function LetanDashboardPage() {
         <p className="text-slate-500 text-sm mt-1">
           Hệ thống điều phối tiếp đón bệnh nhân, sắp xếp lịch hẹn và thủ tục tài chính ban đầu.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[[patients,'Bệnh nhân'],[appointments,'Lịch hôm nay'],[waiting,'Đang chờ'],[invoices,'Hóa đơn chờ'],[consents,'Cam kết hôm nay']].map(([value,label])=><div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4"><strong className="text-2xl text-slate-900">{Number(value).toLocaleString('vi-VN')}</strong><p className="mt-1 text-xs text-slate-500">{label}</p></div>)}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

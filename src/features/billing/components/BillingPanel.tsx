@@ -17,7 +17,7 @@ export function BillingPanel() {
     finalizeInvoice,
     confirmCashPayment,
     createVNPayPayment,
-  } = useBilling('visit-sample-01');
+  } = useBilling();
 
   const [activeTab, setActiveTab] = useState<'FINAL_BILLING' | 'INVOICE_LIST'>('FINAL_BILLING');
 

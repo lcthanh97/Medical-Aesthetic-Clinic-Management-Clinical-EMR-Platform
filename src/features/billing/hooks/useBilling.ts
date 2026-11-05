@@ -12,7 +12,7 @@ import type {
 export function useBilling(initialVisitId?: string) {
   const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
   const [summary, setSummary] = useState<BillingSummaryDto | null>(null);
-  const [currentVisitId, setCurrentVisitId] = useState<string>(initialVisitId || 'visit-sample-01');
+  const [currentVisitId, setCurrentVisitId] = useState<string>(initialVisitId || '');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
