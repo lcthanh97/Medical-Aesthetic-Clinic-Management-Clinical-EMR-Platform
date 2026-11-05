@@ -15,7 +15,7 @@
     "@prisma/adapter-libsql": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",
-    "lucide-react": "^1.54.0",
+    "lucide-react": "^1.69.0",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",

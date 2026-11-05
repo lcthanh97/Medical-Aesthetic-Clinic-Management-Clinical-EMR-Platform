@@ -1,18 +1,39 @@
 @import "tailwindcss";
 
+@theme {
+  --color-clinic-bg: #f4f8fd;
+  --color-clinic-navy: #0e3a78;
+  --color-clinic-navy-dark: #092652;
+  --color-clinic-blue: #185adb;
+  --color-clinic-blue-light: #e8f1fc;
+  --color-clinic-card: #ffffff;
+  --color-clinic-border: #e2ebf5;
+  --color-clinic-muted: #64748b;
+  --color-clinic-status-bg: #e6f9f0;
+  --color-clinic-status-text: #059669;
+}
 
+body {
+  background-color: var(--color-clinic-bg);
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 0.3);
     border-radius: 10px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 0.5);
   }

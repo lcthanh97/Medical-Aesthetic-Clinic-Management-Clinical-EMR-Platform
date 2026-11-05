@@ -1,5 +1,7 @@
 export interface Allergy {
-  id:string;
-  createdAt:Date;
-  updatedAt:Date;
+  id: string;
+  patientId: string;
+  substance: string;
+  reaction?: string | null;
+  severity?: string | null;
 }

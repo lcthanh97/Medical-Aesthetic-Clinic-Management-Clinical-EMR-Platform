@@ -7,3 +7,14 @@ coverage
 *.db
 *.db-journal
 
+# AI Agent files
+AGENTS.md
+.cursor/
+.cursorrules
+CLAUDE.md
+
+# pnpm files
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.pnpm-store
+.pnpm-debug.log*

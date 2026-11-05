@@ -1,3 +1,7 @@
-import { notImplemented } from '@/server/common/notImplemented';
-export async function GET(){return notImplemented('billing');}
-export async function POST(){return notImplemented('billing');}
+import { NextResponse } from 'next/server';
+import { billingController } from '@/server/common/container';
+
+export async function GET() {
+  const result = await billingController.getList();
+  return NextResponse.json(result.body, { status: result.status });
+}
