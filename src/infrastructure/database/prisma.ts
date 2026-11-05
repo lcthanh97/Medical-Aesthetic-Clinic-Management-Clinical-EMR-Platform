@@ -13,7 +13,9 @@ const pool = globalForPrisma.pool ?? new Pool({
   connectionString,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 15000,
+  // Fail fast when a sleeping/unreachable Neon compute cannot be resumed.
+  // Pages can then render their safe empty states instead of hanging for 15s.
+  connectionTimeoutMillis: 5000,
 });
 const adapter = new PrismaPg(pool);
 

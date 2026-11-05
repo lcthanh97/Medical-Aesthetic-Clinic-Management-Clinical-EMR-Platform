@@ -1,1 +1,1 @@
-import { ClientProfilePage } from '@/components/client/ClientProfilePage'; export default function Page(){return <ClientProfilePage type="medical-records"/>}
+import { ClientProfileRoute } from '@/components/client/ClientProfileRoute'; export default function Page(){return <ClientProfileRoute type="medical-records"/>}

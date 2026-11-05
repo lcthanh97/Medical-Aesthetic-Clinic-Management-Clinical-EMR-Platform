@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import { getAppointmentsMetadata, createCustomerAppointment } from '../actions';
 
-export function AppointmentsPanel({ initialData = [] }: { initialData?: any[] }) {
+export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: string }) {
   const [rooms, setRooms] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   
@@ -17,17 +17,17 @@ export function AppointmentsPanel({ initialData = [] }: { initialData?: any[] })
     phone: '',
     dateOfBirth: '',
     roomId: '',
-    employeeId: '',
+    employeeId: initialDoctorId,
     scheduledAt: ''
   });
 
-  const [minDateTime, setMinDateTime] = useState<string>('');
-
-  useEffect(() => {
+  const [minDateTime] = useState(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    setMinDateTime(now.toISOString().slice(0, 16));
+    return now.toISOString().slice(0, 16);
+  });
 
+  useEffect(() => {
     getAppointmentsMetadata().then(res => {
       if (res.success && res.data) {
         setRooms(res.data.rooms || []);
@@ -76,7 +76,7 @@ export function AppointmentsPanel({ initialData = [] }: { initialData?: any[] })
     if (res.success) {
       setIsSuccess(true);
       setFormData({
-        fullName: '', phone: '', dateOfBirth: '', roomId: '', employeeId: '', scheduledAt: ''
+        fullName: '', phone: '', dateOfBirth: '', roomId: '', employeeId: initialDoctorId, scheduledAt: ''
       });
       setErrorMessage(null);
     } else {
@@ -161,7 +161,7 @@ export function AppointmentsPanel({ initialData = [] }: { initialData?: any[] })
                 <select suppressHydrationWarning value={formData.roomId} onChange={e=>{setFormData({...formData, roomId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm">
                   <option value="">-- Chọn dịch vụ / phòng --</option>
                   {rooms.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
+                    <option key={r.id} value={r.id}>{r.name}{r.department?.name ? ` · ${r.department.name}` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -170,7 +170,7 @@ export function AppointmentsPanel({ initialData = [] }: { initialData?: any[] })
                 <select suppressHydrationWarning value={formData.employeeId} onChange={e=>{setFormData({...formData, employeeId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm">
                   <option value="">-- Chọn bác sĩ (Tùy chọn) --</option>
                   {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                    <option key={emp.id} value={emp.id}>{emp.fullName}{emp.department?.name ? ` · ${emp.department.name}` : ''}</option>
                   ))}
                 </select>
               </div>

@@ -62,9 +62,13 @@ export async function getAppointmentsMetadata() {
   try {
     const { prisma } = await import('@/infrastructure/database/prisma');
     const [rooms, employees, patients] = await Promise.all([
-      prisma.room.findMany(),
-      prisma.employee.findMany(),
-      prisma.patient.findMany(),
+      prisma.room.findMany({ include: { department: true }, orderBy: { name: 'asc' } }),
+      prisma.employee.findMany({
+        where: { department: { name: { contains: 'Da', mode: 'insensitive' } } },
+        include: { department: true },
+        orderBy: { fullName: 'asc' },
+      }),
+      prisma.patient.findMany({ select: { id: true }, take: 1 }),
     ]);
     return { success: true, data: { rooms, employees, patients } };
   } catch (error: any) {
