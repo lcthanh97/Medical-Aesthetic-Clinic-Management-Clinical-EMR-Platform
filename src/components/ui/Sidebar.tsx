@@ -20,6 +20,7 @@ import {
   User,
   Sparkles,
   ChevronRight
+  ,LayoutDashboard, Library, Images
 } from 'lucide-react'
 
 export interface RoleItem {
@@ -93,6 +94,26 @@ export function Sidebar() {
   const filteredGroups = selectedRole === 'all' 
     ? ROLE_GROUPS 
     : ROLE_GROUPS.filter(g => g.id === selectedRole)
+
+  if (pathname?.startsWith('/bacsi')) {
+    const doctorItems = [
+      { href: '/bacsi', icon: LayoutDashboard, label: 'Tổng quan bác sĩ' },
+      { href: '/reception/visits', icon: Users, label: 'Hàng đợi khám', badge: '08' },
+      { href: '/bacsi/clinical-services', icon: Stethoscope, label: 'Khám bệnh & Chỉ định' },
+      { href: '/bacsi/prescriptions', icon: Pill, label: 'Kê đơn' },
+      { href: '/bacsi/treatments', icon: Activity, label: 'Phác đồ điều trị' },
+      { href: '/bacsi/treatments', icon: CalendarDays, label: 'Buổi điều trị' },
+      { href: '/bacsi/treatments', icon: Images, label: 'Ảnh theo dõi' },
+      { href: '/letan/consents', icon: ClipboardSignature, label: 'Cam kết điều trị' },
+      { href: '/bacsi/treatments', icon: Library, label: 'Thư viện phác đồ' },
+    ];
+    return <aside className="hidden h-screen w-[224px] shrink-0 flex-col border-r border-[#e1e9f2] bg-[#edf5ff] px-[14px] pb-5 pt-[26px] text-[#20334b] md:flex">
+      <Link href="/bacsi" className="flex items-center gap-2.5 px-2"><span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-[#246dce] text-xl font-semibold text-white">+</span><span><strong className="block text-[19px] leading-5">Clinic EMR</strong><small className="text-[9px] font-medium text-[#235f9e]">PHÒNG KHÁM ĐA KHOA</small></span></Link>
+      <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#6c7e93]">KHÔNG GIAN BÁC SĨ</p>
+      <nav className="space-y-1.5">{doctorItems.map(item=>{const active=item.href==='/bacsi'?pathname==='/bacsi':pathname.startsWith(item.href);return <Link key={item.label} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-[#ddedfe] font-semibold text-[#235f9e]':'hover:bg-white/70'}`}><item.icon size={17}/><span className="flex-1">{item.label}</span>{item.badge&&<span className="rounded-full bg-white px-2 py-1 font-semibold text-[#235f9e]">{item.badge}</span>}</Link>})}</nav>
+      <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px]"><strong className="block text-[11px]">Phòng khám An Tâm</strong><span className="mt-1 block text-[#6c7e93]">Cơ sở 01 · Phòng khám 03</span><span className="mt-2 block text-emerald-600">● Hệ thống sẵn sàng</span></div>
+    </aside>
+  }
 
   return (
     <>

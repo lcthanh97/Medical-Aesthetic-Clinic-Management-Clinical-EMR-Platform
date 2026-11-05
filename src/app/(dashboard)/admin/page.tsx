@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Package, BarChart3, Settings, ShieldAlert, Bell, ArrowRight } from 'lucide-react';
+import { Package, Settings, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const sections = [
@@ -9,13 +9,6 @@ export default function AdminDashboardPage() {
       href: '/admin/inventory',
       icon: Package,
       color: 'bg-amber-500',
-    },
-    {
-      title: 'Báo cáo & Phân tích',
-      description: 'Thống kê doanh thu điều trị, lưu lượng bệnh nhân và báo cáo sử dụng thiết bị y tế theo thời gian.',
-      href: '/admin/reports',
-      icon: BarChart3,
-      color: 'bg-emerald-500',
     },
     {
       title: 'Cấu hình Phòng khám',
