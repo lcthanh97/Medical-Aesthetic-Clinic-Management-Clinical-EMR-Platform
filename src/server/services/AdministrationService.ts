@@ -1,8 +1,8 @@
 import type { IAdministrationRepository } from '@/server/repositories/IAdministrationRepository';
 import type { IAdministrationService } from './IAdministrationService';
+import type { CreateAdministrationInput } from '@/features/administration/types/administration.types';
 export class AdministrationService implements IAdministrationService {
  constructor(private readonly repository:IAdministrationRepository){}
- getById(id:string){return this.repository.findById(id);}
- getList(){return this.repository.findMany();}
- // TODO: Implement administration business rules
+ getSnapshot(){return this.repository.getSnapshot();}
+ create(input: CreateAdministrationInput){return this.repository.create({ ...input, name: input.name.trim() });}
 }

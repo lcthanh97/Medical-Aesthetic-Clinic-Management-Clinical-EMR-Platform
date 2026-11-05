@@ -1,6 +1,5 @@
+import type { AdministrationSnapshot, CreateAdministrationInput } from '@/features/administration/types/administration.types';
 export interface IAdministrationRepository {
-  findById(id:string):Promise<unknown|null>;
-  findMany():Promise<unknown[]>;
-  create(input:unknown):Promise<unknown>;
-  update(id:string,input:unknown):Promise<unknown>;
+  getSnapshot(): Promise<AdministrationSnapshot>;
+  create(input: CreateAdministrationInput): Promise<{ id: string; name: string }>;
 }

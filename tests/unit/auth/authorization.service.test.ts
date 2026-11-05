@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest';
+import { AuthorizationService } from '@/server/policies/AuthorizationService';
+describe('AuthorizationService',()=>{const service=new AuthorizationService();it('accepts exact and wildcard permissions',()=>{expect(service.can(['audit.read'],{resource:'audit',action:'read'})).toBe(true);expect(service.can(['clinical-services.*'],{resource:'clinical-services',action:'create'})).toBe(true);expect(service.can(['*'],{resource:'auth',action:'update'})).toBe(true);});it('denies unrelated permission',()=>expect(service.can(['audit.read'],{resource:'auth',action:'update'})).toBe(false));});

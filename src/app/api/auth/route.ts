@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService, auditService } from '@/server/common/container';
+import { AuthValidator } from '@/server/validators/AuthValidator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json(); const account = await authService.create(body);
+    const body = AuthValidator.validateCreate(await request.json()); const account = await authService.create(body);
     await auditService.record({ action: 'CREATE_ACCOUNT', entity: 'Account', entityId: account.id, ipAddress: request.headers.get('x-forwarded-for') || undefined });
     return NextResponse.json({ data: account }, { status: 201 });
   } catch (error: any) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json(); if (!body.id) return NextResponse.json({ error: 'Thiếu id tài khoản.' }, { status: 400 });
+    const body = AuthValidator.validateUpdate(await request.json());
     const account = await authService.update(body.id, body);
     await auditService.record({ action: `UPDATE_ACCOUNT:${body.status || 'PROFILE'}`, entity: 'Account', entityId: account.id, ipAddress: request.headers.get('x-forwarded-for') || undefined });
     return NextResponse.json({ data: account });

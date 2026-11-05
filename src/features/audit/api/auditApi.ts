@@ -1,3 +1,2 @@
-export const auditApi = {
-  // TODO: Implement typed API client
-};
+import type { AuditFilters, AuditPage } from '../types/audit.types';
+export const auditApi = { async list(filters:AuditFilters={}) { const params=new URLSearchParams(); Object.entries(filters).forEach(([key,value])=>{if(value!==undefined&&value!=='')params.set(key,String(value))}); const response=await fetch(`/api/audit?${params}`); const body=await response.json(); if(!response.ok)throw new Error(body.error||'Không thể tải nhật ký.'); return body as AuditPage; } };
