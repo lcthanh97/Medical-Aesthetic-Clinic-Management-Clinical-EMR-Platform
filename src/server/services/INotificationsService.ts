@@ -1,1 +1,7 @@
-export interface INotificationsService { getById(id:string):Promise<unknown|null>; getList():Promise<unknown[]>; }
+import type { AuthActor } from './AuthService';
+import type { NotificationFilters, NotificationPage, NotificationRecord } from '@/server/repositories/INotificationsRepository';
+
+export interface INotificationsService {
+  getList(actor: AuthActor, filters: NotificationFilters): Promise<NotificationPage>;
+  getById(actor: AuthActor, id: string): Promise<NotificationRecord>;
+}

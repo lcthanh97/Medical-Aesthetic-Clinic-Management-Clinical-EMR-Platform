@@ -4,4 +4,6 @@ node_modules
 coverage
 *.log
 *.tsbuildinfo
+*.db
+*.db-journal
 

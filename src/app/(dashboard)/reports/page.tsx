@@ -1,2 +1,5 @@
-import { ReportsPanel } from '@/features/reports';
-export default function Page(){return <main><h1>Reports</h1><ReportsPanel /></main>}
+import { redirect } from 'next/navigation';
+
+export default function ReportsRedirectPage() {
+  redirect('/admin/reports');
+}
