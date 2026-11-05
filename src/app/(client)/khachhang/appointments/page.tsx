@@ -1,6 +1,5 @@
-import { AppointmentsPanel } from '@/features/appointments/components/AppointmentsPanel'
+import { redirect } from 'next/navigation'
 
-export default async function Page({searchParams}:{searchParams:Promise<{doctor?:string}>}){
- const {doctor=''}=await searchParams
- return <main className="bg-[#f4f8fc] py-14"><section className="mx-auto max-w-[1120px] px-6"><div className="mb-9 grid gap-8 rounded-3xl bg-[#153b60] p-8 text-white md:grid-cols-[1fr_.7fr]"><div><p className="text-sm font-bold text-[#9fd1ff]">⌂ ĐẶT LỊCH KHÁM TẠI DERMACARE</p><h1 className="mt-3 font-serif text-4xl font-black">Đặt lịch khám dễ dàng<br/>Liên kết trực tiếp với hồ sơ bệnh nhân</h1><p className="mt-4 text-blue-100">Thông tin bệnh nhân, phòng, bác sĩ và lịch hẹn được ghi trực tiếp vào database.</p></div><div className="grid place-items-center rounded-3xl bg-white/10 p-6 text-center"><strong className="text-2xl">Chủ động đặt lịch<br/>theo đúng bác sĩ<br/>và thời gian của bạn ♡</strong></div></div><div className="mb-8 grid grid-cols-4 overflow-hidden rounded-2xl bg-white shadow-sm">{['Chọn phòng & bác sĩ','Chọn thời gian khám','Thông tin cá nhân','Xác nhận đặt lịch'].map((item,index)=><div className={`p-4 text-center text-xs font-bold ${index===0?'bg-[#176cce] text-white':''}`} key={item}><span className="mx-auto mb-2 grid h-7 w-7 place-items-center rounded-full border">{index+1}</span>{item}</div>)}</div><AppointmentsPanel initialDoctorId={doctor}/></section></main>
+export default function Page(){
+  redirect('/khachhang#dat-lich')
 }

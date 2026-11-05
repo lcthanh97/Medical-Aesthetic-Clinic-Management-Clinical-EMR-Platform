@@ -8,13 +8,14 @@ const empty = {
   connected: false,
   stats: { patients: 0, doctors: 0, appointments: 0, visits: 0 },
   departments: [] as string[],
+  rooms: [] as Array<{ id: string; name: string; department: string | null }>,
   doctors: [] as Array<{ id: string; code: string; name: string; department: string; visits: number; appointments: number; nextWorkDate: string | null }>,
   services: [] as Array<{ id: string; code: string; name: string; category: string; price: number }>,
 }
 
 export const getClientPublicData = cache(async () => {
   try {
-    const [doctors, services, patients, appointments, visits] = await Promise.all([
+    const [doctors, services, rooms, patients, appointments, visits] = await Promise.all([
       prisma.employee.findMany({
         where: { department: { name: { contains: 'Da', mode: 'insensitive' } } },
         include: {
@@ -25,6 +26,7 @@ export const getClientPublicData = cache(async () => {
         orderBy: { fullName: 'asc' },
       }),
       prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: [{ category: 'asc' }, { name: 'asc' }] }),
+      prisma.room.findMany({ include: { department: true }, orderBy: { name: 'asc' } }),
       prisma.patient.count(),
       prisma.appointment.count(),
       prisma.visit.count(),
@@ -33,6 +35,7 @@ export const getClientPublicData = cache(async () => {
       connected: true,
       stats: { patients, doctors: doctors.length, appointments, visits },
       departments: [...new Set(doctors.map((doctor) => doctor.department?.name).filter((name): name is string => Boolean(name)))],
+      rooms: rooms.map((room) => ({ id: room.id, name: room.name, department: room.department?.name ?? null })),
       doctors: doctors.map((doctor) => ({
         id: doctor.id,
         code: doctor.employeeCode,
