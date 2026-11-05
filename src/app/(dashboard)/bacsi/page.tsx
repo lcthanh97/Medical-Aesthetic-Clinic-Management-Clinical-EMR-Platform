@@ -1,16 +1,8 @@
 import Link from 'next/link';
-import { FileText, Activity, Stethoscope, Pill, ArrowRight } from 'lucide-react';
+import { Activity, Stethoscope, Pill, ArrowRight, CalendarCheck, Users, CircleCheck } from 'lucide-react';
 
 export default function BacSiDashboardPage() {
   const sections = [
-    {
-      title: 'Hồ sơ bệnh án điện tử (EMR)',
-      description: 'Khám bệnh, xem chẩn đoán bệnh lý da liễu, tiền sử dị ứng và quá trình điều trị của bệnh nhân.',
-      href: '/bacsi/emr',
-      icon: FileText,
-      color: 'bg-blue-600',
-      badge: 'Trọng tâm',
-    },
     {
       title: 'Quản lý phác đồ điều trị',
       description: 'Lập phác đồ, theo dõi từng bước điều trị, hệ thống cảnh báo tương tác thuốc và quản lý thiết bị.',
@@ -36,27 +28,23 @@ export default function BacSiDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto py-2">
-      <div>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 mb-2">
-          🩺 Phân hệ Bác sĩ Điều trị
-        </span>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Khu vực làm việc Bác sĩ</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Trung tâm nghiệp vụ lâm sàng, chẩn đoán, thiết lập phác đồ điều trị và chăm sóc da liễu chuyên sâu.
-        </p>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 py-2">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-3xl font-bold tracking-tight text-[#20334b]">Chào buổi sáng, bác sĩ Linh</h1><p className="mt-1 text-sm text-[#6c7e93]">Tổng quan công việc hôm nay · Không gian bác sĩ</p></div><a href="/reception/visits" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#246dce] px-4 py-2.5 text-sm font-semibold text-white"><ArrowRight size={16}/> Mở hàng đợi khám</a></div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
+        ['Lượt khám hôm nay','24',CalendarCheck],['Đã hoàn tất khám','10',CircleCheck],['Bệnh nhân đang chờ','08',Users],['Buổi điều trị','04',Activity],
+      ].map(([label,value,Icon]:any)=><div key={label} className="rounded-xl border border-[#e1e9f2] bg-white p-5"><div className="flex items-start justify-between"><div><p className="text-xs text-[#6c7e93]">{label}</p><p className="mt-3 text-3xl font-semibold text-[#20334b]">{value}</p></div><Icon size={18} className="text-[#246dce]"/></div></div>)}</div>
+
+      <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
         {sections.map((sec) => (
           <Link
             key={sec.href}
             href={sec.href}
-            className="group relative rounded-2xl bg-white p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col justify-between"
+            className="group relative flex flex-col justify-between rounded-xl border border-[#e1e9f2] bg-white p-5 transition-all hover:border-[#90b9ea] hover:shadow-md"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl ${sec.color} text-white flex items-center justify-center shadow-md`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${sec.color} text-white shadow-md`}>
                   <sec.icon size={24} />
                 </div>
                 {sec.badge && (
@@ -65,7 +53,7 @@ export default function BacSiDashboardPage() {
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-bold text-slate-800 group-hover:text-blue-700 transition-colors mb-2">
+              <h2 className="mb-2 text-lg font-bold text-[#20334b] transition-colors group-hover:text-[#246dce]">
                 {sec.title}
               </h2>
               <p className="text-sm text-slate-500 leading-relaxed">{sec.description}</p>

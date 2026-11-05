@@ -1,6 +1,9 @@
+import type { AccountViewModel, CreateAccountInput, RoleSummary, UpdateAccountInput } from '@/features/auth/types/auth.types';
+
 export interface IAuthRepository {
-  findById(id:string):Promise<unknown|null>;
-  findMany():Promise<unknown[]>;
-  create(input:unknown):Promise<unknown>;
-  update(id:string,input:unknown):Promise<unknown>;
+  findById(id: string): Promise<AccountViewModel | null>;
+  findMany(query?: string): Promise<AccountViewModel[]>;
+  findRoles(): Promise<RoleSummary[]>;
+  create(input: CreateAccountInput & { passwordHash: string }): Promise<AccountViewModel>;
+  update(id: string, input: UpdateAccountInput & { passwordHash?: string }): Promise<AccountViewModel>;
 }

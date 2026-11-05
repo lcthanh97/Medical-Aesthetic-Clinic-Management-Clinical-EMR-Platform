@@ -16,6 +16,10 @@ import { ClinicalServicesController } from '@/server/controllers/ClinicalService
 import { PrismaConsentsRepository } from '@/infrastructure/database/repositories/PrismaConsentsRepository';
 import { ConsentsService } from '@/server/services/ConsentsService';
 import { ConsentsController } from '@/server/controllers/ConsentsController';
+import { PrismaAuthRepository } from '@/infrastructure/database/repositories/PrismaAuthRepository';
+import { PrismaAuditRepository } from '@/infrastructure/database/repositories/PrismaAuditRepository';
+import { AuthService } from '@/server/services/AuthService';
+import { AuditService } from '@/server/services/AuditService';
 
 // 1. Reception & Patient module container (REC-01)
 const receptionRepository = new PrismaReceptionRepository();
@@ -41,6 +45,10 @@ export const clinicalServicesController = new ClinicalServicesController(clinica
 export const consentsRepository = new PrismaConsentsRepository();
 export const consentsService = new ConsentsService(consentsRepository);
 export const consentsController = new ConsentsController(consentsService);
+
+// 5. Authentication, authorization and immutable activity trail (AUTH/AUDIT)
+export const authService = new AuthService(new PrismaAuthRepository());
+export const auditService = new AuditService(new PrismaAuditRepository());
 
 // Alias cho backward compatibility
 export const paymentService = billingService;

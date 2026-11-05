@@ -1,6 +1,7 @@
+import type { AuditFilters, AuditPage, AuditViewModel } from '@/features/audit/types/audit.types';
+
 export interface IAuditRepository {
-  findById(id:string):Promise<unknown|null>;
-  findMany():Promise<unknown[]>;
-  create(input:unknown):Promise<unknown>;
-  update(id:string,input:unknown):Promise<unknown>;
+  findById(id: string): Promise<AuditViewModel | null>;
+  findMany(filters?: AuditFilters): Promise<AuditPage>;
+  create(input: { accountId?: string; action: string; entity: string; entityId?: string; ipAddress?: string }): Promise<AuditViewModel>;
 }
