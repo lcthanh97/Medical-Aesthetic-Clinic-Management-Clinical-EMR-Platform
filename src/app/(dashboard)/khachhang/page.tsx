@@ -1,29 +1,29 @@
 import Link from 'next/link';
-import { CalendarDays, Clock, Phone, Sparkles, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { CalendarDays, Clock, Phone, Sparkles, ShieldCheck, HeartHandshake, ArrowRight, Stethoscope, ScanFace, WandSparkles } from 'lucide-react';
 
 export default function KhachHangDashboardPage() {
   return (
-    <div className="space-y-8 max-w-5xl mx-auto py-4">
+    <div className="mx-auto max-w-6xl space-y-6 py-2">
       {/* Hero section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 sm:p-12 text-white shadow-xl shadow-blue-500/10">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f5fc4] via-[#1768d3] to-[#3b82d0] p-8 text-white shadow-lg shadow-blue-500/10 sm:p-10">
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3.5 py-1 text-xs font-semibold backdrop-blur-md">
             <Sparkles size={14} className="text-yellow-300" />
-            <span>Phòng khám Da liễu & Thẩm mỹ Công nghệ cao</span>
+            <span>Chăm sóc da chuẩn y khoa, an tâm mỗi ngày</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            Chào mừng Quý khách đến với Cổng dịch vụ trực tuyến
+            Làn da khỏe mạnh bắt đầu từ một lịch hẹn đúng lúc
           </h1>
           <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
-            Chủ động đặt lịch khám, chọn bác sĩ và thời gian mong muốn chỉ với vài thao tác đơn giản. Hệ thống tự động xác nhận và giữ chỗ cho quý khách.
+            Đặt lịch khám da liễu, tư vấn thẩm mỹ và lựa chọn bác sĩ phù hợp chỉ trong vài phút. Thông tin của bạn được bảo mật trong toàn bộ hành trình.
           </p>
           <div className="pt-2">
             <Link
               href="/khachhang/appointments"
-              className="inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-blue-600 shadow-lg hover:bg-blue-50 hover:shadow-xl transition-all"
+              className="inline-flex items-center gap-2.5 rounded-xl bg-white px-6 py-3 text-sm font-bold text-[#1768d3] shadow-lg transition-all hover:bg-blue-50"
             >
               <CalendarDays size={18} />
-              <span>Đặt lịch khám ngay</span>
+              <span>Đặt lịch ngay</span><ArrowRight size={16}/>
             </Link>
           </div>
         </div>
@@ -33,9 +33,15 @@ export default function KhachHangDashboardPage() {
         <div className="absolute right-20 bottom-0 -mb-10 h-48 w-48 rounded-full bg-purple-400/20 blur-2xl pointer-events-none" />
       </div>
 
+      <section><div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-[#1768d3]">Dịch vụ nổi bật</p><h2 className="mt-1 text-2xl font-bold text-[#17324d]">Chăm sóc toàn diện cho làn da</h2></div><Link href="/khachhang/appointments" className="hidden text-sm font-semibold text-[#1768d3] sm:block">Đặt lịch dịch vụ →</Link></div><div className="grid gap-4 md:grid-cols-3">{[
+        ['Khám da liễu', 'Chẩn đoán mụn, viêm da, dị ứng và các bệnh lý da thường gặp.', Stethoscope],
+        ['Soi & phân tích da', 'Đánh giá chuyên sâu tình trạng da bằng thiết bị công nghệ cao.', ScanFace],
+        ['Điều trị thẩm mỹ', 'Phác đồ cá nhân hóa cho nám, sẹo, trẻ hóa và phục hồi da.', WandSparkles],
+      ].map(([title,desc,Icon]:any)=><div key={title} className="rounded-xl border border-[#dce8f5] bg-white p-5"><span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#edf5ff] text-[#1768d3]"><Icon size={20}/></span><h3 className="mt-4 font-bold text-[#17324d]">{title}</h3><p className="mt-2 text-sm leading-6 text-[#6c7e93]">{desc}</p></div>)}</div></section>
+
       {/* Feature cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="rounded-2xl bg-white p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-xl bg-white p-5 border border-[#dce8f5]">
           <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
             <Clock size={24} />
           </div>
@@ -45,7 +51,7 @@ export default function KhachHangDashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl bg-white p-5 border border-[#dce8f5]">
           <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4">
             <ShieldCheck size={24} />
           </div>
@@ -55,7 +61,7 @@ export default function KhachHangDashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+        <div className="rounded-xl bg-white p-5 border border-[#dce8f5]">
           <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
             <HeartHandshake size={24} />
           </div>
@@ -67,7 +73,7 @@ export default function KhachHangDashboardPage() {
       </div>
 
       {/* Contact info bar */}
-      <div className="rounded-2xl bg-slate-900 p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex flex-col items-center justify-between gap-4 rounded-xl bg-[#17324d] p-5 text-white sm:flex-row">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
             <Phone size={20} />

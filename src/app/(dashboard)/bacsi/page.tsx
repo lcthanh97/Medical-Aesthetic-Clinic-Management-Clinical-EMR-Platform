@@ -1,70 +1,26 @@
 import Link from 'next/link';
-import { Activity, Stethoscope, Pill, ArrowRight, CalendarCheck, Users, CircleCheck } from 'lucide-react';
+import { Activity, ArrowRight, CalendarCheck, CircleCheck, Clock3, Users } from 'lucide-react';
 
-export default function BacSiDashboardPage() {
-  const sections = [
-    {
-      title: 'Quản lý phác đồ điều trị',
-      description: 'Lập phác đồ, theo dõi từng bước điều trị, hệ thống cảnh báo tương tác thuốc và quản lý thiết bị.',
-      href: '/bacsi/treatments',
-      icon: Activity,
-      color: 'bg-indigo-600',
-      badge: 'Công nghệ cao',
-    },
-    {
-      title: 'Dịch vụ lâm sàng & Cận lâm sàng',
-      description: 'Chỉ định các xét nghiệm da liễu, soi da vi thể, thủ thuật chăm sóc da và điều trị laser.',
-      href: '/bacsi/clinical-services',
-      icon: Stethoscope,
-      color: 'bg-cyan-600',
-    },
-    {
-      title: 'Kê đơn thuốc điện tử',
-      description: 'Kê đơn thuốc đặc trị, chỉ định liều lượng và cảnh báo an toàn cho bệnh nhân.',
-      href: '/bacsi/prescriptions',
-      icon: Pill,
-      color: 'bg-violet-600',
-    },
-  ];
+const queue = [
+  ['Nguyễn Văn An','BN-001245 · 45 tuổi','Nội tổng quát','08:45'],
+  ['Lê Thị Hồng','BN-001302 · 58 tuổi','Tim mạch','08:50'],
+  ['Phạm Gia Bảo','BN-001318 · 8 tuổi','Nhi khoa','09:00'],
+  ['Võ Thanh Mai','BN-001280 · 29 tuổi','Tai mũi họng','09:05'],
+];
+const sessions = [['10:30','Trần Minh Anh','PICO · Buổi 2 / 3'],['13:30','Nguyễn Ngọc Hà','Phục hồi da · Buổi 1 / 2'],['15:00','Bùi Hoàng Yến','Tái đánh giá · Buổi 3 / 3']];
 
-  return (
-    <div className="mx-auto max-w-6xl space-y-6 py-2">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-3xl font-bold tracking-tight text-[#20334b]">Chào buổi sáng, bác sĩ Linh</h1><p className="mt-1 text-sm text-[#6c7e93]">Tổng quan công việc hôm nay · Không gian bác sĩ</p></div><a href="/reception/visits" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#246dce] px-4 py-2.5 text-sm font-semibold text-white"><ArrowRight size={16}/> Mở hàng đợi khám</a></div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
-        ['Lượt khám hôm nay','24',CalendarCheck],['Đã hoàn tất khám','10',CircleCheck],['Bệnh nhân đang chờ','08',Users],['Buổi điều trị','04',Activity],
-      ].map(([label,value,Icon]:any)=><div key={label} className="rounded-xl border border-[#e1e9f2] bg-white p-5"><div className="flex items-start justify-between"><div><p className="text-xs text-[#6c7e93]">{label}</p><p className="mt-3 text-3xl font-semibold text-[#20334b]">{value}</p></div><Icon size={18} className="text-[#246dce]"/></div></div>)}</div>
-
-      <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
-        {sections.map((sec) => (
-          <Link
-            key={sec.href}
-            href={sec.href}
-            className="group relative flex flex-col justify-between rounded-xl border border-[#e1e9f2] bg-white p-5 transition-all hover:border-[#90b9ea] hover:shadow-md"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${sec.color} text-white shadow-md`}>
-                  <sec.icon size={24} />
-                </div>
-                {sec.badge && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                    {sec.badge}
-                  </span>
-                )}
-              </div>
-              <h2 className="mb-2 text-lg font-bold text-[#20334b] transition-colors group-hover:text-[#246dce]">
-                {sec.title}
-              </h2>
-              <p className="text-sm text-slate-500 leading-relaxed">{sec.description}</p>
-            </div>
-            <div className="pt-6 flex items-center gap-2 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
-              <span>Bắt đầu phiên làm việc</span>
-              <ArrowRight size={16} />
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+export default function BacSiDashboardPage(){
+ return <div className="mx-auto max-w-[1180px] space-y-5 text-[#20334b]">
+  <header className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-[25px] font-bold">Chào buổi sáng, bác sĩ Linh</h1><p className="mt-1 text-[12px] text-[#6c7e93]">Tổng quan công việc hôm nay · Thứ Hai, 05 tháng 10 năm 2026</p></div><Link href="/reception/visits" className="inline-flex h-10 items-center gap-2 rounded-[7px] bg-[#246dce] px-4 text-[12px] font-semibold text-white"><ArrowRight size={15}/> Mở hàng đợi khám</Link></header>
+  <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
+   ['Lượt khám hôm nay','24','24 lượt khám trong ngày',CalendarCheck],['Đã hoàn tất khám','10','42% lượt khám đã hoàn tất',CircleCheck],['Bệnh nhân đang chờ','08','8 lượt khám đang chờ',Users],['Buổi điều trị','04','1 buổi hoàn tất · 3 buổi sắp tới',Activity],
+  ].map(([label,value,note,Icon]:any)=><article key={label} className="rounded-[9px] border border-[#dce5ef] bg-white p-5"><div className="flex items-start justify-between"><p className="text-[11px] text-[#6c7e93]">{label}</p><Icon size={17} className="text-[#246dce]"/></div><strong className="mt-3 block text-[28px]">{value}</strong><p className="mt-3 text-[10px] text-[#8091a5]">{note}</p></article>)}</section>
+  <div className="grid gap-4 lg:grid-cols-[1.85fr_1fr]">
+   <div className="space-y-4"><section className="overflow-hidden rounded-[9px] border border-[#dce5ef] bg-white"><div className="flex items-start justify-between p-5 pb-3"><div><h2 className="text-[15px] font-bold">Hàng đợi tiếp theo</h2><p className="mt-1 text-[10px] text-[#6c7e93]">8 lượt đang chờ · Sắp xếp theo thời điểm lượt khám</p></div><Link href="/reception/visits" className="text-[10px] font-semibold text-[#246dce]">Xem tất cả →</Link></div><div className="mx-5 overflow-hidden rounded-[7px] border border-[#dce5ef]"><table className="w-full text-left text-[10px]"><thead className="bg-[#f5f8fc] text-[#6c7e93]"><tr><th className="p-3">STT</th><th>Bệnh nhân</th><th>Khoa</th><th>Thời điểm lượt khám</th><th>Trạng thái</th></tr></thead><tbody>{queue.map((row,i)=><tr key={row[0]} className={`border-t border-[#e6edf5] ${i===0?'bg-[#edf5ff]':''}`}><td className="p-3">{i+1}</td><td><strong className="block text-[11px]">{row[0]}</strong><span className="text-[#6c7e93]">{row[1]}</span></td><td>{row[2]}</td><td>{row[3]}</td><td><span className="rounded-full bg-[#edf5ff] px-2 py-1 font-semibold text-[#235f9e]">Chờ khám</span></td></tr>)}</tbody></table></div><div className="flex items-center justify-between p-5 text-[10px] text-[#6c7e93]"><span>Tiếp theo: Nguyễn Văn An · Phòng khám 03</span><Link href="/bacsi/clinical-services" className="rounded-[6px] bg-[#246dce] px-4 py-2 font-semibold text-white">Bắt đầu khám</Link></div></section>
+   <section className="rounded-[9px] border border-[#dce5ef] bg-white p-5"><h2 className="text-[15px] font-bold">Lịch làm việc trong ngày</h2><p className="mt-1 text-[10px] text-[#6c7e93]">Phòng khám 03 · 07:30–16:30</p><div className="mt-4 grid gap-2 sm:grid-cols-3">{[['Sáng','07:30–11:30','4 giờ làm việc'],['Nghỉ trưa','11:30–13:00','Giữa hai ca làm việc'],['Chiều','13:00–16:30','3,5 giờ làm việc']].map(x=><div key={x[0]} className="rounded-[7px] bg-[#f5f8fc] p-3"><p className="text-[10px] text-[#6c7e93]">{x[0]}</p><strong className="mt-1 block text-[13px]">{x[1]}</strong><span className="mt-2 block text-[9px] text-[#8091a5]">{x[2]}</span></div>)}</div><div className="mt-3 h-1 overflow-hidden rounded bg-[#e5effb]"><div className="h-full w-[42%] rounded bg-[#246dce]"/></div></section></div>
+   <aside className="space-y-4"><section className="rounded-[9px] border border-[#dce5ef] bg-white p-5"><div className="flex items-center justify-between"><h2 className="text-[15px] font-bold">Cần bác sĩ xử lý</h2><span className="rounded-full bg-[#fff4df] px-2 py-1 text-[10px] font-bold text-[#b56d00]">03</span></div>{[['Kết quả đã có','Lê Thị Hồng · Xét nghiệm; Đỗ Quốc Huy · X-quang. Xem kết quả.'],['Cam kết chưa ký','Trần Minh Anh · Phác đồ v2. Cần ký đúng phiên bản trước khi hoàn tất điều trị.']].map(x=><div key={x[0]} className="mt-3 rounded-[7px] bg-[#fff7e8] p-3"><div className="flex justify-between text-[10px] font-semibold text-[#9a5e00]"><span>ⓘ &nbsp;{x[0]}</span><span>Xem →</span></div><p className="mt-2 pl-5 text-[9px] leading-4 text-[#9a6b2d]">{x[1]}</p></div>)}</section>
+   <section className="rounded-[9px] border border-[#dce5ef] bg-white p-5"><h2 className="text-[15px] font-bold">Buổi điều trị sắp tới</h2><p className="mt-1 text-[10px] text-[#6c7e93]">Da liễu · 3 buổi sắp tới</p>{sessions.map(x=><div key={x[0]} className="flex gap-3 border-b border-[#e6edf5] py-3 last:border-0"><span className="h-fit rounded bg-[#edf5ff] px-2 py-1 text-[10px] font-semibold text-[#235f9e]">{x[0]}</span><div><strong className="text-[11px]">{x[1]}</strong><p className="mt-1 text-[9px] text-[#6c7e93]">{x[2]}</p><span className="mt-1 inline-block rounded-full bg-[#e9f8ef] px-2 py-0.5 text-[9px] text-emerald-700">Đã xếp lịch</span></div></div>)}</section></aside>
+  </div>
+  <footer className="flex justify-between pt-2 text-[9px] text-[#8091a5]"><span>Clinic EMR · Chỉ sử dụng cho công việc chuyên môn</span><span>Bảo mật hồ sơ bệnh nhân</span></footer>
+ </div>
 }

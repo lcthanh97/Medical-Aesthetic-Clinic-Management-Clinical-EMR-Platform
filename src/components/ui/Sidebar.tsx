@@ -20,7 +20,7 @@ import {
   User,
   Sparkles,
   ChevronRight
-  ,LayoutDashboard, Library, Images
+  ,LayoutDashboard, Library, Images, Home, LogOut, Headphones
 } from 'lucide-react'
 
 export interface RoleItem {
@@ -94,6 +94,19 @@ export function Sidebar() {
   const filteredGroups = selectedRole === 'all' 
     ? ROLE_GROUPS 
     : ROLE_GROUPS.filter(g => g.id === selectedRole)
+
+  if (pathname?.startsWith('/khachhang')) {
+    const customerItems = [
+      { href: '/khachhang', icon: Home, label: 'Trang chủ' },
+      { href: '/khachhang/appointments', icon: CalendarDays, label: 'Đặt lịch khám' },
+    ];
+    return <aside className="hidden h-screen w-[240px] shrink-0 flex-col border-r border-[#dce8f5] bg-white px-4 pb-5 pt-6 text-[#17324d] md:flex">
+      <Link href="/khachhang" className="flex items-center gap-2.5 px-2"><span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#1768d3] text-xl font-semibold text-white">+</span><span><strong className="block text-[18px] leading-5">An Tâm Clinic</strong><small className="text-[9px] font-semibold tracking-wide text-[#3776b9]">DA LIỄU & THẨM MỸ</small></span></Link>
+      <div className="mt-7 rounded-xl bg-[#edf5ff] p-3"><p className="text-[10px] font-semibold uppercase text-[#6c7e93]">Cổng khách hàng</p><p className="mt-1 text-sm font-bold">Xin chào, Quý khách</p><p className="mt-1 text-[10px] text-[#6c7e93]">Chủ động chăm sóc làn da của bạn</p></div>
+      <nav className="mt-5 space-y-1.5">{customerItems.map(item=>{const active=item.href==='/khachhang'?pathname==='/khachhang':pathname.startsWith(item.href);return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-3 rounded-lg px-3 text-[13px] ${active?'bg-[#1768d3] font-semibold text-white shadow-sm':'text-[#38536d] hover:bg-[#edf5ff]'}`}><item.icon size={18}/>{item.label}</Link>})}</nav>
+      <div className="mt-auto space-y-2"><a href="tel:19006868" className="flex items-center gap-3 rounded-xl bg-[#f6f9fd] p-3 text-xs"><Headphones size={18} className="text-[#1768d3]"/><span><small className="block text-[#6c7e93]">Hotline hỗ trợ</small><strong>1900 6868</strong></span></a><Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-[#6c7e93]"><LogOut size={15}/> Thoát cổng khách hàng</Link></div>
+    </aside>
+  }
 
   if (pathname?.startsWith('/bacsi')) {
     const doctorItems = [
