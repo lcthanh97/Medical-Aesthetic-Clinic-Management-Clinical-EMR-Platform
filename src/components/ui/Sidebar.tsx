@@ -118,7 +118,7 @@ export function Sidebar() {
       { href: '/bacsi/treatments', icon: Activity, label: 'Phác đồ điều trị' },
       { href: '/bacsi/sessions', icon: CalendarDays, label: 'Buổi điều trị' },
       { href: '/bacsi/images', icon: Images, label: 'Ảnh theo dõi' },
-      { href: '/letan/consents', icon: ClipboardSignature, label: 'Cam kết điều trị' },
+      { href: '/bacsi/consents', icon: ClipboardSignature, label: 'Cam kết điều trị' },
       { href: '/bacsi/protocols', icon: Library, label: 'Thư viện phác đồ' },
     ];
     return <aside className="hidden h-screen w-[224px] shrink-0 flex-col border-r border-[#e1e9f2] bg-[#edf5ff] px-[14px] pb-5 pt-[26px] text-[#20334b] md:flex">
@@ -142,6 +142,24 @@ export function Sidebar() {
       <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#69857f]">NGHIỆP VỤ TIẾP ĐÓN</p>
       <nav className="space-y-1.5">{receptionItems.map(item=>{const active=item.href==='/letan'?pathname==='/letan':pathname.startsWith(item.href);return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-emerald-100 font-semibold text-emerald-800':'hover:bg-white/80'}`}><item.icon size={17}/><span>{item.label}</span></Link>})}</nav>
       <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px]"><strong className="block text-[11px]">Phiên lễ tân</strong><span className="mt-1 block text-[#69857f]">Chỉ hiển thị nghiệp vụ tiếp đón</span><span className="mt-2 block text-emerald-600">● Đã xác thực</span><form action="/api/staff-auth/logout?portal=letan" method="post"><button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-emerald-200 py-2 font-semibold text-emerald-700"><LogOut size={13}/>Đăng xuất</button></form></div>
+    </aside>
+  }
+
+  if (pathname?.startsWith('/admin')) {
+    const adminItems = [
+      { href: '/admin', icon: LayoutDashboard, label: 'Tổng quan quản trị' },
+      { href: '/admin/inventory', icon: Package, label: 'Kho dược & vật tư' },
+      { href: '/admin/administration', icon: Settings, label: 'Cấu hình phòng khám' },
+      { href: '/admin/auth', icon: UserCircle, label: 'Tài khoản & phân quyền' },
+      { href: '/admin/notifications', icon: Activity, label: 'Thông báo hệ thống' },
+      { href: '/admin/reports', icon: CreditCard, label: 'Báo cáo thống kê' },
+      { href: '/admin/audit', icon: ShieldAlert, label: 'Nhật ký hệ thống' },
+    ]
+    return <aside className="hidden h-screen w-[224px] shrink-0 flex-col border-r border-amber-100 bg-[#fffaf0] px-[14px] pb-5 pt-[26px] text-[#473616] md:flex">
+      <Link href="/admin" className="flex items-center gap-2.5 px-2"><span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-amber-500 text-xl font-semibold text-white">+</span><span><strong className="block text-[18px] leading-5">Clinic EMR</strong><small className="text-[9px] font-semibold text-amber-700">QUẢN TRỊ HỆ THỐNG</small></span></Link>
+      <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#8b7957]">VẬN HÀNH & CẤU HÌNH</p>
+      <nav className="space-y-1.5">{adminItems.map(item=>{const active=item.href==='/admin'?pathname==='/admin':pathname.startsWith(item.href);return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-amber-100 font-semibold text-amber-900':'hover:bg-white/80'}`}><item.icon size={17}/><span>{item.label}</span></Link>})}</nav>
+      <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px]"><strong className="block text-[11px]">Phiên quản trị viên</strong><span className="mt-1 block text-[#8b7957]">Chỉ hiển thị nghiệp vụ quản trị</span><span className="mt-2 block text-emerald-600">● Đã xác thực</span><form action="/api/staff-auth/logout?portal=admin" method="post"><button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-amber-200 py-2 font-semibold text-amber-800"><LogOut size={13}/>Đăng xuất</button></form></div>
     </aside>
   }
 

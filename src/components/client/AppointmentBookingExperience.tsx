@@ -26,6 +26,6 @@ export function AppointmentBookingExperience({ services, doctors, rooms, initial
         {doctors.length === 0 && <p className="mt-5 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5 text-sm text-amber-800">Chưa có bác sĩ phù hợp trong database. Vui lòng liên hệ lễ tân.</p>}
       </section>
     </div>
-    <div className="mt-7 border-t border-[#e2ebf3] pt-7"><HomeBookingForm key={`${serviceId}:${doctorId}`} services={services} doctors={doctors} rooms={rooms} initialServiceId={serviceId} initialDoctorId={doctorId} onServiceChange={setServiceId} onDoctorChange={setDoctorId}/></div>
+    <div className="mt-7 border-t border-[#e2ebf3] pt-7"><HomeBookingForm key={`${serviceId}:${doctorId}`} services={services} doctors={doctors} rooms={rooms} initialServiceId={serviceId} initialDoctorId={doctorId} onServiceChange={setServiceId} onDoctorChange={setDoctorId} selectionAlreadyMade/></div>
   </div>
 }
