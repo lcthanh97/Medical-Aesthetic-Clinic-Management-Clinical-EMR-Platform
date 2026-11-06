@@ -8,7 +8,7 @@ export default function AdminNotificationsPage() {
           ⚙️ Phân hệ Quản trị Hệ thống
         </span>
         <h1 className="text-2xl font-bold text-gray-900">Thông báo hệ thống</h1>
-        <p className="text-sm text-gray-500">Gửi và theo dõi các thông báo nội bộ phòng khám và nhắc lịch khám</p>
+        <p className="text-sm text-gray-500">Xem lịch sử thông báo và bản nháp mẫu chờ duyệt.</p>
       </div>
       <NotificationsPanel />
     </main>
