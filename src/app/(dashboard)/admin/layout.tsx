@@ -1,1 +1,1 @@
-import{redirect}from'next/navigation';import{getStaffSession}from'@/server/auth/staff-session';export default async function Layout({children}:{children:React.ReactNode}){if(!await getStaffSession('admin'))redirect('/admin/dang-nhap');return children}
+import{redirect}from'next/navigation';import{getStaffSession}from'@/server/auth/staff-session';export const dynamic='force-dynamic';export default async function Layout({children}:{children:React.ReactNode}){if(!await getStaffSession('admin'))redirect('/admin/dang-nhap');return children}

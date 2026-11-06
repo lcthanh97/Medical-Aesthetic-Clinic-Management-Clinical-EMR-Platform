@@ -15,18 +15,6 @@ import type {
   VNPayPaymentResponse,
 } from '@/features/billing/types/billing.types';
 
-// Bảng giá thuốc chuẩn da liễu (fallback đơn giá khi không có trong cấu hình kho)
-const DEFAULT_MEDICINE_PRICES: Record<string, number> = {
-  isotretinoin: 180000,
-  doxycycline: 95000,
-  erythromycin: 75000,
-  adapalene: 125000,
-  klenzit: 135000,
-  fucidin: 85000,
-  dermovate: 90000,
-  cetaphil: 160000,
-};
-
 export class BillingService implements IBillingService {
   constructor(
     private readonly billingRepository: IBillingRepository,
@@ -74,12 +62,13 @@ export class BillingService implements IBillingService {
 
     const items: BillingItemDetail[] = [];
 
-    // 1. Phí công khám bệnh ban đầu (EXAMINATION)
-    const examinationFee = 150000;
+    // 1. Phí khám đọc từ danh mục dịch vụ trong database.
+    const examinationService = await this.clinicalServicesRepository?.getServiceByCode('SEED-DV01');
+    const examinationFee = examinationService?.price ?? 0;
     items.push({
       id: `fee-exam-${visit.id}`,
       category: 'EXAMINATION',
-      name: 'Tiền công khám bệnh & Tư vấn da liễu chuyên sâu',
+      name: examinationService?.name ?? 'Phí khám chưa được cấu hình',
       quantity: 1,
       unitPrice: examinationFee,
       totalPrice: examinationFee,
@@ -94,7 +83,7 @@ export class BillingService implements IBillingService {
           for (const item of rx.items) {
             const medName = item.medicine?.name || 'Thuốc điều trị';
             const qty = Number(item.quantity) || 1;
-            const price = this.getMedicineUnitPrice(medName);
+            const price = Number(item.medicine?.unitCost ?? 0);
             const lineTotal = qty * price;
             medicationFee += lineTotal;
 
@@ -553,13 +542,4 @@ export class BillingService implements IBillingService {
     };
   }
 
-  private getMedicineUnitPrice(medicineName: string): number {
-    const lower = medicineName.toLowerCase();
-    for (const key of Object.keys(DEFAULT_MEDICINE_PRICES)) {
-      if (lower.includes(key)) {
-        return DEFAULT_MEDICINE_PRICES[key];
-      }
-    }
-    return 100000; // Đơn giá mặc định cho thuốc da liễu
-  }
 }

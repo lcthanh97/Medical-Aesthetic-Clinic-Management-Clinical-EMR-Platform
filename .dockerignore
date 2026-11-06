@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+output
+tmp
+tools
+.env
+.env.local
+*.log
+*.docx
+*.pdf

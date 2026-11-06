@@ -83,6 +83,7 @@ export async function createCustomerAppointment(input: {
   scheduledAt: string;
   roomId?: string;
   employeeId?: string;
+  serviceId?: string;
 }) {
   try {
     const { prisma } = await import('@/infrastructure/database/prisma');
@@ -107,6 +108,7 @@ export async function createCustomerAppointment(input: {
       patientId: patient.id,
       roomId: input.roomId || null,
       employeeId: input.employeeId || null,
+      serviceId: input.serviceId || null,
       scheduledAt: new Date(input.scheduledAt),
       status: 'SCHEDULED'
     });

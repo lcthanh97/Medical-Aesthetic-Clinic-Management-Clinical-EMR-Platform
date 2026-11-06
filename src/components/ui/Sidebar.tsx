@@ -129,6 +129,22 @@ export function Sidebar() {
     </aside>
   }
 
+  if (pathname?.startsWith('/letan')) {
+    const receptionItems = [
+      { href: '/letan', icon: LayoutDashboard, label: 'Tổng quan lễ tân' },
+      { href: '/letan/reception', icon: Users, label: 'Tiếp đón bệnh nhân' },
+      { href: '/letan/appointments', icon: CalendarDays, label: 'Quản lý lịch hẹn' },
+      { href: '/letan/billing', icon: CreditCard, label: 'Thanh toán & viện phí' },
+      { href: '/letan/consents', icon: ClipboardSignature, label: 'Biểu mẫu & cam kết' },
+    ]
+    return <aside className="hidden h-screen w-[224px] shrink-0 flex-col border-r border-emerald-100 bg-[#f0faf7] px-[14px] pb-5 pt-[26px] text-[#173f38] md:flex">
+      <Link href="/letan" className="flex items-center gap-2.5 px-2"><span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-emerald-600 text-xl font-semibold text-white">+</span><span><strong className="block text-[18px] leading-5">Clinic EMR</strong><small className="text-[9px] font-semibold text-emerald-700">BỘ PHẬN LỄ TÂN</small></span></Link>
+      <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#69857f]">NGHIỆP VỤ TIẾP ĐÓN</p>
+      <nav className="space-y-1.5">{receptionItems.map(item=>{const active=item.href==='/letan'?pathname==='/letan':pathname.startsWith(item.href);return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-emerald-100 font-semibold text-emerald-800':'hover:bg-white/80'}`}><item.icon size={17}/><span>{item.label}</span></Link>})}</nav>
+      <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px]"><strong className="block text-[11px]">Phiên lễ tân</strong><span className="mt-1 block text-[#69857f]">Chỉ hiển thị nghiệp vụ tiếp đón</span><span className="mt-2 block text-emerald-600">● Đã xác thực</span><form action="/api/staff-auth/logout?portal=letan" method="post"><button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-emerald-200 py-2 font-semibold text-emerald-700"><LogOut size={13}/>Đăng xuất</button></form></div>
+    </aside>
+  }
+
   return (
     <>
       <button 

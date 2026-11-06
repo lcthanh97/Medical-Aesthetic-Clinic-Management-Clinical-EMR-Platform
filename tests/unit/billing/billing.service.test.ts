@@ -64,7 +64,7 @@ describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-chan
                 id: 'rx-item-1',
                 quantity: 2,
                 dosage: 'Uống 1 viên sau ăn tối',
-                medicine: { name: 'Isotretinoin 20mg' },
+                medicine: { name: 'Isotretinoin 20mg', unitCost: 180000 },
               },
             ],
           },
@@ -87,6 +87,9 @@ describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-chan
       });
 
       vi.mocked(mockBillingRepo.findFinalInvoiceForVisit).mockResolvedValue(null);
+      vi.mocked(mockClsRepo.getServiceByCode).mockResolvedValue({
+        code: 'SEED-DV01', name: 'Khám da liễu', price: 150000, type: 'LABORATORY',
+      });
 
       const summary = await billingService.getVisitBillingSummary('visit-01');
 
@@ -113,6 +116,9 @@ describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-chan
         invoices: [],
       });
       vi.mocked(mockBillingRepo.findFinalInvoiceForVisit).mockResolvedValue(null);
+      vi.mocked(mockClsRepo.getServiceByCode).mockResolvedValue({
+        code: 'SEED-DV01', name: 'Khám da liễu', price: 150000, type: 'LABORATORY',
+      });
       vi.mocked(mockBillingRepo.createInvoice).mockResolvedValue({
         id: 'inv-final-01',
         visitId: 'visit-01',

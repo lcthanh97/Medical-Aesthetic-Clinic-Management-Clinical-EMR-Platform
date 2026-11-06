@@ -102,18 +102,7 @@ export class VisitsService implements IVisitsService {
   }
 
   async getRooms(): Promise<RoomQueueItem[]> {
-    const rooms = await this.repository.getRoomsWithWaitingCount();
-    if (rooms && rooms.length > 0) {
-      return rooms;
-    }
-
-    // Fallback phòng mẫu nếu database chưa khởi tạo
-    return [
-      { id: 'room-01', name: 'Phòng khám Da liễu 1', departmentName: 'Khoa Da liễu', waitingCount: 0 },
-      { id: 'room-02', name: 'Phòng khám Da liễu 2', departmentName: 'Khoa Da liễu', waitingCount: 0 },
-      { id: 'room-03', name: 'Phòng Laser Thẩm Mỹ', departmentName: 'Khoa Thẩm mỹ Da', waitingCount: 0 },
-      { id: 'room-04', name: 'Phòng Soi Da & Chăm Sóc', departmentName: 'Khoa Chăm sóc Da', waitingCount: 0 },
-    ];
+    return this.repository.getRoomsWithWaitingCount();
   }
 
   async transferRoom(visitId: string, dto: TransferRoomDto, accountId?: string): Promise<VisitItem> {

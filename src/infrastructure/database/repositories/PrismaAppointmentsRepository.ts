@@ -6,13 +6,13 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
   async findById(id: string): Promise<Appointment | null> {
     return prisma.appointment.findUnique({
       where: { id },
-      include: { patient: true, room: true, employee: true },
+      include: { patient: true, room: true, employee: true, service: true },
     });
   }
 
   async findMany(): Promise<Appointment[]> {
     return prisma.appointment.findMany({
-      include: { patient: true, room: true, employee: true },
+      include: { patient: true, room: true, employee: true, service: true },
       orderBy: { scheduledAt: 'desc' },
     });
   }
@@ -32,7 +32,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
           not: 'CANCELLED',
         },
       },
-      include: { patient: true, room: true, employee: true },
+      include: { patient: true, room: true, employee: true, service: true },
       orderBy: { scheduledAt: 'asc' },
     });
   }
@@ -40,7 +40,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
   async create(input: Prisma.AppointmentUncheckedCreateInput): Promise<Appointment> {
     return prisma.appointment.create({
       data: input,
-      include: { patient: true, room: true, employee: true },
+      include: { patient: true, room: true, employee: true, service: true },
     });
   }
 
@@ -48,7 +48,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
     return prisma.appointment.update({
       where: { id },
       data: input,
-      include: { patient: true, room: true, employee: true },
+      include: { patient: true, room: true, employee: true, service: true },
     });
   }
 

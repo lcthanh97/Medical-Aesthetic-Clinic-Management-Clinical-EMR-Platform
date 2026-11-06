@@ -7,73 +7,6 @@ import type {
   ClsCatalogService,
 } from '@/server/repositories/IClinicalServicesRepository';
 
-// Bảng danh mục chuẩn dịch vụ CLS phòng khám Da liễu - Thẩm mỹ
-const DEFAULT_CLS_SERVICES: ClsCatalogService[] = [
-  {
-    code: 'CLS_SKIN_ANALYSIS',
-    name: 'Soi da chuyên sâu kỹ thuật số 3D',
-    price: 150000,
-    type: 'IMAGING',
-    description: 'Phân tích đa phổ: sắc tố, nếp nhăn, lỗ chân lông, vi khuẩn P.acnes',
-  },
-  {
-    code: 'CLS_WOOD_LIGHT',
-    name: 'Soi đèn Wood chẩn đoán nấm & sắc tố biểu bì',
-    price: 100000,
-    type: 'IMAGING',
-    description: 'Chẩn đoán lang ben, hắc lào, bạch biến và độ sâu nám da',
-  },
-  {
-    code: 'CLS_PHOTO_MAPPING',
-    name: 'Chụp ảnh thẩm mỹ chuẩn hóa y khoa trước/sau điều trị',
-    price: 80000,
-    type: 'IMAGING',
-    description: 'Chụp lưu hồ sơ 5 góc khuôn mặt chuẩn y tế',
-  },
-  {
-    code: 'CLS_DERMOSCOPY',
-    name: 'Dermoscopy (Soi kính hiển vi bề mặt da)',
-    price: 200000,
-    type: 'IMAGING',
-    description: 'Khảo sát tổn thương hắc tố, nốt ruồi nghi ngờ ác tính',
-  },
-  {
-    code: 'CLS_FUNGUS_SMEAR',
-    name: 'Xét nghiệm cạo vảy da soi tươi tìm vi nấm',
-    price: 120000,
-    type: 'LABORATORY',
-    description: 'Soi tươi KOH tìm sợi nấm men, nấm sợi tơ',
-  },
-  {
-    code: 'CLS_DEMODEX_TEST',
-    name: 'Xét nghiệm cạo bã nhờn tìm ký sinh trùng Demodex',
-    price: 150000,
-    type: 'LABORATORY',
-    description: 'Soi tìm mật độ Demodex folliculorum / brevis',
-  },
-  {
-    code: 'CLS_CBC',
-    name: 'Tổng phân tích tế bào máu ngoại vi (24 thông số)',
-    price: 180000,
-    type: 'LABORATORY',
-    description: 'Đánh giá thiếu máu, nhiễm trùng, dị ứng trước thủ thuật/uống Isotretinoin',
-  },
-  {
-    code: 'CLS_LIVER_ENZYMES',
-    name: 'Xét nghiệm men gan AST (GOT) / ALT (GPT)',
-    price: 160000,
-    type: 'LABORATORY',
-    description: 'Kiểm tra chức năng gan định kỳ khi dùng thuốc điều trị mụn/nấm toàn thân',
-  },
-  {
-    code: 'CLS_LIPID_PANEL',
-    name: 'Bộ mỡ máu Lipid Panel (Cholesterol, Triglyceride)',
-    price: 200000,
-    type: 'LABORATORY',
-    description: 'Theo dõi chỉ số mỡ máu trước và trong liệu trình Isotretinoin',
-  },
-];
-
 export class PrismaClinicalServicesRepository implements IClinicalServicesRepository {
   async createOrder(input: CreateOrderInput): Promise<any> {
     return prisma.clinicalOrder.create({
@@ -224,39 +157,30 @@ export class PrismaClinicalServicesRepository implements IClinicalServicesReposi
     });
   }
 
-  /**
-   * Lấy danh mục dịch vụ cận lâm sàng từ Database qua Repository.
-   * Truy vấn kết hợp với bảng Equipment trong DB (thiết bị soi da, máy móc CLS sẵn có)
-   * và bảng giá dịch vụ CLS chuẩn.
-   */
   async getServicesCatalog(): Promise<ClsCatalogService[]> {
-    try {
-      // Kiểm tra các thiết bị y tế hoạt động trong DB để gắn thêm thông tin trạng thái máy
-      const equipments = await prisma.equipment.findMany({
-        select: { id: true, name: true, serial: true, status: true },
-      });
+    const services = await prisma.serviceCatalog.findMany({
+      where: { active: true },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
 
-      return DEFAULT_CLS_SERVICES.map((service) => {
-        const matchingEquipment = equipments.find((eq) =>
-          service.name.toLowerCase().includes(eq.name.toLowerCase()) ||
-          eq.name.toLowerCase().includes(service.name.toLowerCase())
-        );
-
-        return {
-          ...service,
-          description: matchingEquipment
-            ? `${service.description} (Thiết bị: ${matchingEquipment.name} - ${matchingEquipment.status})`
-            : service.description,
-        };
-      });
-    } catch (err) {
-      console.warn('Error reading equipment from database for catalog:', err);
-      return DEFAULT_CLS_SERVICES;
-    }
+    return services.map((service) => ({
+      code: service.code,
+      name: service.name,
+      price: Number(service.basePrice),
+      type: service.category.toUpperCase().includes('IMAG') ? 'IMAGING' : 'LABORATORY',
+      description: service.category,
+    }));
   }
 
   async getServiceByCode(code: string): Promise<ClsCatalogService | null> {
-    const catalog = await this.getServicesCatalog();
-    return catalog.find((s) => s.code === code) || null;
+    const service = await prisma.serviceCatalog.findUnique({ where: { code } });
+    if (!service || !service.active) return null;
+    return {
+      code: service.code,
+      name: service.name,
+      price: Number(service.basePrice),
+      type: service.category.toUpperCase().includes('IMAG') ? 'IMAGING' : 'LABORATORY',
+      description: service.category,
+    };
   }
 }
