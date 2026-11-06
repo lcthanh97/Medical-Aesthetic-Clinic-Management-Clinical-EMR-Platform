@@ -1,17 +1,20 @@
 import Link from 'next/link';
 import { Activity, ArrowRight, CalendarCheck, CircleCheck, Users } from 'lucide-react';
 import prisma from '@/infrastructure/database/prisma';
+import { getDoctorSession } from '@/server/auth/doctor-session';
 
 export default async function BacSiDashboardPage(){
+ const session=await getDoctorSession();
+ if(!session)return null;
  const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+1);
  const [visits,sessions,workSchedule]=await Promise.all([
-  prisma.visit.findMany({where:{visitDate:{gte:start,lt:end}},include:{patient:true,room:true,employee:true},orderBy:{visitDate:'asc'},take:50}),
-  prisma.treatmentSession.findMany({where:{scheduledAt:{gte:start,lt:end}},include:{stage:{include:{plan:{include:{patient:true}}}},performedBy:true},orderBy:{scheduledAt:'asc'},take:20}),
-  prisma.workSchedule.findFirst({where:{workDate:{gte:start,lt:end}},include:{employee:true},orderBy:{startTime:'asc'}}),
+  prisma.visit.findMany({where:{employeeId:session.employeeId,visitDate:{gte:start,lt:end}},include:{patient:true,room:true,employee:true},orderBy:{visitDate:'asc'},take:50}),
+  prisma.treatmentSession.findMany({where:{performedById:session.employeeId,scheduledAt:{gte:start,lt:end}},include:{stage:{include:{plan:{include:{patient:true}}}},performedBy:true},orderBy:{scheduledAt:'asc'},take:20}),
+  prisma.workSchedule.findFirst({where:{employeeId:session.employeeId,workDate:{gte:start,lt:end}},include:{employee:true},orderBy:{startTime:'asc'}}),
  ]);
  const completed=visits.filter(v=>['COMPLETED','DONE'].includes(v.status.toUpperCase())).length;
  const waiting=visits.filter(v=>['WAITING','REGISTERED'].includes(v.status.toUpperCase()));
- const doctor=workSchedule?.employee?.fullName||visits.find(v=>v.employee)?.employee?.fullName||'Bác sĩ';
+ const doctor=workSchedule?.employee?.fullName||session.fullName;
  return <div className="mx-auto max-w-[1180px] space-y-5 text-[#20334b]">
   <header className="flex flex-col justify-between gap-3 md:flex-row md:items-end"><div><h1 className="text-[25px] font-bold">Xin chào, {doctor}</h1><p className="mt-1 text-[12px] text-[#6c7e93]">Dữ liệu công việc ngày {start.toLocaleDateString('vi-VN')} từ hệ thống phòng khám</p></div><Link href="/reception/visits" className="inline-flex h-10 items-center gap-2 rounded-[7px] bg-[#246dce] px-4 text-[12px] font-semibold text-white"><ArrowRight size={15}/> Mở hàng đợi khám</Link></header>
   <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[

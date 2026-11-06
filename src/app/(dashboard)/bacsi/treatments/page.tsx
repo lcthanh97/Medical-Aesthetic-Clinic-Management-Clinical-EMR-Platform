@@ -4,12 +4,16 @@ import { VisitSelector } from '@/features/treatments/components/VisitSelector';
 import { InteractionRuleEnginePanel } from '@/features/treatments/components/InteractionRuleEnginePanel';
 import { getPlansByVisitId } from '@/features/treatments/actions';
 import { prisma } from '@/infrastructure/database/prisma';
+import { getDoctorSession } from '@/server/auth/doctor-session';
 
 export default async function BacSiTreatmentsPage({ searchParams }: { searchParams: Promise<{ visitId?: string }> }) {
+  const session = await getDoctorSession();
+  if (!session) return null;
   const resolvedSearchParams = await searchParams;
   
   // Lấy danh sách lượt khám để chọn bệnh nhân
   const visits = await prisma.visit.findMany({
+    where: { employeeId: session.employeeId },
     include: {
       patient: true
     },
@@ -19,7 +23,7 @@ export default async function BacSiTreatmentsPage({ searchParams }: { searchPara
     take: 50
   });
 
-  let visitId = resolvedSearchParams.visitId;
+  let visitId = visits.some((visit) => visit.id === resolvedSearchParams.visitId) ? resolvedSearchParams.visitId : undefined;
   if (!visitId && visits.length > 0) {
     visitId = visits[0].id;
   } else if (!visitId) {
@@ -30,7 +34,7 @@ export default async function BacSiTreatmentsPage({ searchParams }: { searchPara
   const plans = (result.success && result.data ? result.data : []) as any[];
 
   const employees = await prisma.employee.findMany({
-    orderBy: { fullName: 'asc' }
+    where: { id: session.employeeId }, orderBy: { fullName: 'asc' }
   });
 
   const equipments = await prisma.equipment.findMany({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clinicalServicesController } from '@/server/common/container';
+import { getDoctorSession } from '@/server/auth/doctor-session';
 
 interface RouteProps {
   params: Promise<{ orderId: string }>;
@@ -7,6 +8,7 @@ interface RouteProps {
 
 export async function POST(req: NextRequest, props: RouteProps) {
   try {
+    if (!await getDoctorSession()) return NextResponse.json({ success: false, message: 'Chưa đăng nhập bác sĩ.' }, { status: 401 });
     const { orderId } = await props.params;
     const body = await req.json();
     const result = await clinicalServicesController.submitResults(orderId, body);
