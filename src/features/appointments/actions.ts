@@ -32,7 +32,7 @@ function localDateBounds(dateValue?: string) {
 
 export async function getDoctorDashboard(input: { date?: string } = {}) {
   if (!isLocalDashboardTestEnvironment()) {
-    return { success: false as const, code: 'UNAVAILABLE' as const, error: 'Dashboard hiện chỉ được bật trên PostgreSQL test localhost.' };
+    return { success: false as const, code: 'UNAVAILABLE' as const, error: 'Dashboard chưa được bật cho môi trường dữ liệu hiện tại.' };
   }
 
   const dateBounds = localDateBounds(input.date);

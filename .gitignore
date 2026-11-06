@@ -1,5 +1,6 @@
 node_modules
 .next
+.next-doctor-*
 .env
 coverage
 *.log
@@ -7,3 +8,5 @@ coverage
 *.db
 *.db-journal
 
+.env.development.local
+.env.production.local

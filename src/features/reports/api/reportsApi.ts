@@ -7,6 +7,7 @@ function urlFor(filters: ReportsFilters, format?: 'csv') {
   if (filters.visitStatus) query.set('visitStatus', filters.visitStatus);
   if (filters.appointmentStatus) query.set('appointmentStatus', filters.appointmentStatus);
   if (filters.treatmentSessionStatus) query.set('treatmentSessionStatus', filters.treatmentSessionStatus);
+  if (filters.itemSearch) query.set('itemSearch', filters.itemSearch);
   if (format) query.set('format', format);
   return `/api/reports?${query.toString()}`;
 }

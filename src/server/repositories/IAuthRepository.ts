@@ -23,6 +23,7 @@ export interface AuthSessionRecord {
 
 export interface IAuthRepository {
   findAccountByUsername(username: string): Promise<AuthAccountRecord | null>;
+  findAccountById(accountId: string): Promise<AuthAccountRecord | null>;
   beginLoginAttempt(fingerprint: string, since: Date, limit: number, at: Date): Promise<string | null>;
   completeLoginAttempt(attemptId: string, succeeded: boolean): Promise<void>;
   createSession(accountId: string, tokenHash: string, expiresAt: Date): Promise<string>;

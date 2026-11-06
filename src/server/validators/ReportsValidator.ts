@@ -8,6 +8,7 @@ const filterSchema = z.object({
   visitStatus: z.string().trim().min(1).max(64).optional(),
   appointmentStatus: z.string().trim().min(1).max(64).optional(),
   treatmentSessionStatus: z.string().trim().min(1).max(64).optional(),
+  itemSearch: z.string().trim().min(1).max(100).optional(),
 }).strict();
 
 export class ReportsValidator {

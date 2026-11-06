@@ -3,10 +3,7 @@ import {
   ArrowDownUp,
   ArrowRight,
   CalendarDays,
-  CheckCircle2,
-  ClipboardList,
   FileText,
-  ListOrdered,
   RefreshCw,
   Search,
   Stethoscope,
@@ -49,7 +46,7 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
   if (!result.success) {
     const needsLogin = result.code === 'AUTH_REQUIRED';
     return (
-      <main className="mx-auto max-w-3xl rounded-2xl border border-rose-200 bg-white p-6 shadow-sm sm:p-8" role="alert">
+        <section className="mx-auto max-w-3xl rounded-2xl border border-rose-200 bg-white p-6 shadow-sm sm:p-8" role="alert">
         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
           <Stethoscope size={22} />
         </div>
@@ -60,7 +57,7 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
             Đăng nhập <ArrowRight size={16} />
           </Link>
         )}
-      </main>
+        </section>
     );
   }
 
@@ -96,31 +93,14 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, pageCount) : 1;
   const pageVisits = filteredVisits.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const nextVisit = pageVisits[0] ?? null;
-  const visitsWithRecord = data.visits.filter((visit) => visit.medicalRecord !== null).length;
-  const roomsInUse = new Set(data.visits.flatMap((visit) => visit.room?.id ?? [])).size;
   const baseHref = { date: selectedDate, q, room: selectedRoom, sort, status: selectedStatus };
-  const metrics = [
-    { label: 'Lượt khám được phân công', value: data.visits.length, icon: UsersRound, tone: 'blue' },
-    { label: 'Có bệnh án', value: visitsWithRecord, icon: CheckCircle2, tone: 'teal' },
-    { label: 'Chưa có bệnh án', value: data.visits.length - visitsWithRecord, icon: ClipboardList, tone: 'amber' },
-    { label: 'Phòng có lượt khám', value: roomsInUse, icon: CalendarDays, tone: 'violet' },
-  ] as const;
-  const metricTone: Record<(typeof metrics)[number]['tone'], string> = {
-    blue: 'bg-blue-50 text-blue-700 ring-blue-100',
-    teal: 'bg-teal-50 text-teal-700 ring-teal-100',
-    amber: 'bg-amber-50 text-amber-700 ring-amber-100',
-    violet: 'bg-violet-50 text-violet-700 ring-violet-100',
-  };
 
   return (
-    <main className="mx-auto max-w-[1440px] space-y-5 pb-8 text-slate-800">
+    <div className="mx-auto max-w-[1440px] space-y-5 pb-8 text-slate-800">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
-            <ListOrdered size={14} /> Khu vực bác sĩ
-          </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-[27px]">Hàng đợi khám</h1>
-          <p className="mt-1 text-sm text-slate-500">Các lượt khám được phân công trong ngày {selectedDate}.</p>
+          <h1 className="text-[27px] font-bold tracking-tight text-[#263a56]">Hàng đợi khám</h1>
+          <p className="mt-1 text-sm text-[#7186a3]">Theo dõi lượt khám theo thời điểm và trạng thái.</p>
         </div>
         <form action="/bacsi/queue" method="get">
           <input type="hidden" name="date" value={selectedDate} />
@@ -133,18 +113,6 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
           </button>
         </form>
       </header>
-
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Thống kê lượt khám được phân công">
-        {metrics.map(({ label, value, icon: Icon, tone }) => (
-          <article key={label} className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-medium text-slate-500">{label}</p>
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ${metricTone[tone]}`}><Icon size={18} /></span>
-            </div>
-            <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{value}</p>
-          </article>
-        ))}
-      </section>
 
       <nav aria-label="Lọc theo trạng thái lượt khám" className="flex gap-6 overflow-x-auto border-b border-[#e1e9f2]">
         <Link href={routeHref({ ...baseHref, status: '', page: 1 })} aria-current={!selectedStatus ? 'page' : undefined}
@@ -303,6 +271,6 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
       </section>
 
       <p className="flex items-center gap-2 text-xs text-slate-500"><ArrowDownUp size={14} /> Trạng thái lấy nguyên văn từ Visit; danh sách và liên kết hồ sơ được giới hạn theo nhân viên đăng nhập.</p>
-    </main>
+    </div>
   );
 }

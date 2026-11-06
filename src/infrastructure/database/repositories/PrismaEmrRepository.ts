@@ -403,7 +403,7 @@ export class PrismaEmrRepository implements IEmrRepository {
           } : {}),
         },
       });
-    }, { isolationLevel: 'Serializable' });
+    }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
   }
 
   async saveMedicalRecord(
@@ -488,7 +488,7 @@ export class PrismaEmrRepository implements IEmrRepository {
         const updated = await tx.medicalRecord.findUnique({ where: { visitId } });
         if (!updated) throw new Error('Không tìm thấy bệnh án sau khi cập nhật.');
         return updated;
-      }, { isolationLevel: 'Serializable' });
+      }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
     } catch (error) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         throw new Error('Bệnh án đã được tạo ở nơi khác. Hãy tải lại hồ sơ trước khi tiếp tục.');

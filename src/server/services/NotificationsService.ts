@@ -1,5 +1,6 @@
 import type { INotificationsRepository } from '@/server/repositories/INotificationsRepository';
 import type { INotificationsService } from './INotificationsService';
+import workbookDrafts from './notification-workbook-drafts.json';
 export class NotificationsService implements INotificationsService {
   constructor(private readonly repository: INotificationsRepository) {}
 
@@ -11,6 +12,11 @@ export class NotificationsService implements INotificationsService {
 
   private hasPermissionsInSameRole(actor: import('./AuthService').AuthActor, permissionCodes: string[]) {
     return actor.rolePermissions.some((role) => permissionCodes.every((code) => role.permissionCodes.includes(code)));
+  }
+
+  getWorkbookDrafts(actor: import('./AuthService').AuthActor) {
+    if (!this.hasPermission(actor, 'NOTIFICATION_READ')) throw new Error('NOTIFICATION_ACCESS_DENIED');
+    return workbookDrafts;
   }
 
   async getList(actor: import('./AuthService').AuthActor, filters: import('@/server/repositories/INotificationsRepository').NotificationFilters) {

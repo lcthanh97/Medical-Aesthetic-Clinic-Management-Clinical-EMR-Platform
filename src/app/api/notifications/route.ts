@@ -3,12 +3,12 @@ import { PrismaAuthRepository } from '@/infrastructure/database/repositories/Pri
 import { PrismaNotificationsRepository } from '@/infrastructure/database/repositories/PrismaNotificationsRepository';
 import { NotificationsController } from '@/server/controllers/NotificationsController';
 import { AuthService } from '@/server/services/AuthService';
+import { isNeonModuleReadEnabled } from '@/server/policies/NeonModuleReadAccess';
 import { NotificationsService } from '@/server/services/NotificationsService';
 
 const SESSION_COOKIE = 'clinic_session';
-const controller = new NotificationsController(
-  new NotificationsService(new PrismaNotificationsRepository()),
-);
+const service = new NotificationsService(new PrismaNotificationsRepository());
+const controller = new NotificationsController(service);
 const auth = new AuthService(new PrismaAuthRepository());
 
 function isLocalNotificationTestEnvironment(): boolean {
@@ -26,7 +26,7 @@ function isLocalNotificationTestEnvironment(): boolean {
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, {
     status,
-    headers: { 'Cache-Control': 'no-store, max-age=0' },
+    headers: { 'Cache-Control': 'private, no-store, max-age=0' },
   });
 }
 
@@ -45,15 +45,19 @@ function handleError(error: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isLocalNotificationTestEnvironment()) {
-    return json({ success: false, error: 'Notification chỉ được bật trên PostgreSQL test localhost.' }, 503);
+  const neonRead = isNeonModuleReadEnabled('NOTIFICATIONS');
+  if (!neonRead && !isLocalNotificationTestEnvironment()) {
+    return json({ success: false, error: 'Nguồn dữ liệu thông báo chưa được bật.' }, 503);
   }
 
   try {
-    const actor = await auth.getSession(request.cookies.get(SESSION_COOKIE)?.value);
+    const actor = await auth.getSession(request.cookies.get(SESSION_COOKIE)?.value, { readOnly: neonRead });
     if (!actor) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
 
     const query = request.nextUrl.searchParams;
+    if (query.get('view') === 'workbook-drafts') {
+      return json({ success: true, data: service.getWorkbookDrafts(actor) });
+    }
     const id = query.get('id');
     if (id !== null) return json({ success: true, data: await controller.getById(actor, id) });
 

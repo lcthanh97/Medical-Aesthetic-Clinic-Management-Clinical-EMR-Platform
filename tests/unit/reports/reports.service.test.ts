@@ -6,10 +6,12 @@ import { ReportsValidator } from '@/server/validators/ReportsValidator';
 import { ReportsMapper } from '@/server/mappers/ReportsMapper';
 
 const baseData: ReportRepositoryData = {
+  patients: { totalInScope: 0, uniqueWithVisits: 0, newInPeriod: null },
   visits: { total: 0, byStatus: [], byDate: [] },
   appointments: { total: 0, byStatus: [], byDate: [] },
   finance: null,
   treatment: null,
+  inventory: null,
 };
 
 const baseActor: AuthActor = {
@@ -45,11 +47,11 @@ describe('ReportsService and ReportsValidator', () => {
       ],
     };
     const data = await service.getDashboardReport(splitActor, { startDate: '2026-03-01', endDate: '2026-03-01' });
-    expect(data.capabilities).toEqual({ finance: false, treatment: false, export: false });
+    expect(data.capabilities).toEqual({ finance: false, treatment: false, inventory: false, export: false });
     expect(repository.getDashboardReport).toHaveBeenCalledWith(
       { accountId: 'synthetic-account', employeeId: 'synthetic-employee' },
       expect.objectContaining({ startDate: '2026-03-01', endDate: '2026-03-01' }),
-      { finance: false, treatment: false },
+      { finance: false, treatment: false, inventory: false },
     );
     await expect(service.getDashboardReport(splitActor, { startDate: '2026-03-01', endDate: '2026-03-01' }, true))
       .rejects.toThrow('REPORT_EXPORT_DENIED');
@@ -59,11 +61,11 @@ describe('ReportsService and ReportsValidator', () => {
     vi.mocked(repository.getDashboardReport).mockResolvedValue({
       ...baseData,
       visits: { total: 2, byStatus: [{ status: 'STORED_STATUS', count: 2 }], byDate: [{ date: '2026-03-02', count: 2 }] },
-      finance: { paymentCount: 1, paymentAmount: '9007199254740993.01', byMethod: [], byDate: [{ date: '2026-03-02', amount: '9007199254740993.01', count: 1 }] },
+      finance: { paymentCount: 1, paymentAmount: '9007199254740993.01', allocatedAmount: '0', unallocatedBalance: '9007199254740993.01', invoicesByStatus: [], byMethod: [], byDate: [{ date: '2026-03-02', amount: '9007199254740993.01', count: 1 }] },
     });
     const actor = {
       ...baseActor,
-      rolePermissions: [{ roleName: 'reporter', permissionCodes: ['REPORT_READ', 'BILLING_READ', 'REPORT_EXPORT'] }],
+      rolePermissions: [{ roleName: 'reporter', permissionCodes: ['REPORT_READ', 'BILLING_READ', 'INVENTORY_READ', 'TREATMENT_READ', 'REPORT_EXPORT'] }],
     };
     const report = await service.getDashboardReport(actor, { startDate: '2026-03-01', endDate: '2026-03-03' });
     expect(report.visits.byDate).toEqual([
@@ -71,6 +73,8 @@ describe('ReportsService and ReportsValidator', () => {
     ]);
     expect(report.finance?.paymentAmount).toBe('9007199254740993.01');
     expect(report.capabilities.finance).toBe(true);
+    expect(report.capabilities.inventory).toBe(true);
+    expect(report.capabilities.treatment).toBe(true);
   });
 
   it('validates dates, ordering, and the maximum 366-day range', () => {
@@ -86,11 +90,12 @@ describe('ReportsService and ReportsValidator', () => {
       ...baseData,
       visits: { total: 1, byStatus: [{ status: '=HYPERLINK("x")', count: 1 }], byDate: [] },
       period: { startDate: '2026-03-01', endDate: '2026-03-01' },
-      capabilities: { finance: false, treatment: false, export: true },
+      patients: { totalInScope: 0, uniqueWithVisits: 0, newInPeriod: null },
+      capabilities: { finance: false, treatment: false, inventory: false, export: true },
     };
     const csv = ReportsMapper.toCsv(report);
     expect(csv.startsWith('\uFEFF')).toBe(true);
     expect(csv).toContain("'=HYPERLINK(\"\"x\"\")");
-    expect(csv).not.toContain('patient');
+    expect(csv).not.toContain('Synthetic report patient');
   });
 });

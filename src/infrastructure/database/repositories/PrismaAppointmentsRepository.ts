@@ -59,7 +59,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
   }
 
   async findDoctorDashboardSnapshot(employeeId: string, startAt: Date, endAt: Date): Promise<DoctorDashboardSnapshot> {
-    const [appointments, visits, treatmentSessions] = await Promise.all([
+    const [appointments, visits, treatmentSessions, workSchedules] = await Promise.all([
       prisma.appointment.findMany({
         where: { employeeId, scheduledAt: { gte: startAt, lt: endAt } },
         select: {
@@ -92,6 +92,11 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
         select: { id: true, scheduledAt: true, status: true },
         orderBy: { scheduledAt: 'asc' },
       }),
+      prisma.workSchedule.findMany({
+        where: { employeeId, workDate: { gte: startAt, lt: endAt } },
+        select: { id: true, startTime: true, endTime: true },
+        orderBy: { startTime: 'asc' },
+      }),
     ]);
 
       return {
@@ -101,6 +106,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
           room: visit.room ? { id: visit.room.id, name: visit.room.name, departmentName: visit.room.department.name } : null,
         })),
         treatmentSessions,
+        workSchedules,
       };
   }
 }

@@ -10,11 +10,12 @@ export type ReportsQueryInput = {
   visitStatus?: string;
   appointmentStatus?: string;
   treatmentSessionStatus?: string;
+  itemSearch?: string;
 };
 
 export type ReportsDashboardViewModel = ReportRepositoryData & {
   period: { startDate: string; endDate: string };
-  capabilities: { finance: boolean; treatment: boolean; export: boolean };
+  capabilities: { finance: boolean; treatment: boolean; inventory: boolean; export: boolean };
 };
 
 export interface IReportsService {

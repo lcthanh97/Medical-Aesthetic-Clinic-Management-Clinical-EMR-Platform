@@ -4,6 +4,7 @@ import { PrismaClinicalServicesRepository } from '@/infrastructure/database/repo
 import { ClinicalServicesController } from '@/server/controllers/ClinicalServicesController';
 import { AuthService } from '@/server/services/AuthService';
 import { ClinicalServicesService } from '@/server/services/ClinicalServicesService';
+import { isDoctorReadEnvironment } from '@/server/policies/DoctorDatabaseAccess';
 
 const SESSION_COOKIE = 'clinic_session';
 const controller = new ClinicalServicesController(
@@ -59,16 +60,17 @@ function handleError(error: unknown) {
   return json({ success: false, error: 'Không thể xử lý yêu cầu hình ảnh cận lâm sàng lúc này.' }, 500);
 }
 
-async function requireActor(request: NextRequest) {
-  if (!isLocalClsTestEnvironment()) return { unavailable: true as const };
+async function requireActor(request: NextRequest, mode: 'read' | 'write') {
+  const allowed = mode === 'read' ? isDoctorReadEnvironment() : isLocalClsTestEnvironment();
+  if (!allowed) return { unavailable: true as const };
   const actor = await auth.getSession(request.cookies.get(SESSION_COOKIE)?.value);
   return actor ? { actor, unavailable: false as const } : { unavailable: false as const, unauthenticated: true as const };
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireActor(request);
-    if (session.unavailable) return json({ success: false, error: 'CLS-03 chỉ được bật trên database test PostgreSQL localhost.' }, 503);
+    const session = await requireActor(request, 'read');
+    if (session.unavailable) return json({ success: false, error: 'CLS-03 đọc cần môi trường Neon đã xác minh và được bật.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
 
     const query = request.nextUrl.searchParams;
@@ -83,8 +85,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return json({ success: false, error: 'Yêu cầu không hợp lệ.' }, 403);
   try {
-    const session = await requireActor(request);
-    if (session.unavailable) return json({ success: false, error: 'CLS-03 chỉ được bật trên database test PostgreSQL localhost.' }, 503);
+    const session = await requireActor(request, 'write');
+    if (session.unavailable) return json({ success: false, error: 'Ghi CLS-03 chỉ được phép trên database test cô lập.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
     let input: unknown;
     try { input = await request.json(); } catch { return json({ success: false, error: 'Dữ liệu kết quả hình ảnh không hợp lệ.' }, 400); }
@@ -97,8 +99,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   if (!sameOrigin(request)) return json({ success: false, error: 'Yêu cầu không hợp lệ.' }, 403);
   try {
-    const session = await requireActor(request);
-    if (session.unavailable) return json({ success: false, error: 'CLS-03 chỉ được bật trên database test PostgreSQL localhost.' }, 503);
+    const session = await requireActor(request, 'write');
+    if (session.unavailable) return json({ success: false, error: 'Ghi CLS-03 chỉ được phép trên database test cô lập.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
     let input: unknown;
     try { input = await request.json(); } catch { return json({ success: false, error: 'Dữ liệu kết quả hình ảnh không hợp lệ.' }, 400); }

@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AuthActor } from '@/server/services/AuthService';
 import {
   isDoctorDemoWriteAllowed,
+  isDoctorDemoMedicalRecordWriteAllowed,
   isDoctorReadEnvironment,
+  isNeonPrescriptionDemoWriter,
+  isNeonPrescriptionDemoWriteEnvironment,
   isVerifiedNeonDoctorReadEnvironment,
 } from '@/server/policies/DoctorDatabaseAccess';
 
@@ -15,6 +18,10 @@ const keys = [
   'DOCTOR_NEON_DEMO_ACCOUNT_ID',
   'DOCTOR_NEON_DEMO_EMPLOYEE_ID',
   'DOCTOR_NEON_DEMO_VISIT_ID',
+  'DOCTOR_NEON_DEMO_ADDITIONAL_EMR_VISIT_ID',
+  'DOCTOR_NEON_PRESCRIPTION_DRAFT_WRITE_ENABLED',
+  'DOCTOR_NEON_PRESCRIPTION_ACCOUNT_ID',
+  'DOCTOR_NEON_PRESCRIPTION_EMPLOYEE_ID',
 ] as const;
 const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 
@@ -35,11 +42,14 @@ afterEach(() => {
 });
 
 describe('doctor database access guard', () => {
-  it('enables reads only for the verified direct Neon endpoint, database, TLS, and explicit local flag', () => {
+  it('enables reads only for the verified Neon direct or pooled endpoint, database, TLS, and explicit flag', () => {
     setNeonEnvironment();
     expect(isDoctorReadEnvironment()).toBe(true);
 
     process.env.DATABASE_URL = (process.env.DATABASE_URL ?? '').replace('ep-hidden-mouse-aewp1c1t.', 'ep-hidden-mouse-aewp1c1t-pooler.');
+    expect(isVerifiedNeonDoctorReadEnvironment()).toBe(true);
+
+    process.env.DATABASE_URL = (process.env.DATABASE_URL ?? '').replace('ep-hidden-mouse-aewp1c1t-pooler.', 'unverified-endpoint.');
     expect(isVerifiedNeonDoctorReadEnvironment()).toBe(false);
 
     setNeonEnvironment();
@@ -77,9 +87,48 @@ describe('doctor database access guard', () => {
 
     expect(isDoctorDemoWriteAllowed(actor, 'demo-visit')).toBe(true);
     expect(isDoctorDemoWriteAllowed(actor, 'other-visit')).toBe(false);
+    process.env.DOCTOR_NEON_DEMO_ADDITIONAL_EMR_VISIT_ID = 'additional-emr-visit';
+    expect(isDoctorDemoMedicalRecordWriteAllowed(actor, 'demo-visit')).toBe(true);
+    expect(isDoctorDemoMedicalRecordWriteAllowed(actor, 'additional-emr-visit')).toBe(true);
+    expect(isDoctorDemoMedicalRecordWriteAllowed(actor, 'other-visit')).toBe(false);
+    expect(isDoctorDemoMedicalRecordWriteAllowed({ ...actor, employeeId: 'other-employee' }, 'additional-emr-visit')).toBe(false);
+    expect(isDoctorDemoWriteAllowed(actor, 'additional-emr-visit')).toBe(false);
     expect(isDoctorDemoWriteAllowed(actor, '')).toBe(false);
     expect(isDoctorDemoWriteAllowed({ ...actor, accountId: 'other-account' }, 'demo-visit')).toBe(false);
     process.env.DOCTOR_NEON_DEMO_WRITE_ENABLED = 'false';
     expect(isDoctorDemoWriteAllowed(actor, 'demo-visit')).toBe(false);
+    expect(isDoctorDemoMedicalRecordWriteAllowed(actor, 'additional-emr-visit')).toBe(false);
+  });
+
+  it('allows production prescription drafts only for the configured doctor on verified Neon with both prescription permissions', () => {
+    setNeonEnvironment();
+    vi.stubEnv('NODE_ENV', 'production');
+    process.env.DOCTOR_NEON_PRESCRIPTION_DRAFT_WRITE_ENABLED = 'true';
+    process.env.DOCTOR_NEON_PRESCRIPTION_ACCOUNT_ID = 'demo-account';
+    process.env.DOCTOR_NEON_PRESCRIPTION_EMPLOYEE_ID = 'demo-employee';
+
+    const actor: AuthActor = {
+      accountId: 'demo-account',
+      employeeId: 'demo-employee',
+      sessionId: 'session',
+      username: 'demo',
+      employeeName: 'Demo',
+      roleNames: ['Doctor'],
+      rolePermissions: [{ roleName: 'Doctor', permissionCodes: ['PRESCRIPTION_READ', 'PRESCRIPTION_WRITE'] }],
+    };
+
+    expect(isNeonPrescriptionDemoWriteEnvironment()).toBe(true);
+    expect(isNeonPrescriptionDemoWriter(actor)).toBe(true);
+    expect(isNeonPrescriptionDemoWriter({ ...actor, accountId: 'other-account' })).toBe(false);
+    expect(isNeonPrescriptionDemoWriter({
+      ...actor,
+      rolePermissions: [
+        { roleName: 'Read', permissionCodes: ['PRESCRIPTION_READ'] },
+        { roleName: 'Write', permissionCodes: ['PRESCRIPTION_WRITE'] },
+      ],
+    })).toBe(false);
+
+    process.env.DATABASE_URL = (process.env.DATABASE_URL ?? '').replace('ep-hidden-mouse-aewp1c1t.', 'unverified-endpoint.');
+    expect(isNeonPrescriptionDemoWriteEnvironment()).toBe(false);
   });
 });

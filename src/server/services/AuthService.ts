@@ -116,7 +116,35 @@ export class AuthService {
     return { kind: 'authenticated', token, actor: toActor(account, sessionId) };
   }
 
-  async getSession(token: string | null | undefined): Promise<AuthActor | null> {
+  async createLocalPreviewSession(accountId: string): Promise<LoginResult> {
+    if (process.env.NODE_ENV === 'production' || !['development', 'test'].includes(process.env.NODE_ENV ?? '') ||
+      process.env.DOCTOR_PREVIEW_MODE !== 'true' || process.env.DOCTOR_PREVIEW_BIND_HOST !== '127.0.0.1') {
+      return { kind: 'invalid' };
+    }
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) return { kind: 'invalid' };
+    try {
+      const database = new URL(databaseUrl);
+      if (!['127.0.0.1', 'localhost', '::1'].includes(database.hostname) || database.port !== '55432' || database.pathname !== '/emr_test') {
+        return { kind: 'invalid' };
+      }
+    } catch {
+      return { kind: 'invalid' };
+    }
+
+    const account = await this.repository.findAccountById(accountId);
+    if (!account || account.status !== 'ACTIVE' || !account.employee) return { kind: 'invalid' };
+    const token = randomBytes(32).toString('base64url');
+    const now = this.now();
+    const sessionId = await this.repository.createSession(
+      account.id,
+      hashSessionToken(token),
+      new Date(now.getTime() + IDLE_SESSION_MS),
+    );
+    return { kind: 'authenticated', token, actor: toActor(account, sessionId) };
+  }
+
+  async getSession(token: string | null | undefined, { readOnly = false } = {}): Promise<AuthActor | null> {
     if (!token || !/^[A-Za-z0-9_-]{40,60}$/.test(token)) return null;
 
     const now = this.now();
@@ -124,14 +152,16 @@ export class AuthService {
     if (!session || session.revokedAt || session.expiresAt <= now) return null;
 
     if (session.createdAt.getTime() + ABSOLUTE_SESSION_MS <= now.getTime()) {
-      await this.repository.revokeSession(session.tokenHash, now);
+      if (!readOnly) await this.repository.revokeSession(session.tokenHash, now);
       return null;
     }
 
     if (session.account.status !== 'ACTIVE') {
-      await this.repository.revokeSession(session.tokenHash, now);
+      if (!readOnly) await this.repository.revokeSession(session.tokenHash, now);
       return null;
     }
+
+    if (readOnly) return toActor(session.account, session.id);
 
     const absoluteExpiry = new Date(session.createdAt.getTime() + ABSOLUTE_SESSION_MS);
     const idleExpiry = new Date(now.getTime() + IDLE_SESSION_MS);

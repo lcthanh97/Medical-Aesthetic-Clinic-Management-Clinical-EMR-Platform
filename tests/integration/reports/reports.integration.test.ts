@@ -43,6 +43,8 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
   let sessionIds: string[] = [];
   let consumptionIds: string[] = [];
   let medicineId = '';
+  let lowStockMedicineId = '';
+  let inventoryTransactionIds: string[] = [];
   const createdPermissionIds: string[] = [];
   const reportsFeatureFlag = process.env.REPORTS_TEST_MODE;
 
@@ -112,7 +114,7 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
     ] });
 
     const treatmentPlans = await Promise.all([visitId, visitTwoId, foreignVisitId].map((assignedVisitId, index) => prisma.treatmentPlan.create({
-      data: { patientId, visitId: assignedVisitId, name: `Synthetic report plan ${index + 1}`, status: 'PLAN_TEST', version: 1, createdById: index === 2 ? otherEmployeeId : employeeId },
+      data: { patientId, visitId: assignedVisitId, name: `Synthetic report plan ${index + 1}`, status: 'PLAN_TEST', version: 1, createdById: index === 2 ? otherEmployeeId : employeeId, createdAt: fixedNow },
     })));
     treatmentPlanIds = treatmentPlans.map(({ id }) => id);
     const treatmentStages = await Promise.all(treatmentPlanIds.map((planId, index) => prisma.treatmentStage.create({
@@ -127,6 +129,11 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
     sessionIds = sessions.map(({ id }) => id);
     const medicine = await prisma.medicine.create({ data: { name: `Synthetic report item ${suffix}`, unit: 'ml', unitCost: '999.99', stock: '50' } });
     medicineId = medicine.id;
+    const lowMedicine = await prisma.medicine.create({ data: { name: `Synthetic low-stock report item ${suffix}`, unit: 'box', stock: '1', minStock: '2' } });
+    lowStockMedicineId = lowMedicine.id;
+    inventoryTransactionIds.push((await prisma.inventoryTransaction.create({
+      data: { medicineId: lowMedicine.id, transactionType: 'SYNTHETIC_TYPE_KEEP_RAW', quantity: '2.5', unit: 'box', balanceBefore: '0', balanceAfter: '2.5', createdById: employeeId, createdAt: fixedNow },
+    })).id);
     const consumption = await Promise.all([
       prisma.treatmentConsumption.create({ data: { sessionId: sessions[0].id, medicineId, actualQuantity: '0.50', unit: 'ml', unitCost: '10.00', totalCost: '17.33', recordedById: employeeId, createdAt: fixedNow } }),
       prisma.treatmentConsumption.create({ data: { sessionId: sessions[0].id, medicineId, actualQuantity: '2', unit: 'piece', unitCost: '0.50', totalCost: '1.01', recordedById: employeeId, createdAt: fixedNow } }),
@@ -138,6 +145,7 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
   afterAll(async () => {
     if (!isolatedDatabase) return;
     if (consumptionIds.length) await prisma.treatmentConsumption.deleteMany({ where: { id: { in: consumptionIds } } });
+    if (inventoryTransactionIds.length) await prisma.inventoryTransaction.deleteMany({ where: { id: { in: inventoryTransactionIds } } });
     if (sessionIds.length) await prisma.treatmentSession.deleteMany({ where: { id: { in: sessionIds } } });
     if (treatmentStageIds.length) await prisma.treatmentStage.deleteMany({ where: { id: { in: treatmentStageIds } } });
     if (treatmentPlanIds.length) await prisma.treatmentPlan.deleteMany({ where: { id: { in: treatmentPlanIds } } });
@@ -150,7 +158,7 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
     if (appointmentIds.length) await prisma.appointment.deleteMany({ where: { id: { in: appointmentIds } } });
     const visitIds = [visitId, visitTwoId, outsideVisitId, foreignVisitId].filter(Boolean);
     if (visitIds.length) await prisma.visit.deleteMany({ where: { id: { in: visitIds } } });
-    if (medicineId) await prisma.medicine.deleteMany({ where: { id: medicineId } });
+    if (medicineId || lowStockMedicineId) await prisma.medicine.deleteMany({ where: { id: { in: [medicineId, lowStockMedicineId].filter(Boolean) } } });
     if (patientId) await prisma.patient.deleteMany({ where: { id: patientId } });
     if (sessionId) await prisma.refreshToken.deleteMany({ where: { id: sessionId } });
     if (accountId) await prisma.accountRole.deleteMany({ where: { accountId } });
@@ -177,6 +185,7 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
       { status: 'VISIT_TEST_A', count: 1 }, { status: 'VISIT_TEST_B', count: 1 },
     ]);
     expect(data.appointments.total).toBe(2);
+    expect(data.patients.uniqueWithVisits).toBe(1);
     expect(data.appointments.byStatus).toEqual([
       { status: 'APPT_TEST_A', count: 1 }, { status: 'APPT_TEST_B', count: 1 },
     ]);
@@ -196,12 +205,26 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
   it('uses stored treatment costs and groups quantities separately by unit within assigned Visits', async () => {
     const data = await controller.getDashboard((await getActor())!, period);
     expect(data.treatment?.sessionCount).toBe(2);
+    expect(data.treatment?.planCount).toBe(2);
+    expect(data.treatment?.plansByStatus).toEqual([{ status: 'PLAN_TEST', count: 2 }]);
     expect(data.treatment?.sessionsByStatus).toEqual([
       { status: 'SESSION_TEST_A', count: 1 }, { status: 'SESSION_TEST_B', count: 1 },
     ]);
     expect(new Prisma.Decimal(data.treatment!.consumptionTotalCost).eq('18.34')).toBe(true);
     expect(data.treatment?.quantityByUnit.map(({ unit, quantity }) => [unit, new Prisma.Decimal(quantity).toString()]))
       .toEqual([['ml', new Prisma.Decimal('0.50').toString()], ['piece', '2']]);
+  });
+
+  it('reports configured low-stock thresholds and preserves raw inventory transaction types without deriving valuation', async () => {
+    const report = await controller.getDashboard((await getActor())!, period);
+    expect(report.inventory).not.toBeNull();
+    expect(report.inventory!.lowStockCount).toBeGreaterThanOrEqual(1);
+    expect(report.inventory!.lowStockItems.some(({ name, stock, minStock }) =>
+      name === `Synthetic low-stock report item ${suffix}` && stock === '1' && minStock === '2')).toBe(true);
+    expect(report.inventory!.transactionsByTypeAndUnit).toContainEqual({
+      transactionType: 'SYNTHETIC_TYPE_KEEP_RAW', unit: 'box', quantity: expect.any(String), count: 1,
+    });
+    expect(report.inventory).not.toHaveProperty('inventoryValue');
   });
 
   it('requires a live session and server permission for the scoped API and export', async () => {
@@ -213,7 +236,7 @@ describe.skipIf(!isolatedDatabase)('Reports PostgreSQL isolated integration', ()
     expect(dashboard.headers.get('cache-control')).toContain('no-store');
     const body = await dashboard.json();
     expect(body.data.visits.total).toBe(2);
-    expect(body.data).not.toHaveProperty('patients');
+    expect(body.data.patients).toEqual({ totalInScope: 1, uniqueWithVisits: 1, newInPeriod: null });
 
     const exportUrl = `http://localhost/api/reports?startDate=${period.startDate}&endDate=${period.endDate}&format=csv`;
     const csvResponse = await reportsGet(new NextRequest(exportUrl, cookie));

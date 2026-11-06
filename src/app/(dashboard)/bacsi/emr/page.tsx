@@ -38,8 +38,8 @@ export default async function BacSiEmrPage({
         </div>
         {selectedPatient?.visits?.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {patientsResult.canReadImages && (
-              <Link href="/bacsi/clinical-services" className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-3.5 text-sm font-semibold text-white hover:bg-blue-700">
+            {selectedPatient.visits[0]?.id && (
+              <Link href={`/bacsi/examination?visitId=${encodeURIComponent(selectedPatient.visits[0].id)}`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-3.5 text-sm font-semibold text-white hover:bg-blue-700">
                 Khám bệnh &amp; chỉ định
               </Link>
             )}

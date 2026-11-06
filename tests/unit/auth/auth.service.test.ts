@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import { AuthService, hashNewPassword, hashSessionToken, verifyPassword } from '@/server/services/AuthService';
 import type { AuthAccountRecord, AuthSessionRecord, IAuthRepository } from '@/server/repositories/IAuthRepository';
@@ -23,6 +23,7 @@ function createRepository(account: AuthAccountRecord | null = createAccount(), s
   let attemptSequence = 0;
   return {
     findAccountByUsername: vi.fn(async () => account),
+    findAccountById: vi.fn(async () => account),
     beginLoginAttempt: vi.fn(async (_fingerprint: string, _since: Date, _limit: number, _at: Date): Promise<string | null> => `attempt-${++attemptSequence}`),
     completeLoginAttempt: vi.fn(async (_attemptId: string, _succeeded: boolean) => {}),
     createSession: vi.fn(async (_accountId: string, _tokenHash: string, _expiresAt: Date) => 'session-1'),
@@ -38,6 +39,7 @@ describe('AuthService', () => {
   beforeEach(async () => {
     passwordHash = await bcrypt.hash('Synthetic-password-123!', 4);
   });
+  afterEach(() => vi.unstubAllEnvs());
 
   it('authenticates an active bcrypt account and stores only a hash of the random session token', async () => {
     const account = createAccount({ passwordHash });
@@ -112,6 +114,44 @@ describe('AuthService', () => {
     expect(hash.startsWith('$argon2id$')).toBe(true);
     expect(await verifyPassword('Synthetic-new-password-123!', hash)).toBe(true);
     expect(await verifyPassword('wrong', hash)).toBe(false);
+  });
+
+  it('creates a server session for the configured local preview account only in isolated development', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('DOCTOR_PREVIEW_MODE', 'true');
+    vi.stubEnv('DOCTOR_PREVIEW_BIND_HOST', '127.0.0.1');
+    vi.stubEnv('DATABASE_URL', 'postgresql://local:local@127.0.0.1:55432/emr_test');
+    const account = createAccount();
+    const repository = createRepository(account);
+    const service = new AuthService(repository, RATE_LIMIT_SECRET, () => NOW);
+
+    const result = await service.createLocalPreviewSession(account.id);
+
+    expect(result.kind).toBe('authenticated');
+    if (result.kind === 'authenticated') {
+      expect(repository.createSession).toHaveBeenCalledWith(
+        account.id,
+        hashSessionToken(result.token),
+        new Date(NOW.getTime() + 30 * 60 * 1000),
+      );
+      expect(result.actor.employeeId).toBe('employee-1');
+    }
+  });
+
+  it('refuses local preview sessions in production or when the database is not isolated', async () => {
+    const repository = createRepository();
+    const service = new AuthService(repository, RATE_LIMIT_SECRET, () => NOW);
+    vi.stubEnv('DOCTOR_PREVIEW_MODE', 'true');
+    vi.stubEnv('DOCTOR_PREVIEW_BIND_HOST', '127.0.0.1');
+    vi.stubEnv('DATABASE_URL', 'postgresql://local:local@127.0.0.1:55432/emr_test');
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(await service.createLocalPreviewSession('account-1')).toEqual({ kind: 'invalid' });
+    expect(repository.findAccountById).not.toHaveBeenCalled();
+
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('DATABASE_URL', 'postgresql://user:pass@production.example/neondb');
+    expect(await service.createLocalPreviewSession('account-1')).toEqual({ kind: 'invalid' });
+    expect(repository.findAccountById).not.toHaveBeenCalled();
   });
 
   it('renews an active session while enforcing revocation and absolute expiry', async () => {

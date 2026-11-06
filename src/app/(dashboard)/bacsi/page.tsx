@@ -56,15 +56,15 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
   const search = (params.q ?? '').trim().slice(0, 100).toLocaleLowerCase('vi-VN');
   const statusFilter = params.status ?? '';
   const statuses = [...new Set(data.appointments.map((appointment) => appointment.status))].sort((a, b) => a.localeCompare(b, 'vi'));
-  const visitByPatient = new Map<string, string>();
-  for (const visit of data.visits) {
-    if (!visitByPatient.has(visit.patientId)) visitByPatient.set(visit.patientId, visit.id);
-  }
   const appointments = data.appointments.filter((appointment) => {
     const matchesStatus = !statusFilter || appointment.status === statusFilter;
     const searchable = `${appointment.patient.fullName} ${appointment.patient.patientCode}`.toLocaleLowerCase('vi-VN');
     return matchesStatus && (!search || searchable.includes(search));
   });
+  const appointmentStatusCounts = new Map<string, number>();
+  for (const appointment of data.appointments) {
+    appointmentStatusCounts.set(appointment.status, (appointmentStatusCounts.get(appointment.status) ?? 0) + 1);
+  }
   const patientCount = new Set(data.visits.map((visit) => visit.patientId)).size;
   const recordedMedicalRecords = data.visits.filter((visit) => visit.medicalRecord !== null).length;
   const upcoming = data.appointments.find((appointment) => new Date(appointment.scheduledAt).getTime() >= new Date(result.asOf).getTime());
@@ -98,7 +98,10 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/bacsi/emr" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+            <Link href={`/bacsi/queue?date=${encodeURIComponent(selectedDate)}`} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+              <CalendarDays size={16} /> Mở hàng đợi khám
+            </Link>
+            <Link href="/bacsi/emr" className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50">
               <FileText size={16} /> Mở EMR
             </Link>
             <Link href="/bacsi/prescriptions" className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50">
@@ -173,9 +176,7 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
                   <tr><th className="px-5 py-3 sm:px-6">Giờ</th><th className="px-5 py-3">Bệnh nhân</th><th className="px-5 py-3">Phòng</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3 sm:px-6">Thao tác</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {appointments.map((appointment) => {
-                    const visitId = visitByPatient.get(appointment.patient.id);
-                    return (
+                  {appointments.map((appointment) => (
                       <tr key={appointment.id} className="transition hover:bg-blue-50/40">
                         <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-900 sm:px-6">{formatTime(appointment.scheduledAt)}</td>
                         <td className="px-5 py-4">
@@ -185,17 +186,12 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
                         <td className="px-5 py-4 text-slate-600">{appointment.room?.name ?? '—'}</td>
                         <td className="px-5 py-4"><span className="inline-flex max-w-40 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">{appointment.status}</span></td>
                         <td className="px-5 py-4 sm:px-6">
-                          {visitId ? (
-                            <Link href={`/bacsi/emr?patientId=${encodeURIComponent(appointment.patient.id)}`} className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold text-blue-700 hover:text-blue-900">
-                              Mở EMR <ArrowRight size={14} />
-                            </Link>
-                          ) : (
-                            <span className="text-xs text-slate-400" title="Chỉ mở EMR khi có Visit được phân công">Chưa có Visit</span>
-                          )}
+                          <Link href={`/bacsi/queue?date=${encodeURIComponent(selectedDate)}&q=${encodeURIComponent(appointment.patient.patientCode)}`} className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold text-blue-700 hover:text-blue-900">
+                            Tìm Visit <ArrowRight size={14} />
+                          </Link>
                         </td>
                       </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -203,6 +199,28 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
         </div>
 
         <aside className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-blue-700"><ClipboardCheck size={18} /><span className="text-sm font-semibold">Lịch hẹn</span></div>
+                <h2 className="mt-1 text-lg font-bold text-slate-900">Tình hình theo trạng thái</h2>
+              </div>
+              <Link href={`/bacsi/queue?date=${encodeURIComponent(selectedDate)}`} className="text-xs font-semibold text-blue-700 hover:text-blue-900">Mở hàng đợi</Link>
+            </div>
+            {appointmentStatusCounts.size === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">Chưa có lịch hẹn được phân công trong ngày đã chọn.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {[...appointmentStatusCounts.entries()].map(([status, count]) => (
+                  <li key={status} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <Link href={`/bacsi?date=${encodeURIComponent(selectedDate)}&status=${encodeURIComponent(status)}#appointments`} className="truncate text-sm text-slate-700 hover:text-blue-700">{status}</Link>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-2 text-blue-700"><CalendarClock size={18} /><h2 className="font-bold">Lịch kế tiếp</h2></div>
             {upcoming ? (
@@ -216,6 +234,51 @@ export default async function BacSiDashboardPage({ searchParams }: { searchParam
               <p className="mt-4 rounded-xl border border-dashed border-blue-200 bg-white/70 p-4 text-sm text-slate-600">Không còn lịch hẹn sắp tới trong ngày đã chọn.</p>
             )}
             <p className="mt-3 flex items-center gap-2 text-xs text-slate-500"><UsersRound size={14} /> {patientCount} bệnh nhân có Visit được phân công trong ngày</p>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-violet-700"><CalendarDays size={18} /><span className="text-sm font-semibold">Lịch làm việc</span></div>
+                <h2 className="mt-1 text-lg font-bold text-slate-900">Ca được phân công</h2>
+              </div>
+              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-800">{data.workSchedules.length}</span>
+            </div>
+            {data.workSchedules.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">Không có ca làm được ghi nhận cho ngày đã chọn.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {data.workSchedules.map((schedule) => (
+                  <li key={schedule.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-sm font-medium text-slate-700">Ca làm</span>
+                    <span className="whitespace-nowrap text-sm font-semibold text-slate-900">{formatTime(schedule.startTime)} – {formatTime(schedule.endTime)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-amber-700"><Activity size={18} /><span className="text-sm font-semibold">Điều trị</span></div>
+                <h2 className="mt-1 text-lg font-bold text-slate-900">Buổi trong ngày</h2>
+              </div>
+              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{data.treatmentSessions.length}</span>
+            </div>
+            {data.treatmentSessions.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">Không có buổi điều trị được lên lịch trong ngày đã chọn.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {data.treatmentSessions.slice(0, 5).map((session) => (
+                  <li key={session.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-sm font-medium text-slate-700">{session.scheduledAt ? formatTime(session.scheduledAt) : 'Chưa có giờ'}</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">{session.status}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/bacsi/treatment-sessions" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">Mở buổi điều trị <ArrowRight size={14} /></Link>
           </section>
 
           <section id="visits" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

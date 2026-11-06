@@ -22,6 +22,11 @@ export interface DoctorDashboardSnapshot {
     scheduledAt: Date | null;
     status: string;
   }>;
+  workSchedules: Array<{
+    id: string;
+    startTime: Date;
+    endTime: Date;
+  }>;
 }
 
 export interface IAppointmentsRepository {

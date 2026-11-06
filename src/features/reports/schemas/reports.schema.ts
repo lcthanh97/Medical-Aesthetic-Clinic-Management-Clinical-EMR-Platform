@@ -5,6 +5,7 @@ export const ReportsSchema = z.object({
   visitStatus: z.string().trim().max(64).optional(),
   appointmentStatus: z.string().trim().max(64).optional(),
   treatmentSessionStatus: z.string().trim().max(64).optional(),
+  itemSearch: z.string().trim().max(100).optional(),
 }).strict().refine((filters) => filters.startDate <= filters.endDate, {
   message: 'Start date must not be later than end date.',
   path: ['endDate'],

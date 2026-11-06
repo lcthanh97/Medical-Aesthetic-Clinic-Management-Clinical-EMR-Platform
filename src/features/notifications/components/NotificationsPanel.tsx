@@ -3,8 +3,12 @@
 import { Bell, ChevronLeft, ChevronRight, LoaderCircle, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
+import { notificationsApi, type NotificationDraft } from '../api/notificationsApi';
 
 export function NotificationsPanel() {
+  const [drafts, setDrafts] = useState<NotificationDraft[] | null>(null);
+  const [draftError, setDraftError] = useState('');
+  const [draftLoading, setDraftLoading] = useState(false);
   const [typeInput, setTypeInput] = useState('');
   const [statusInput, setStatusInput] = useState('');
   const [filters, setFilters] = useState<{ type?: string; status?: string; page: number }>({ page: 0 });
@@ -14,6 +18,18 @@ export function NotificationsPanel() {
   const formatDate = (value: string | null) => value
     ? new Date(value).toLocaleString('vi-VN')
     : 'Không có thời gian dự kiến';
+
+  async function loadDrafts() {
+    setDraftLoading(true);
+    setDraftError('');
+    try {
+      setDrafts(await notificationsApi.getWorkbookDrafts());
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : 'Không thể tải mẫu.');
+    } finally {
+      setDraftLoading(false);
+    }
+  }
 
   return (
     <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thông báo của tài khoản">
@@ -26,6 +42,21 @@ export function NotificationsPanel() {
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} /> Làm mới
         </button>
       </header>
+
+      <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h2 className="font-semibold">Mẫu nhắc tái khám và dặn dò sau điều trị</h2>
+        <p className="text-sm">Các mẫu từ workbook đang chờ duyệt. Lịch gửi và biên tập trên hệ thống chưa khả dụng.</p>
+        {!drafts && <button type="button" className="rounded border bg-white px-3 py-2 text-sm" onClick={() => void loadDrafts()} disabled={draftLoading}>
+          {draftLoading ? 'Đang tải…' : 'Xem mẫu bản nháp'}
+        </button>}
+        {draftError && <p role="alert" className="text-sm text-rose-800">{draftError}</p>}
+        {drafts?.map((draft) => <details key={draft.code} className="rounded border bg-white p-3">
+          <summary className="cursor-pointer text-sm font-medium">{draft.code} · {draft.name} · Nháp</summary>
+          <p className="mt-2 text-xs text-slate-600">{draft.scope} · Chưa có phiên bản trên hệ thống</p>
+          <p className="my-2 whitespace-pre-wrap text-sm">{draft.body}</p>
+          <p className="text-xs text-slate-600">{draft.notes}</p>
+        </details>)}
+      </section>
 
       <form className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto_auto]" onSubmit={(event) => { event.preventDefault(); setFilters({ ...(typeInput.trim() ? { type: typeInput.trim() } : {}), ...(statusInput.trim() ? { status: statusInput.trim() } : {}), page: 0 }); }}>
         <label className="text-xs font-medium text-slate-600">Loại (giá trị chính xác)

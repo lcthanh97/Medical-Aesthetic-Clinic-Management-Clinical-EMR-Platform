@@ -5,7 +5,7 @@ import { PrismaAuthRepository } from '@/infrastructure/database/repositories/Pri
 import { PrismaEmrRepository } from '@/infrastructure/database/repositories/PrismaEmrRepository';
 import { AuthService } from '@/server/services/AuthService';
 import { AuthorizationService } from '@/server/policies/AuthorizationService';
-import { isDoctorDemoWriteAllowed, isDoctorReadEnvironment } from '@/server/policies/DoctorDatabaseAccess';
+import { isDoctorDemoMedicalRecordWriteAllowed, isDoctorReadEnvironment, isLocalDoctorTestDatabase } from '@/server/policies/DoctorDatabaseAccess';
 import { EmrService } from '@/server/services/EmrService';
 import { hasImageRead } from '@/server/services/ClinicalServicesService';
 import { hasPrescriptionPermission, PRESCRIPTION_READ } from '@/server/services/PrescriptionsService';
@@ -53,7 +53,9 @@ export async function getPatients(search?: string) {
     return {
       success: true as const,
       data: JSON.parse(JSON.stringify(data)),
-      canWrite: authorization.hasPermission(actor, 'EMR_WRITE'),
+      // The patient-wide panel has no single Visit to authorize against. Keep its
+      // edit affordance local-test-only; production demo writes are Visit-scoped.
+      canWrite: isLocalDoctorTestDatabase() && authorization.hasPermission(actor, 'EMR_WRITE'),
       canReadImages: hasImageRead(actor),
       canReadPrescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
       canReadTreatmentPlans: actor.rolePermissions.some(({ permissionCodes }) => permissionCodes.includes('TREATMENT_READ')),
@@ -84,7 +86,8 @@ export async function getAssignedVisitExamination(visitId: string) {
   try {
     if (!isLocalEmrTestDatabase()) return disabled();
     const actor = await getActor();
-    if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_READ')) return denied();
+    if (!actor) return { success: false as const, code: 'AUTH_REQUIRED' as const, error: 'Vui lòng đăng nhập lại để mở lượt khám.' };
+    if (!actor.employeeId || !authorization.hasPermission(actor, 'EMR_READ')) return denied();
     const data = await emrService.getAssignedVisit(visitId, {
       accountId: actor.accountId,
       employeeId: actor.employeeId,
@@ -95,15 +98,22 @@ export async function getAssignedVisitExamination(visitId: string) {
       clinicalOrders: hasImageRead(actor),
     });
     if (!data) return denied();
+    const hasWritePermission = authorization.hasPermission(actor, 'EMR_WRITE');
+    const canWrite = hasWritePermission && isDoctorDemoMedicalRecordWriteAllowed(actor, visitId);
     return {
       success: true as const,
       data: JSON.parse(JSON.stringify(data)),
-      canWrite: authorization.hasPermission(actor, 'EMR_WRITE'),
+      canWrite,
+      writeBlockReason: canWrite ? undefined : hasWritePermission
+        ? 'Lượt khám này nằm ngoài phạm vi được phép ghi trên cổng hiện tại.'
+        : 'Tài khoản chưa có quyền ghi bệnh án.',
       canReadClinicalOrders: hasImageRead(actor),
       canReadPrescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
     };
-  } catch {
-    return denied();
+  } catch (error) {
+    const failure = error as { name?: string; code?: string };
+    console.error('[emr] examination read failed', { name: failure?.name, code: failure?.code });
+    return { success: false as const, error: 'Không tải được lượt khám. Hãy thử lại sau.' };
   }
 }
 
@@ -113,7 +123,7 @@ async function saveMedicalRecordForVerifiedActor(
   expected: { preliminaryDiagnosis: string | null; finalDiagnosis: string | null; notes: string | null } | null,
 ) {
   const actor = await getActor();
-  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE') || !isDoctorDemoWriteAllowed(actor, visitId)) {
+  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE') || !isDoctorDemoMedicalRecordWriteAllowed(actor, visitId)) {
     return EMR_AUTHORIZATION_ENABLED ? denied() : disabled();
   }
   const data = await emrService.saveMedicalRecord(

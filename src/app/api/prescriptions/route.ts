@@ -4,7 +4,13 @@ import { PrismaPrescriptionsRepository } from '@/infrastructure/database/reposit
 import { PrescriptionsController } from '@/server/controllers/PrescriptionsController';
 import { AuthService } from '@/server/services/AuthService';
 import { PrescriptionsService } from '@/server/services/PrescriptionsService';
-import { isDoctorDemoWriteAllowed, isDoctorReadEnvironment, isLocalDoctorTestDatabase } from '@/server/policies/DoctorDatabaseAccess';
+import {
+  isDoctorDemoWriteAllowed,
+  isDoctorReadEnvironment,
+  isLocalDoctorTestDatabase,
+  isNeonPrescriptionDemoWriter,
+  isNeonPrescriptionDemoWriteEnvironment,
+} from '@/server/policies/DoctorDatabaseAccess';
 
 const SESSION_COOKIE = 'clinic_session';
 const controller = new PrescriptionsController(
@@ -53,9 +59,20 @@ function handleError(error: unknown) {
 }
 
 async function requireActor(request: NextRequest) {
-  if (!isLocalPrescriptionTestEnvironment()) return { unavailable: true as const };
+  const productionDraftWriteMode = isNeonPrescriptionDemoWriteEnvironment();
+  if (!isLocalPrescriptionTestEnvironment() && !productionDraftWriteMode) return { unavailable: true as const };
   const actor = await auth.getSession(request.cookies.get(SESSION_COOKIE)?.value);
-  return actor ? { actor, unavailable: false as const } : { unavailable: false as const, unauthenticated: true as const };
+  if (!actor) return { unavailable: false as const, unauthenticated: true as const };
+  if (productionDraftWriteMode && !isNeonPrescriptionDemoWriter(actor)) {
+    return { unavailable: false as const, forbidden: true as const };
+  }
+  return { actor, unavailable: false as const };
+}
+
+function mayWritePrescriptionForVisit(actor: NonNullable<Awaited<ReturnType<typeof auth.getSession>>>, visitId: string) {
+  return isNeonPrescriptionDemoWriteEnvironment()
+    ? isNeonPrescriptionDemoWriter(actor)
+    : isDoctorDemoWriteAllowed(actor, visitId);
 }
 
 export async function GET(request: NextRequest) {
@@ -63,6 +80,7 @@ export async function GET(request: NextRequest) {
     const session = await requireActor(request);
     if (session.unavailable) return json({ success: false, error: 'MED-01 chỉ bật trong database test PostgreSQL localhost.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
+    if ('forbidden' in session) return json({ success: false, error: 'Bạn không có quyền truy cập kê đơn.' }, 403);
 
     const query = request.nextUrl.searchParams;
     const resource = query.get('resource');
@@ -83,12 +101,13 @@ export async function POST(request: NextRequest) {
     const session = await requireActor(request);
     if (session.unavailable) return json({ success: false, error: 'MED-01 chỉ bật trong database test PostgreSQL localhost.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
+    if ('forbidden' in session) return json({ success: false, error: 'Bạn không có quyền truy cập kê đơn.' }, 403);
     let input: unknown;
     try { input = await request.json(); } catch { return json({ success: false, error: 'Dữ liệu kê đơn không hợp lệ.' }, 400); }
     const visitId = input && typeof input === 'object' && 'visitId' in input && typeof input.visitId === 'string'
       ? input.visitId
       : undefined;
-    if (!visitId || !isDoctorDemoWriteAllowed(session.actor, visitId)) return json({ success: false, error: 'Demo write scope denied.' }, 403);
+    if (!visitId || !mayWritePrescriptionForVisit(session.actor, visitId)) return json({ success: false, error: 'Demo write scope denied.' }, 403);
     return json({ success: true, data: await controller.create(session.actor, input) }, 201);
   } catch (error) {
     return handleError(error);
@@ -101,12 +120,13 @@ export async function PUT(request: NextRequest) {
     const session = await requireActor(request);
     if (session.unavailable) return json({ success: false, error: 'MED-01 chỉ bật trong database test PostgreSQL localhost.' }, 503);
     if ('unauthenticated' in session) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
+    if ('forbidden' in session) return json({ success: false, error: 'Bạn không có quyền truy cập kê đơn.' }, 403);
     const id = request.nextUrl.searchParams.get('id');
     if (!id || id.length > 100) return json({ success: false, error: 'Mã đơn thuốc không hợp lệ.' }, 400);
     let input: unknown;
     try { input = await request.json(); } catch { return json({ success: false, error: 'Dữ liệu kê đơn không hợp lệ.' }, 400); }
     const existing = await controller.getById(session.actor, id);
-    if (!isDoctorDemoWriteAllowed(session.actor, existing.visit.id)) return json({ success: false, error: 'Demo write scope denied.' }, 403);
+    if (!mayWritePrescriptionForVisit(session.actor, existing.visit.id)) return json({ success: false, error: 'Demo write scope denied.' }, 403);
     return json({ success: true, data: await controller.update(session.actor, id, input) });
   } catch (error) {
     return handleError(error);

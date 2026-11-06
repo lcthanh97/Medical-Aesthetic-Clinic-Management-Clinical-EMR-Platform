@@ -27,13 +27,15 @@ export class ReportsService implements IReportsService {
       ...(input.visitStatus ? { visitStatus: input.visitStatus } : {}),
       ...(input.appointmentStatus ? { appointmentStatus: input.appointmentStatus } : {}),
       ...(input.treatmentSessionStatus ? { treatmentSessionStatus: input.treatmentSessionStatus } : {}),
+      ...(input.itemSearch ? { itemSearch: input.itemSearch } : {}),
     };
     const finance = this.hasSameRolePermissions(actor, ['REPORT_READ', 'BILLING_READ']);
     const treatment = this.hasSameRolePermissions(actor, ['REPORT_READ', 'INVENTORY_READ', 'TREATMENT_READ']);
+    const inventory = this.hasSameRolePermissions(actor, ['REPORT_READ', 'INVENTORY_READ']);
     const data = await this.repository.getDashboardReport(
       { accountId: actor.accountId, employeeId: actor.employeeId },
       filters,
-      { finance, treatment },
+      { finance, treatment, inventory },
     );
 
     const dayAxis = this.makeDayAxis(startAt, endExclusive);
@@ -53,7 +55,12 @@ export class ReportsService implements IReportsService {
       finance: data.finance ? { ...data.finance, byDate: addAmountZeros(data.finance.byDate) } : null,
       treatment: data.treatment ? { ...data.treatment, consumptionByDate: addAmountZeros(data.treatment.consumptionByDate) } : null,
       period: { startDate: input.startDate, endDate: input.endDate },
-      capabilities: { finance, treatment, export: this.hasSameRolePermissions(actor, ['REPORT_READ', 'REPORT_EXPORT']) },
+      capabilities: {
+        finance,
+        treatment,
+        inventory,
+        export: this.hasSameRolePermissions(actor, ['REPORT_READ', 'REPORT_EXPORT']),
+      },
     };
   }
 

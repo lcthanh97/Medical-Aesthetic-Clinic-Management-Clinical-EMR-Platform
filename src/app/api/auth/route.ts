@@ -43,6 +43,14 @@ function unavailable() {
   );
 }
 
+function logAuthFailure(error: unknown) {
+  const candidate = error as { name?: unknown; code?: unknown } | null;
+  console.error('[auth] request failed', {
+    name: typeof candidate?.name === 'string' ? candidate.name : 'UnknownError',
+    code: typeof candidate?.code === 'string' ? candidate.code : undefined,
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const actor = await controller.getSession(request.cookies.get(SESSION_COOKIE)?.value);
@@ -50,7 +58,8 @@ export async function GET(request: NextRequest) {
       { success: true, user: actor ? publicUser(actor) : null },
       { headers: { 'Cache-Control': 'no-store' } },
     );
-  } catch {
+  } catch (error) {
+    logAuthFailure(error);
     return unavailable();
   }
 }
@@ -92,7 +101,11 @@ export async function POST(request: NextRequest) {
     response.cookies.set(SESSION_COOKIE, result.token, sessionCookieOptions(request));
     return response;
   } catch (error) {
-    if (error instanceof AuthConfigurationError) return unavailable();
+    if (error instanceof AuthConfigurationError) {
+      logAuthFailure(error);
+      return unavailable();
+    }
+    logAuthFailure(error);
     return unavailable();
   }
 }
@@ -107,7 +120,8 @@ export async function DELETE(request: NextRequest) {
     const response = NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
     response.cookies.set(SESSION_COOKIE, '', { ...sessionCookieOptions(request), maxAge: 0 });
     return response;
-  } catch {
+  } catch (error) {
+    logAuthFailure(error);
     return unavailable();
   }
 }

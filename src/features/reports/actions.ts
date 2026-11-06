@@ -5,6 +5,7 @@ import { PrismaAuthRepository } from '@/infrastructure/database/repositories/Pri
 import { PrismaReportsRepository } from '@/infrastructure/database/repositories/PrismaReportsRepository';
 import { ReportsController } from '@/server/controllers/ReportsController';
 import { AuthService } from '@/server/services/AuthService';
+import { isNeonModuleReadEnabled } from '@/server/policies/NeonModuleReadAccess';
 import { ReportsService } from '@/server/services/ReportsService';
 
 const controller = new ReportsController(new ReportsService(new PrismaReportsRepository()));
@@ -22,11 +23,12 @@ function isLocalReportsTestEnvironment(): boolean {
 }
 
 export async function getInventoryAndRevenueReport(startDate: Date, endDate: Date) {
-  if (!isLocalReportsTestEnvironment()) {
-    return { success: false as const, error: 'Report chỉ được bật trên PostgreSQL test localhost.' };
+  const neonRead = isNeonModuleReadEnabled('REPORTS');
+  if (!neonRead && !isLocalReportsTestEnvironment()) {
+    return { success: false as const, error: 'Nguồn dữ liệu báo cáo chưa được bật.' };
   }
   try {
-    const actor = await auth.getSession((await cookies()).get('clinic_session')?.value);
+    const actor = await auth.getSession((await cookies()).get('clinic_session')?.value, { readOnly: neonRead });
     if (!actor) return { success: false as const, error: 'Vui lòng đăng nhập để tiếp tục.' };
     const data = await controller.getDashboard(actor, {
       startDate: startDate.toISOString().slice(0, 10),

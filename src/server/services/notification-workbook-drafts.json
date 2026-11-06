@@ -1,0 +1,110 @@
+[
+  {
+    "code": "NTF01-REM-24H",
+    "name": "Nhắc tái khám 24 giờ",
+    "scope": "APPOINTMENT_REMINDER",
+    "body": "Phòng khám {clinic_name} nhắc bạn có lịch tái khám lúc {appointment_time}, ngày {appointment_date}. Nếu cần đổi lịch, vui lòng liên hệ {clinic_phone}. Mã hẹn: {appointment_code}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không đưa chẩn đoán, tên thủ thuật hay thông tin nhạy cảm."
+  },
+  {
+    "code": "NTF01-REM-2H",
+    "name": "Nhắc tái khám 2 giờ (tùy chọn)",
+    "scope": "APPOINTMENT_REMINDER",
+    "body": "Phòng khám {clinic_name} nhắc lịch tái khám của bạn vào lúc {appointment_time} hôm nay. Khi cần hỗ trợ hoặc đổi lịch, vui lòng liên hệ {clinic_phone}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Chỉ tạo nếu có duyệt quy tắc 2 giờ; không gửi sau giờ hẹn."
+  },
+  {
+    "code": "NTF01-CHANGE",
+    "name": "Thông báo thay đổi lịch",
+    "scope": "APPOINTMENT_CHANGED (đề xuất)",
+    "body": "Lịch tái khám tại {clinic_name} đã được cập nhật sang {appointment_time}, ngày {appointment_date}. Vui lòng liên hệ {clinic_phone} nếu cần xác nhận lại.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không tồn tại loại này trong dữ liệu Neon hiện đã kiểm tra; cần code/schema."
+  },
+  {
+    "code": "NTF01-CANCEL",
+    "name": "Thông báo hủy lịch",
+    "scope": "APPOINTMENT_CANCELLED (đề xuất)",
+    "body": "Lịch hẹn {appointment_code} tại {clinic_name} đã được hủy theo cập nhật của hệ thống. Để đặt lại lịch, vui lòng liên hệ {clinic_phone}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Phải xác minh nguồn tạo sự kiện và quyền hủy trước khi gửi."
+  },
+  {
+    "code": "NTF01-NO-CONTACT",
+    "name": "Thiếu thông tin liên hệ",
+    "scope": "KHÔNG GỬI",
+    "body": "Không thể lên lịch nhắc tái khám: thiếu thông tin liên hệ hợp lệ hoặc chưa xác nhận đồng ý nhận thông báo. Cần nhân viên kiểm tra trước khi gửi.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không gửi cho bệnh nhân, chỉ hiển thị dashboard công việc."
+  },
+  {
+    "code": "NTF02-NOTICE",
+    "name": "Tin báo đã có lời dặn",
+    "scope": "Mọi thủ thuật",
+    "body": "Phòng khám {clinic_name} đã chuẩn bị hướng dẫn chăm sóc sau buổi điều trị ngày {session_date}. Vui lòng nhận hướng dẫn đã được bác sĩ xác nhận qua kênh an toàn của phòng khám. Hỗ trợ: {clinic_phone}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "SMS chỉ thông báo chung; không lộ phương pháp điều trị."
+  },
+  {
+    "code": "NTF02-CLINICAL",
+    "name": "Phiếu dặn dò cá nhân hóa",
+    "scope": "Tất cả (theo thủ thuật được xác nhận)",
+    "body": "PHIẾU HƯỚNG DẪN SAU ĐIỀU TRỊ\nNgày thực hiện: {session_date}\nThủ thuật đã thực hiện: {procedure_name}\nCách chăm sóc: {approved_care_instructions}\nThuốc/sản phẩm được chỉ định (nếu có): {approved_medication_instructions}\nNhững việc cần tránh và thời gian: {approved_restrictions}\nLịch tái khám: {followup_date}\nDấu hiệu cần liên hệ ngay: {approved_warning_signs}\nLiên hệ: {clinic_phone}\nBác sĩ duyệt: {doctor_name} — {approved_at}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Các trường approved_* phải được bác sĩ nhập/duyệt, không tự sinh từ AI."
+  },
+  {
+    "code": "NTF02-LASER",
+    "name": "Khung chuyên môn ánh sáng",
+    "scope": "LASER / IPL / LIGHT / PHOTOTHERAPY",
+    "body": "Tình trạng vùng điều trị: {clinician_assessment}\nChăm sóc vùng điều trị: {approved_care_instructions}\nChống nắng/bảo vệ da theo chỉ định: {approved_sun_protection}\nSản phẩm/thuốc được phép: {approved_medication_instructions}\nHoạt động cần tránh, thời gian: {approved_restrictions}\nDấu hiệu cần liên hệ: {approved_warning_signs}\nTái khám: {followup_date}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không đặt mặc định số ngày kiêng hay thuốc cho LASER/IPL."
+  },
+  {
+    "code": "NTF02-PEEL",
+    "name": "Khung chuyên môn peel da",
+    "scope": "PEEL",
+    "body": "Chăm sóc da sau thủ thuật: {approved_care_instructions}\nSản phẩm được chỉ định: {approved_products}\nCác việc cần tránh và thời gian: {approved_restrictions}\nDấu hiệu cần báo bác sĩ: {approved_warning_signs}\nLịch hẹn tiếp theo: {followup_date}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không tự nêu nồng độ hoạt chất hoặc quy trình chăm sóc."
+  },
+  {
+    "code": "NTF02-ACNE",
+    "name": "Khung chuyên môn da mụn",
+    "scope": "ACNE",
+    "body": "Chẩn đoán/đánh giá được bác sĩ cho phép công bố: {approved_public_summary}\nVệ sinh/chăm sóc: {approved_care_instructions}\nThuốc/sản phẩm và cách dùng: {approved_medication_instructions}\nTái khám: {followup_date}\nDấu hiệu cần liên hệ: {approved_warning_signs}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Nội dung dài chỉ hiển thị trên kênh bảo mật; không gửi chẩn đoán qua SMS."
+  },
+  {
+    "code": "NTF02-INJECT",
+    "name": "Khung chuyên môn thủ thuật xâm lấn",
+    "scope": "MESOTHERAPY / PRP / AESTHETIC",
+    "body": "Theo dõi sau thủ thuật: {approved_observation}\nChăm sóc vùng điều trị: {approved_care_instructions}\nThuốc/sản phẩm được bác sĩ chỉ định: {approved_medication_instructions}\nDấu hiệu cần liên hệ ngay: {approved_warning_signs}\nTái khám: {followup_date}.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Nếu có adverseReaction: chặn gửi tự động, yêu cầu bác sĩ xử lý."
+  },
+  {
+    "code": "NTF02-GENERIC",
+    "name": "Khung chờ phân loại",
+    "scope": "RF / DIAGNOSTIC và nhóm còn lại",
+    "body": "Vui lòng tham khảo phiếu hướng dẫn chăm sóc cá nhân hóa được bác sĩ phụ trách ký duyệt. Nội dung chăm sóc chi tiết sẽ được bổ sung sau khi bác sĩ xác nhận thủ thuật và tình trạng thực tế.",
+    "status": "DRAFT",
+    "version": null,
+    "notes": "Không sử dụng mẫu chung để thay thế hướng dẫn đặc hiệu của thủ thuật."
+  }
+]

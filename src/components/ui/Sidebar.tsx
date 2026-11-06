@@ -26,7 +26,9 @@ import {
   X,
   User,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Plus,
+  CircleHelp,
 } from 'lucide-react'
 
 export interface RoleItem {
@@ -76,14 +78,13 @@ export const ROLE_GROUPS: RoleGroup[] = [
       { href: '/bacsi', icon: LayoutDashboard, label: 'Tổng quan bác sĩ', description: 'Tình hình và lịch khám được phân công' },
       { href: '/bacsi/queue', icon: ListOrdered, label: 'Hàng đợi khám', description: 'Các lượt khám được phân công' },
       { href: '/bacsi/emr', icon: FileText, label: 'Hồ sơ bệnh nhân', description: 'Bệnh án & Visit được phân công' },
-      { href: '/bacsi/images', icon: ImageIcon, label: 'Ảnh theo dõi', description: 'Timeline metadata ảnh trong Visit được phân công' },
       { href: '/bacsi/examination', icon: Stethoscope, label: 'Khám bệnh & chỉ định', description: 'Bệnh án và kết quả CLS theo Visit' },
-      { href: '/bacsi/treatments', icon: Activity, label: 'Quá trình điều trị', description: 'Phác đồ, tương tác thuốc' },
-      { href: '/bacsi/protocol-library', icon: BookOpenCheck, label: 'Thư viện phác đồ chuẩn', description: 'Tra cứu mẫu phác đồ và phiên bản' },
-      { href: '/bacsi/treatment-sessions', icon: ListOrdered, label: 'Buổi điều trị', description: 'Theo dõi buổi trong Visit được phân công' },
-      { href: '/bacsi/consents', icon: ClipboardSignature, label: 'Cam kết điều trị', description: 'Cam kết đã ghi nhận trong Visit được phân công' },
-      { href: '/bacsi/clinical-services', icon: Stethoscope, label: 'Dịch vụ lâm sàng', description: 'Khám & Xét nghiệm da' },
       { href: '/bacsi/prescriptions', icon: Pill, label: 'Kê đơn thuốc', description: 'Đơn thuốc điện tử' },
+      { href: '/bacsi/treatments', icon: Activity, label: 'Phác đồ điều trị', description: 'Phiên bản, giai đoạn và buổi điều trị' },
+      { href: '/bacsi/treatment-sessions', icon: ListOrdered, label: 'Buổi điều trị', description: 'Theo dõi buổi trong Visit được phân công' },
+      { href: '/bacsi/images', icon: ImageIcon, label: 'Ảnh theo dõi', description: 'Timeline metadata ảnh trong Visit được phân công' },
+      { href: '/bacsi/consents', icon: ClipboardSignature, label: 'Cam kết điều trị', description: 'Cam kết đã ghi nhận trong Visit được phân công' },
+      { href: '/bacsi/protocol-library', icon: BookOpenCheck, label: 'Thư viện phác đồ', description: 'Tra cứu mẫu phác đồ và phiên bản' },
     ],
   },
   {
@@ -105,11 +106,15 @@ export const ROLE_GROUPS: RoleGroup[] = [
 export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [showDoctorHelp, setShowDoctorHelp] = useState(false)
   const [selectedRole, setSelectedRole] = useState<'all' | 'khachhang' | 'letan' | 'bacsi' | 'admin'>('all')
+  const isDoctorMode = pathname === '/bacsi' || pathname?.startsWith('/bacsi/') === true
 
-  const filteredGroups = selectedRole === 'all' 
-    ? ROLE_GROUPS 
-    : ROLE_GROUPS.filter(g => g.id === selectedRole)
+  const filteredGroups = isDoctorMode
+    ? ROLE_GROUPS.filter((group) => group.id === 'bacsi')
+    : selectedRole === 'all'
+      ? ROLE_GROUPS
+      : ROLE_GROUPS.filter(g => g.id === selectedRole)
 
   return (
     <>
@@ -117,32 +122,32 @@ export function Sidebar() {
         type="button"
         suppressHydrationWarning
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-lg shadow-slate-200/50 text-slate-700 border border-slate-200/50"
+        className={`md:hidden fixed top-4 left-4 z-50 rounded-lg border p-2 shadow-lg ${isDoctorMode ? 'border-[#d7e2ef] bg-white/90 text-[#365678]' : 'border-slate-200/50 bg-white/80 text-slate-700 shadow-slate-200/50'} backdrop-blur-md`}
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       <div className={`
-        fixed inset-y-0 left-0 z-40 w-[290px] bg-[#0f172a] text-slate-300 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-        md:translate-x-0 md:static md:flex-shrink-0 flex flex-col h-screen border-r border-slate-800/60 shadow-2xl
+        fixed inset-y-0 left-0 z-40 ${isDoctorMode ? 'w-[224px] bg-[#edf4fd] text-[#405674] border-[#d7e4f2] shadow-none' : 'w-[290px] bg-[#0f172a] text-slate-300 border-slate-800/60 shadow-2xl'} transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        md:translate-x-0 md:static md:flex-shrink-0 flex flex-col h-screen border-r
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      `} data-doctor-mode={isDoctorMode ? 'true' : undefined}>
         {/* Header */}
-        <Link href="/" className="flex items-center h-[72px] border-b border-slate-800/60 bg-slate-900/95 px-6 gap-3 group hover:bg-slate-800/40 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10 group-hover:scale-105 transition-transform">
-            <Stethoscope className="text-white drop-shadow-md" size={22} strokeWidth={2.5} />
+        <Link href="/" className={`group flex items-center transition-colors ${isDoctorMode ? 'mx-2 mt-6 mb-6 h-[34px] gap-[10px] border-0 bg-transparent px-0' : 'h-[72px] gap-3 border-b border-slate-800/60 bg-slate-900/95 px-6 hover:bg-slate-800/40'}`}>
+          <div className={`flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105 ${isDoctorMode ? 'bg-[#2563C9] text-white' : 'bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-500 shadow-lg shadow-blue-500/20 ring-1 ring-white/10'}`}>
+            {isDoctorMode ? <Plus size={23} strokeWidth={2.5} /> : <Stethoscope className="text-white drop-shadow-md" size={22} strokeWidth={2.5} />}
           </div>
           <div className="flex flex-col">
-            <h1 className="text-[16px] font-bold text-white tracking-tight leading-tight">Dermatology EMR</h1>
-            <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-widest flex items-center gap-1">
-              <span>Clinic Platform</span>
-              <Sparkles size={10} className="text-yellow-400" />
+            <h1 className={`font-bold leading-tight tracking-tight ${isDoctorMode ? 'text-[19px] text-[#1B2A41]' : 'text-[16px] text-white'}`}>{isDoctorMode ? 'Clinic EMR' : 'Dermatology EMR'}</h1>
+            <p className={`flex items-center gap-1 font-semibold uppercase ${isDoctorMode ? 'text-[10px] tracking-[0.05px] text-[#3170B5]' : 'text-[9px] tracking-widest text-blue-400'}`}>
+              <span>{isDoctorMode ? 'Phòng khám da liễu' : 'Clinic Platform'}</span>
+              {!isDoctorMode && <Sparkles size={10} className="text-yellow-400" />}
             </p>
           </div>
         </Link>
 
         {/* Role Filter Tabs */}
-        <div className="px-3 py-3 border-b border-slate-800/50 bg-slate-900/50">
+        {!isDoctorMode && <div className="px-3 py-3 border-b border-slate-800/50 bg-slate-900/50">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">
             Lọc theo vai trò:
           </div>
@@ -169,19 +174,19 @@ export function Sidebar() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* Navigation list */}
-        <div className="flex-1 px-3 py-4 overflow-y-auto space-y-6 custom-scrollbar">
+        <div className={`flex-1 overflow-y-auto custom-scrollbar ${isDoctorMode ? 'space-y-3 px-2.5 py-0' : 'space-y-6 px-3 py-4'}`}>
           {filteredGroups.map(group => (
             <div key={group.id} className="space-y-1">
-              <div className="flex items-center justify-between px-2 mb-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  {group.name}
+              <div className={`flex items-center justify-between px-2 ${isDoctorMode ? 'mb-6' : 'mb-2'}`}>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${isDoctorMode ? 'text-[#6B809B]' : 'text-slate-400'}`}>
+                  {isDoctorMode ? 'Không gian bác sĩ' : group.name}
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${group.badgeColor}`}>
+                {!isDoctorMode && <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${group.badgeColor}`}>
                   {group.badge}
-                </span>
+                </span>}
               </div>
 
               <div className="space-y-1">
@@ -193,26 +198,18 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`
-                        group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-200 relative
-                        ${isActive 
-                          ? 'bg-blue-600/15 text-blue-300 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-blue-500 before:rounded-r-md' 
-                          : 'hover:bg-slate-800/60 hover:text-slate-100 text-slate-400'}
-                      `}
+                      className={`group relative flex min-h-[44px] items-center gap-[10px] rounded-lg px-[9px] py-2 transition-all duration-200 ${isDoctorMode ? (isActive ? 'bg-[#DCEBFC] text-[#165CAE]' : 'text-[#30435D] hover:bg-[#e5effb] hover:text-[#315a86]') : (isActive ? 'bg-blue-600/15 text-blue-300 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-md before:bg-blue-500' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100')}`}
                     >
-                      <div className={`
-                        p-1.5 rounded-lg transition-colors duration-200 flex-shrink-0
-                        ${isActive ? 'bg-blue-500/25 text-blue-400' : 'bg-slate-800/80 group-hover:bg-slate-700/80 text-slate-400 group-hover:text-slate-200'}
-                      `}>
+                      <div className={`flex-shrink-0 rounded-lg p-1.5 transition-colors duration-200 ${isDoctorMode ? (isActive ? 'bg-transparent text-[#2563C9]' : 'bg-transparent text-[#6A829F] group-hover:text-[#246dce]') : (isActive ? 'bg-blue-500/25 text-blue-400' : 'bg-slate-800/80 text-slate-400 group-hover:bg-slate-700/80 group-hover:text-slate-200')}`}>
                         <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className={`text-[13px] font-semibold truncate ${isActive ? 'text-blue-300 font-bold' : ''}`}>
+                        <span className={`truncate font-semibold ${isDoctorMode ? 'text-[12px]' : 'text-[13px]'} ${isActive ? (isDoctorMode ? 'font-bold text-[#165CAE]' : 'font-bold text-blue-300') : ''}`}>
                           {item.label}
                         </span>
-                        <span className="text-[10px] text-slate-500 truncate">{item.description}</span>
+                        {!isDoctorMode && <span className="truncate text-[10px] text-slate-500">{item.description}</span>}
                       </div>
-                      {isActive && <ChevronRight size={14} className="text-blue-400" />}
+                      {isActive && <ChevronRight size={14} className={isDoctorMode ? 'text-[#246dce]' : 'text-blue-400'} />}
                     </Link>
                   )
                 })}
@@ -222,17 +219,24 @@ export function Sidebar() {
         </div>
         
         {/* Footer profile */}
-        <div className="p-3 bg-slate-900/95 border-t border-slate-800/60">
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/50">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              A
+        {isDoctorMode ? (
+          <div className="px-3 pb-6 pt-4">
+            <button type="button" onClick={() => setShowDoctorHelp((open) => !open)} aria-expanded={showDoctorHelp} aria-controls="doctor-help" className="flex w-full items-center gap-2 rounded-lg px-2 py-3 text-left text-xs text-[#7890AC] hover:bg-white/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8CBBFF]">
+              <CircleHelp size={16} aria-hidden="true" /> Hướng dẫn &amp; hỗ trợ
+            </button>
+            {showDoctorHelp && <div id="doctor-help" role="region" aria-label="Hướng dẫn khu vực bác sĩ" className="mx-1 rounded-lg border border-[#DCE6F1] bg-white p-3 text-[11px] leading-5 text-[#66758C]">Chọn một trang trong menu để xem dữ liệu thuộc Visit được phân công. Nếu trang báo thiếu quyền hoặc không tải được dữ liệu, hãy liên hệ quản trị viên phòng khám.</div>}
+          </div>
+        ) : <div className="border-t border-slate-800/60 bg-slate-900/95 p-3">
+          <div className={`flex items-center gap-3 rounded-lg border p-2 ${isDoctorMode ? 'border-[#d7e4f2] bg-white' : 'border-slate-700/50 bg-slate-800/40'}`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold shadow-sm ${isDoctorMode ? 'bg-[#e0efff] text-[#246dce]' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md'}`}>
+              {isDoctorMode ? 'BS' : 'A'}
             </div>
             <div className="flex flex-col overflow-hidden min-w-0">
-              <span className="text-xs font-bold text-slate-200 truncate">Hệ thống phân quyền</span>
-              <span className="text-[10px] text-emerald-400 font-medium truncate">● Đang hoạt động</span>
+              <span className={`truncate text-xs font-bold ${isDoctorMode ? 'text-[#263a56]' : 'text-slate-200'}`}>{isDoctorMode ? 'Phạm vi bác sĩ' : 'Hệ thống phân quyền'}</span>
+              <span className={`truncate text-[10px] font-medium ${isDoctorMode ? 'text-[#7186a3]' : 'text-emerald-400'}`}>{isDoctorMode ? 'Visit được phân công' : '● Đang hoạt động'}</span>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
       
       {/* Mobile overlay */}

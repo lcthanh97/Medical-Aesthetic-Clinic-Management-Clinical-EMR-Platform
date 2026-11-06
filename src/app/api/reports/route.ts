@@ -3,6 +3,7 @@ import { PrismaAuthRepository } from '@/infrastructure/database/repositories/Pri
 import { PrismaReportsRepository } from '@/infrastructure/database/repositories/PrismaReportsRepository';
 import { ReportsController } from '@/server/controllers/ReportsController';
 import { AuthService } from '@/server/services/AuthService';
+import { isNeonModuleReadEnabled } from '@/server/policies/NeonModuleReadAccess';
 import { ReportsService } from '@/server/services/ReportsService';
 
 const controller = new ReportsController(new ReportsService(new PrismaReportsRepository()));
@@ -39,12 +40,13 @@ function handleError(error: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isLocalReportsTestEnvironment()) {
-    return json({ success: false, error: 'Report chỉ được bật trên PostgreSQL test localhost.' }, 503);
+  const neonRead = isNeonModuleReadEnabled('REPORTS');
+  if (!neonRead && !isLocalReportsTestEnvironment()) {
+    return json({ success: false, error: 'Nguồn dữ liệu báo cáo chưa được bật.' }, 503);
   }
 
   try {
-    const actor = await auth.getSession(request.cookies.get('clinic_session')?.value);
+    const actor = await auth.getSession(request.cookies.get('clinic_session')?.value, { readOnly: neonRead });
     if (!actor) return json({ success: false, error: 'Vui lòng đăng nhập để tiếp tục.' }, 401);
 
     const query = request.nextUrl.searchParams;
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
       ...(query.has('visitStatus') ? { visitStatus: query.get('visitStatus') } : {}),
       ...(query.has('appointmentStatus') ? { appointmentStatus: query.get('appointmentStatus') } : {}),
       ...(query.has('treatmentSessionStatus') ? { treatmentSessionStatus: query.get('treatmentSessionStatus') } : {}),
+      ...(query.has('itemSearch') ? { itemSearch: query.get('itemSearch') } : {}),
     };
     if (format === 'csv') {
       const csv = await controller.exportCsv(actor, input);

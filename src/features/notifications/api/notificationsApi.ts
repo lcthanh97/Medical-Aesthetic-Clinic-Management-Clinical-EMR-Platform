@@ -6,6 +6,16 @@ import type {
 
 type ApiResult<T> = { success: true; data: T } | { success: false; error: string };
 
+export type NotificationDraft = {
+  code: string;
+  name: string;
+  scope: string;
+  body: string;
+  notes: string;
+  status: 'DRAFT';
+  version: null;
+};
+
 async function request<T>(url: string): Promise<T> {
   const response = await fetch(url, {
     method: 'GET',
@@ -21,6 +31,9 @@ async function request<T>(url: string): Promise<T> {
 }
 
 export const notificationsApi = {
+  getWorkbookDrafts(): Promise<NotificationDraft[]> {
+    return request('/api/notifications?view=workbook-drafts');
+  },
   list(filters: NotificationsFilters): Promise<NotificationsPageViewModel> {
     const query = new URLSearchParams({ page: String(filters.page) });
     if (filters.type) query.set('type', filters.type);

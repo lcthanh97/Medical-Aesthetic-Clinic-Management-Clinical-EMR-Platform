@@ -31,6 +31,7 @@ type ExaminationVisit = {
 type Props = {
   visit: ExaminationVisit;
   canWrite: boolean;
+  writeBlockReason?: string;
   canReadClinicalOrders: boolean;
   canReadPrescriptions: boolean;
 };
@@ -64,10 +65,18 @@ function snapshot(record: ExaminationVisit['medicalRecord']) {
   } : null;
 }
 
-export function DoctorExaminationPanel({ visit, canWrite, canReadClinicalOrders, canReadPrescriptions }: Props) {
+export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canReadClinicalOrders, canReadPrescriptions }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number][0]>('record');
-  const [draft, setDraft] = useState<RecordFields>({ preliminaryDiagnosis: '', finalDiagnosis: '', notes: '' });
-  const [savedRecord, setSavedRecord] = useState(visit.medicalRecord);
+  const initialDraft: RecordFields = {
+    preliminaryDiagnosis: visit.medicalRecord?.preliminaryDiagnosis ?? '',
+    finalDiagnosis: visit.medicalRecord?.finalDiagnosis ?? '',
+    notes: visit.medicalRecord?.notes ?? '',
+  };
+  const [draftState, setDraftState] = useState<{ visitId: string; value: RecordFields }>(() => ({ visitId: visit.id, value: initialDraft }));
+  const [savedRecordState, setSavedRecordState] = useState<{ visitId: string; value: ExaminationVisit['medicalRecord'] }>(() => ({ visitId: visit.id, value: visit.medicalRecord }));
+  const draft = draftState.visitId === visit.id ? draftState.value : initialDraft;
+  const savedRecord = savedRecordState.visitId === visit.id ? savedRecordState.value : visit.medicalRecord;
+  const setDraft = (value: RecordFields) => setDraftState({ visitId: visit.id, value });
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -108,7 +117,7 @@ export function DoctorExaminationPanel({ visit, canWrite, canReadClinicalOrders,
         setMessage({ kind: 'error', text: 'Không nhận được bệnh án sau khi lưu. Hãy làm mới để xác minh dữ liệu.' });
         return;
       }
-      setSavedRecord(record);
+      setSavedRecordState({ visitId: visit.id, value: record });
       setDraft({
         preliminaryDiagnosis: record.preliminaryDiagnosis ?? '',
         finalDiagnosis: record.finalDiagnosis ?? '',
@@ -152,7 +161,14 @@ export function DoctorExaminationPanel({ visit, canWrite, canReadClinicalOrders,
 
       {activeTab === 'record' && <section className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
         <div className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-5"><h2 className="text-lg font-bold text-[#20334b]">Ghi nhận khám bệnh</h2><p className="mt-1 text-sm text-slate-500">Chỉ gồm các trường bệnh án đang có trong database.</p></div>
+          <div className="mb-5">
+            <h2 className="text-lg font-bold text-[#20334b]">Ghi nhận khám bệnh</h2>
+            {!savedRecord && <p className="mt-1 text-sm text-slate-500">
+              {canWrite
+                ? 'Lượt khám chưa có bệnh án. Bệnh án sẽ được tạo khi bạn lưu nội dung khám lần đầu.'
+                : 'Lượt khám chưa có bệnh án.'}
+            </p>}
+          </div>
           <div className="space-y-4">
             <label className="block space-y-1.5 text-sm font-medium text-slate-700">Chẩn đoán sơ bộ
               <input value={draft.preliminaryDiagnosis} onChange={(event) => setDraft({ ...draft, preliminaryDiagnosis: event.target.value })} readOnly={!canWrite} maxLength={10000} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={canWrite ? 'Nhập theo đánh giá chuyên môn' : 'Chưa ghi nhận'} />
@@ -165,12 +181,43 @@ export function DoctorExaminationPanel({ visit, canWrite, canReadClinicalOrders,
             </label>
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">{canWrite ? 'Lưu bệnh án sẽ kiểm tra lại session, quyền và Visit ở phía server.' : 'Tài khoản chỉ có quyền đọc hoặc không đủ quyền ghi bệnh án.'}</p>
+            {!canWrite && <p className="text-xs text-slate-500">{writeBlockReason ?? 'Lượt khám đang ở chế độ chỉ đọc.'}</p>}
             {canWrite && <button type="button" onClick={() => void save()} disabled={!dirty || saving} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} /> {saving ? 'Đang lưu…' : 'Lưu bệnh án'}</button>}
           </div>
         </div>
         <aside className="space-y-3">
           <div className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5"><h2 className="font-bold text-[#20334b]">Phạm vi dữ liệu</h2><p className="mt-2 text-sm leading-6 text-slate-600">Chỉ hiển thị dữ liệu gắn với lượt khám đang được phân công cho tài khoản hiện tại. Không tự thay đổi trạng thái lượt khám.</p><div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><ShieldAlert size={15} className="mr-1 inline" /> Dị ứng và tiền sử bệnh nhân chưa được hiển thị vì chính sách truy cập chưa được phê duyệt.</div></div>
+          <section className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5" aria-labelledby="visit-orders-title">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 id="visit-orders-title" className="font-bold text-[#20334b]">Chỉ định &amp; kết quả</h2>
+                <p className="mt-1 text-xs text-slate-500">Dữ liệu đã lưu trong Visit này.</p>
+              </div>
+              <button type="button" onClick={() => setActiveTab('orders')} className="shrink-0 text-sm font-semibold text-blue-700 hover:underline" aria-label="Mở danh sách chỉ định">
+                Xem tất cả
+              </button>
+            </div>
+            {!canReadClinicalOrders ? (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Tài khoản hiện tại chưa có quyền đọc chỉ định và kết quả.</p>
+            ) : (visit.orders ?? []).length === 0 ? (
+              <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-600">Chưa có chỉ định trong lượt khám này.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {(visit.orders ?? []).slice(0, 4).map((order) => (
+                  <li key={order.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">{order.service?.name ?? order.type}</p>
+                        <p className="mt-1 text-xs text-slate-500">{dateTime(order.orderedAt)}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-800">{order.status}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-amber-800">Tạo chỉ định và hoàn tất Visit đang khóa đến khi quy trình CLS/thanh toán và quyền được xác nhận.</p>
+          </section>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1"><Link href={`/bacsi/emr?patientId=${encodeURIComponent(visit.patientId)}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"><FileText size={16} /> Hồ sơ bệnh nhân <ExternalLink size={14} /></Link>{canReadPrescriptions ? <Link href={`/bacsi/prescriptions?visitId=${encodeURIComponent(visit.id)}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"><ClipboardList size={16} /> Kê đơn <ExternalLink size={14} /></Link> : <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"><ClipboardList size={16} /> Kê đơn chưa được cấp quyền</span>}</div>
         </aside>
       </section>}
@@ -182,7 +229,7 @@ export function DoctorExaminationPanel({ visit, canWrite, canReadClinicalOrders,
         {!canReadPrescriptions ? <p className="mt-3 text-sm text-slate-600">Tài khoản hiện tại không có quyền xem đơn thuốc.</p> : (visit.prescriptions ?? []).length === 0 ? <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">Chưa có đơn thuốc được lưu cho lượt khám này.</p> : <div className="mt-4 space-y-3">{visit.prescriptions?.map((prescription) => <article key={prescription.id} className="rounded-lg border border-slate-200 p-4"><p className="font-semibold">{prescription.id} · {prescription.status}</p><ul className="mt-2 space-y-1 text-sm text-slate-600">{prescription.items.map((item) => <li key={item.id}>{item.medicine.name} ({item.medicine.unit}) · {item.dosage}</li>)}</ul></article>)}</div>}
         {canReadPrescriptions && <Link href={`/bacsi/prescriptions?visitId=${encodeURIComponent(visit.id)}`} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">Mở trang Kê đơn <ExternalLink size={14} /></Link>}
       </section>}
-      <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><span>Visit và bệnh án được giới hạn theo nhân viên được phân công.</span><Link href="/bacsi/queue" className="font-semibold text-blue-700 hover:text-blue-900">Quay lại hàng đợi khám</Link></footer>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e9f2] pt-4 text-xs text-slate-500"><span>Visit và bệnh án được giới hạn theo nhân viên được phân công.</span><div className="flex flex-wrap items-center gap-2"><button type="button" disabled title="Chưa có quy trình và quyền được phê duyệt để đổi trạng thái Visit." className="inline-flex h-10 cursor-not-allowed items-center rounded-lg border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-500">Hoàn tất lượt khám</button><Link href="/bacsi/queue" className="font-semibold text-blue-700 hover:text-blue-900">Quay lại hàng đợi khám</Link></div></footer>
     </main>
   );
 }

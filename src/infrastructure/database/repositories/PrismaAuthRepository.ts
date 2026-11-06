@@ -24,6 +24,10 @@ export class PrismaAuthRepository implements IAuthRepository {
     return prisma.account.findUnique({ where: { username }, select: accountAuthSelect });
   }
 
+  async findAccountById(accountId: string) {
+    return prisma.account.findUnique({ where: { id: accountId }, select: accountAuthSelect });
+  }
+
   beginLoginAttempt(fingerprint: string, since: Date, limit: number, at: Date) {
     return prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw`WITH login_lock AS MATERIALIZED (
@@ -41,7 +45,7 @@ export class PrismaAuthRepository implements IAuthRepository {
         select: { id: true },
       });
       return attempt.id;
-    });
+    }, { maxWait: 10_000, timeout: 15_000 });
   }
 
   async completeLoginAttempt(attemptId: string, succeeded: boolean) {
