@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 
 export async function ClientProfileRoute({ type }: { type: string }) {
   const session = await getPatientSession()
-  if (!session) redirect('/dang-nhap/khach-hang')
+  if (!session) redirect('/khachhang/dang-nhap')
   const data = await getClientPortalData(session.patientId)
   return <ClientProfilePage type={type} data={data}/>
 }
