@@ -26,6 +26,21 @@ describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-chan
       findFinalInvoiceForVisit: vi.fn(),
       findInvoicesByVisitId: vi.fn(),
       updatePrescriptionStatus: vi.fn(),
+      recordPaymentAndUpdateInvoice: vi.fn().mockImplementation(async (input, status) => ({
+        payment: {
+          id: 'pay-mock-01',
+          invoiceId: input.invoiceId,
+          amount: input.amount,
+          method: input.method,
+          paidAt: input.paidAt,
+        },
+        invoice: {
+          id: input.invoiceId,
+          visitId: 'visit-01',
+          total: input.amount,
+          status,
+        },
+      })),
     };
 
     mockClsRepo = {

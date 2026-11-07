@@ -462,6 +462,12 @@ export function BillingPanel() {
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-medium">
+                {error}
+              </div>
+            )}
+
             {/* Lựa chọn phương thức thanh toán */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-slate-700">

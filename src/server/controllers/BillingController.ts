@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import type { IBillingService } from '@/server/services/IBillingService';
 import { BillingValidator } from '@/server/validators/BillingValidator';
 import { DomainError } from '@/domain/errors/DomainError';
@@ -137,11 +138,21 @@ export class BillingController {
           },
         };
       }
+      if (err instanceof ZodError) {
+        const details = err.issues?.map((i) => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('; ') || err.message;
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: { code: 'VALIDATION_ERROR', details },
+          },
+        };
+      }
       return {
-        status: 400,
+        status: 500,
         body: {
           success: false,
-          error: { code: 'VALIDATION_ERROR', details: err.message || 'Lỗi xử lý thanh toán tiền mặt' },
+          error: { code: 'INTERNAL_SERVER_ERROR', details: err.message || 'Lỗi xử lý thanh toán tiền mặt' },
         },
       };
     }
@@ -177,11 +188,21 @@ export class BillingController {
           },
         };
       }
+      if (err instanceof ZodError) {
+        const details = err.issues?.map((i) => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('; ') || err.message;
+        return {
+          status: 400,
+          body: {
+            success: false,
+            error: { code: 'VALIDATION_ERROR', details },
+          },
+        };
+      }
       return {
-        status: 400,
+        status: 500,
         body: {
           success: false,
-          error: { code: 'VALIDATION_ERROR', details: err.message || 'Lỗi khởi tạo VNPay Sandbox' },
+          error: { code: 'INTERNAL_SERVER_ERROR', details: err.message || 'Lỗi khởi tạo VNPay Sandbox' },
         },
       };
     }

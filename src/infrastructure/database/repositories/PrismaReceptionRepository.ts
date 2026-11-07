@@ -46,7 +46,7 @@ export class PrismaReceptionRepository implements IReceptionRepository {
       ];
     }
 
-    const [items, total] = await prisma.$transaction([
+    const [items, total] = await Promise.all([
       prisma.patient.findMany({
         where,
         skip,
@@ -71,38 +71,34 @@ export class PrismaReceptionRepository implements IReceptionRepository {
   }
 
   async create(input: PatientCreateInput) {
-    return prisma.$transaction(async (tx) => {
-      const patient = await tx.patient.create({
-        data: {
-          patientCode: input.patientCode,
-          fullName: input.fullName,
-          dateOfBirth: input.dateOfBirth,
-          phone: input.phone,
-          allergies: input.allergies && input.allergies.length > 0
-            ? {
-                create: input.allergies.map((a) => ({
-                  substance: a.substance,
-                  reaction: a.reaction ?? null,
-                  severity: a.severity ?? null,
-                })),
-              }
-            : undefined,
-          histories: input.histories && input.histories.length > 0
-            ? {
-                create: input.histories.map((h) => ({
-                  type: h.type,
-                  content: h.content,
-                })),
-              }
-            : undefined,
-        },
-        include: {
-          allergies: true,
-          histories: true,
-        },
-      });
-
-      return patient;
+    return prisma.patient.create({
+      data: {
+        patientCode: input.patientCode,
+        fullName: input.fullName,
+        dateOfBirth: input.dateOfBirth,
+        phone: input.phone,
+        allergies: input.allergies && input.allergies.length > 0
+          ? {
+              create: input.allergies.map((a) => ({
+                substance: a.substance,
+                reaction: a.reaction ?? null,
+                severity: a.severity ?? null,
+              })),
+            }
+          : undefined,
+        histories: input.histories && input.histories.length > 0
+          ? {
+              create: input.histories.map((h) => ({
+                type: h.type,
+                content: h.content,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        allergies: true,
+        histories: true,
+      },
     });
   }
 
@@ -158,6 +154,9 @@ export class PrismaReceptionRepository implements IReceptionRepository {
           },
         },
       });
+    }, {
+      maxWait: 10000,
+      timeout: 15000,
     });
   }
 

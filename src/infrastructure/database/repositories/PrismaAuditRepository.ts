@@ -12,7 +12,10 @@ export class PrismaAuditRepository implements IAuditRepository {
     const where = { ...(filters.entity ? { entity: filters.entity } : {}), ...(filters.accountId ? { accountId: filters.accountId } : {}),
       ...(filters.query ? { OR: [{ action: { contains: filters.query, mode: 'insensitive' as const } }, { entity: { contains: filters.query, mode: 'insensitive' as const } }, { account: { username: { contains: filters.query, mode: 'insensitive' as const } } }] } : {}),
       ...((filters.from || filters.to) ? { createdAt: { ...(filters.from ? { gte: new Date(filters.from) } : {}), ...(filters.to ? { lte: new Date(filters.to) } : {}) } } : {}) };
-    const [rows, total] = await prisma.$transaction([prisma.auditLog.findMany({ where, include: { account: true }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize }), prisma.auditLog.count({ where })]);
+    const [rows, total] = await Promise.all([
+      prisma.auditLog.findMany({ where, include: { account: true }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize }),
+      prisma.auditLog.count({ where }),
+    ]);
     return { items: rows.map(mapAudit), total, page, pageSize };
   }
   async create(input: { accountId?: string; action: string; entity: string; entityId?: string; ipAddress?: string }) {

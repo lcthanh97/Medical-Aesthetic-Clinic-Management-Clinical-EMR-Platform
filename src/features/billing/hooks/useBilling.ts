@@ -96,7 +96,7 @@ export function useBilling(initialVisitId?: string) {
         await loadInvoices();
         return res.data;
       }
-      throw new Error(res.error?.code || res.message || 'Lỗi xử lý thanh toán tiền mặt');
+      throw new Error(res.error?.details || res.message || res.error?.code || 'Lỗi xử lý thanh toán tiền mặt');
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -113,7 +113,7 @@ export function useBilling(initialVisitId?: string) {
       if (res.success && res.data) {
         return res.data;
       }
-      throw new Error(res.error?.code || res.message || 'Lỗi kết nối cổng thanh toán VNPay');
+      throw new Error(res.error?.details || res.message || res.error?.code || 'Lỗi kết nối cổng thanh toán VNPay');
     } catch (err: any) {
       setError(err.message);
       throw err;

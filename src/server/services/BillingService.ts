@@ -247,16 +247,16 @@ export class BillingService implements IBillingService {
 
     const paidAt = new Date();
 
-    // 1. Ghi nhận giao dịch thanh toán CASH
-    const payment = await this.billingRepository.createPayment({
-      invoiceId: invoice.id,
-      amount: invoice.total,
-      method: 'CASH',
-      paidAt,
-    });
-
-    // 2. Cập nhật trạng thái hóa đơn sang PAID
-    const updatedInvoice = await this.billingRepository.updateInvoiceStatus(invoice.id, PaymentStatus.PAID);
+    // 1 & 2. Giao dịch nguyên tử: Ghi nhận thanh toán CASH và cập nhật hóa đơn sang PAID (ACID consistent)
+    const { payment, invoice: updatedInvoice } = await this.billingRepository.recordPaymentAndUpdateInvoice(
+      {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: 'CASH',
+        paidAt,
+      },
+      PaymentStatus.PAID
+    );
 
     // 3. Ghi vết kiểm toán tài chính
     await this.billingRepository.createAudit({
@@ -396,16 +396,16 @@ export class BillingService implements IBillingService {
 
     const paidAt = new Date();
 
-    // 1. Tạo bản ghi thanh toán VNPAY
-    const payment = await this.billingRepository.createPayment({
-      invoiceId: invoice.id,
-      amount: invoice.total,
-      method: 'VNPAY',
-      paidAt,
-    });
-
-    // 2. Cập nhật hóa đơn sang PAID
-    const updatedInvoice = await this.billingRepository.updateInvoiceStatus(invoice.id, PaymentStatus.PAID);
+    // 1 & 2. Giao dịch nguyên tử: Tạo bản ghi thanh toán VNPAY và cập nhật hóa đơn sang PAID (ACID consistent)
+    const { payment, invoice: updatedInvoice } = await this.billingRepository.recordPaymentAndUpdateInvoice(
+      {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: 'VNPAY',
+        paidAt,
+      },
+      PaymentStatus.PAID
+    );
 
     // 3. Ghi vết kiểm toán
     await this.billingRepository.createAudit({

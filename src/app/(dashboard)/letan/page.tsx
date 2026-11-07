@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import { Users, CalendarDays, CreditCard, ClipboardSignature, ArrowRight } from 'lucide-react';
 import prisma from '@/infrastructure/database/prisma';
+import { ArrowRight, CalendarDays, ClipboardSignature, CreditCard, Users } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function LetanDashboardPage() {
   const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+1);
