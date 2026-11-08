@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Package, Settings, ShieldAlert, ArrowRight } from 'lucide-react';
 import prisma from '@/infrastructure/database/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboardPage() {
   const [accounts, employees, inventoryItems, auditLogs] = await Promise.all([
     prisma.account.count(), prisma.employee.count(),

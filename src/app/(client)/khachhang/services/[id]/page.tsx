@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, CalendarDays, CircleDollarSign, Stethoscope } from 'lucide-react'
 import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Page({params}:{params:Promise<{id:string}>}){
   const {id}=await params
   const data=await getClientPublicData()

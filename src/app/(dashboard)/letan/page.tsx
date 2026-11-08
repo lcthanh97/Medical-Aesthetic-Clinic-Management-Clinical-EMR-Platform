@@ -2,6 +2,8 @@ import prisma from '@/infrastructure/database/prisma';
 import { ArrowRight, CalendarDays, ClipboardSignature, CreditCard, Users } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LetanDashboardPage() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);

@@ -3,6 +3,8 @@ import { ArrowRight, CalendarDays, Heart, Stethoscope, UsersRound } from 'lucide
 import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
 import { HomeBookingForm } from '@/components/client/HomeBookingForm'
 
+export const dynamic = 'force-dynamic'
+
 const serviceImages = [
  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85',
  'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=900&q=85',

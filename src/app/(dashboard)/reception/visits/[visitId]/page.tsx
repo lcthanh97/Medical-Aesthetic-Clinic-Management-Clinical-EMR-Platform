@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { visitsService } from '@/server/common/container';
 import { VisitDetailView } from '@/features/reception/visits';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Chi tiết lượt khám | DERMACARE',
   description: 'Thông tin chi tiết lượt khám tiếp nhận tại quầy lễ tân.',

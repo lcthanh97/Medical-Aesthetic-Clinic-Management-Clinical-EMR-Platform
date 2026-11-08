@@ -5,6 +5,8 @@ import { InteractionRuleEnginePanel } from '@/features/treatments/components/Int
 import { getPlansByVisitId } from '@/features/treatments/actions';
 import { prisma } from '@/infrastructure/database/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BacSiTreatmentsPage({ searchParams }: { searchParams: Promise<{ visitId?: string }> }) {
   const resolvedSearchParams = await searchParams;
   

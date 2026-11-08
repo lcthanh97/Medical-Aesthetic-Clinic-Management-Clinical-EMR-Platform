@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, CalendarDays, ClipboardCheck, Stethoscope } from 'lucide-react'
 import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
 
+export const dynamic = 'force-dynamic'
+
 const date=(value:string|null)=>value?new Intl.DateTimeFormat('vi-VN',{dateStyle:'long'}).format(new Date(value)):'Chưa có lịch làm việc sắp tới'
 
 export default async function Page({params}:{params:Promise<{id:string}>}){

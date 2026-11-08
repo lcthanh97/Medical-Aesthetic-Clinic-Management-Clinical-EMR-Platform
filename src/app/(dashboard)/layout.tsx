@@ -1,6 +1,8 @@
 import React from 'react'
 import { Sidebar } from '@/components/ui/Sidebar'
 
+export const dynamic = 'force-dynamic'
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden">

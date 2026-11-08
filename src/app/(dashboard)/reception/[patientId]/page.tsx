@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { receptionService } from '@/server/common/container';
 import { PatientDetailView } from '@/features/reception';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(props: { params: Promise<{ patientId: string }> }) {
   const { patientId } = await props.params;
   try {

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
 
+export const dynamic = 'force-dynamic'
+
 const images=['https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1000&q=85','https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85']
 const faq=[['Dịch vụ có an toàn không?','Mỗi chỉ định được bác sĩ đánh giá dựa trên tình trạng da và hồ sơ bệnh án trước khi thực hiện.'],['Cần chuẩn bị gì trước khi điều trị?','Mang theo giấy tờ cần thiết, danh sách thuốc đang dùng và đến trước giờ hẹn.'],['Mất bao lâu để thấy hiệu quả?','Thời gian phụ thuộc tình trạng da và phác đồ được bác sĩ chỉ định.'],['Có cần kiêng gì sau khi điều trị?','Bác sĩ sẽ ghi dặn dò cụ thể trong hồ sơ sau từng buổi điều trị.']]
 

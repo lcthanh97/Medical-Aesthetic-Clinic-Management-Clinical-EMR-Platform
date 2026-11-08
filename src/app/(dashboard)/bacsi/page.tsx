@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Activity, ArrowRight, CalendarCheck, CircleCheck, Users } from 'lucide-react';
 import prisma from '@/infrastructure/database/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BacSiDashboardPage(){
  const start=new Date();start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+1);
  const [visits,sessions,workSchedule]=await Promise.all([
