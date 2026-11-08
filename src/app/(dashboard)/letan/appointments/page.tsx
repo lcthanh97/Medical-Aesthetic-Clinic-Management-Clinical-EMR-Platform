@@ -4,23 +4,22 @@ import { CalendarDays, Users } from 'lucide-react';
 
 export default function LetanAppointmentsPage() {
   return (
-    <main className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <main className="space-y-5 max-w-[1180px] mx-auto text-[#20334b]">
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 border-b border-[#e1e9f2] pb-3">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-2">
-            📋 Phân hệ Lễ tân
-          </span>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý & Đặt lịch hẹn khám</h1>
-          <p className="text-sm text-gray-500">Đặt lịch hẹn mới cho khách vãng lai (walk-in) hoặc qua hotline phòng khám</p>
+          <h1 className="text-[25px] font-bold text-[#20334b]">Quản lý & Đặt lịch hẹn khám</h1>
+          <p className="mt-1 text-[12px] text-[#6c7e93]">
+            Đặt lịch hẹn mới cho khách vãng lai (walk-in) hoặc qua hotline phòng khám
+          </p>
         </div>
         <Link
           href="/letan/reception"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium shadow-sm transition-colors self-start"
+          className="inline-flex h-10 items-center gap-2 rounded-[7px] bg-[#246dce] hover:bg-[#1f5cb0] px-4 text-[12px] font-semibold text-white shadow-xs transition-colors self-start sm:self-auto"
         >
-          <Users size={16} />
+          <Users size={15} />
           <span>Xem Danh sách tiếp đón</span>
         </Link>
-      </div>
+      </header>
 
       <AppointmentsPanel />
     </main>

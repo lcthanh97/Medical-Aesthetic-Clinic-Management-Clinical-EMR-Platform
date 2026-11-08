@@ -17,14 +17,14 @@ export function PatientSearchFilters({
   isLoading,
 }: PatientSearchFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 bg-white p-4 rounded-2xl border border-[#e2ebf5] shadow-sm">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5 bg-white p-3.5 rounded-[9px] border border-[#dce5ef] shadow-2xs">
       <div className="relative flex-1">
         <Input
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Tìm theo Mã hồ sơ (BN...), Họ tên bệnh nhân hoặc Số điện thoại..."
-          className="pr-10"
+          className="pr-10 text-[12px] h-10 border-[#dce5ef] rounded-[7px] focus:border-[#246dce]"
         />
         {search && (
           <button
@@ -38,19 +38,20 @@ export function PatientSearchFilters({
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
+        <button
+          type="button"
           onClick={onRefresh}
           disabled={isLoading}
-          title="Tải lại dữ liệu"
+          className="h-10 px-4 rounded-[7px] border border-[#dce5ef] bg-white text-[12px] font-semibold text-[#6c7e93] hover:text-[#20334b] hover:bg-[#f8fafd] transition-colors cursor-pointer"
         >
           {isLoading ? 'Đang tải...' : 'Làm mới'}
-        </Button>
+        </button>
 
-        <Link href="/reception/new">
-          <Button variant="primary">
-            + Tiếp nhận bệnh nhân
-          </Button>
+        <Link
+          href="/reception/new"
+          className="h-10 px-4 rounded-[7px] bg-[#246dce] hover:bg-[#1f5cb0] text-[12px] font-semibold text-white shadow-2xs transition-colors inline-flex items-center justify-center cursor-pointer"
+        >
+          + Tiếp nhận bệnh nhân
         </Link>
       </div>
     </div>

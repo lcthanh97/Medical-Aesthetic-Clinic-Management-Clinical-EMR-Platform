@@ -108,6 +108,81 @@ export function Sidebar() {
     </aside>
   }
 
+  if (pathname?.startsWith('/letan')) {
+    const receptionistItems = [
+      { href: '/letan', icon: LayoutDashboard, label: 'Tổng quan lễ tân' },
+      { href: '/letan/reception', icon: Users, label: 'Tiếp đón bệnh nhân' },
+      { href: '/letan/appointments', icon: CalendarDays, label: 'Lịch hẹn phòng khám' },
+      { href: '/letan/billing', icon: CreditCard, label: 'Thanh toán & Viện phí' },
+      { href: '/letan/consents', icon: ClipboardSignature, label: 'Biểu mẫu & Cam kết' },
+    ];
+    return (
+      <>
+        {/* Mobile menu toggle button */}
+        <button 
+          type="button"
+          suppressHydrationWarning
+          onClick={() => setIsOpen(!isOpen)}
+          className="md:hidden fixed top-3 left-3 z-50 p-2 bg-white rounded-lg shadow-md text-[#20334b] border border-[#dce5ef]"
+          aria-label="Toggle navigation"
+        >
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        {/* Sidebar desktop & mobile drawer */}
+        <aside className={`
+          fixed inset-y-0 left-0 z-40 h-screen w-[224px] shrink-0 flex-col border-r border-[#e1e9f2] bg-[#edf5ff] px-[14px] pb-5 pt-[26px] text-[#20334b] transition-transform duration-200 ease-in-out
+          md:static md:flex md:translate-x-0
+          ${isOpen ? 'flex translate-x-0 shadow-2xl' : 'hidden -translate-x-full md:flex'}
+        `}>
+          <Link href="/letan" className="flex items-center gap-2.5 px-2">
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-[#246dce] text-xl font-semibold text-white">+</span>
+            <span>
+              <strong className="block text-[19px] leading-5 text-[#20334b]">Clinic EMR</strong>
+              <small className="text-[9px] font-medium text-[#235f9e]">PHÒNG KHÁM ĐA KHOA</small>
+            </span>
+          </Link>
+          <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#6c7e93]">KHÔNG GIAN LỄ TÂN</p>
+          <nav className="space-y-1.5 flex-1">
+            {receptionistItems.map((item) => {
+              const active = item.href === '/letan' 
+                ? pathname === '/letan' 
+                : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] transition-colors ${
+                    active 
+                      ? 'bg-[#ddedfe] font-semibold text-[#235f9e]' 
+                      : 'hover:bg-white/70 text-[#38536d]'
+                  }`}
+                >
+                  <item.icon size={17} />
+                  <span className="flex-1">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px] border border-[#dce5ef]">
+            <strong className="block text-[11px] text-[#20334b]">Phòng khám An Tâm</strong>
+            <span className="mt-1 block text-[#6c7e93]">Bộ phận Lễ tân · Tiếp đón & Thu ngân</span>
+            <span className="mt-2 block text-emerald-600 font-medium">● Hệ thống sẵn sàng</span>
+          </div>
+        </aside>
+
+        {/* Mobile backdrop */}
+        {isOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
+
   if (pathname?.startsWith('/bacsi')) {
     const doctorItems = [
       { href: '/bacsi', icon: LayoutDashboard, label: 'Tổng quan bác sĩ' },

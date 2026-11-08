@@ -10,11 +10,23 @@ export async function GET(req: NextRequest) {
 
   const result = await billingController.handleVNPayCallback(queryObj);
 
-  // Chuyển hướng người dùng về trang billing với thông báo kết quả
-  const invoiceId = result.body.data?.invoice?.id || '';
-  const success = result.body.success;
+  const invoiceId =
+    result.body.data?.invoice?.id ||
+    (typeof queryObj.vnp_TxnRef === 'string' ? queryObj.vnp_TxnRef.split('_')[0] : '');
+  const success = Boolean(result.body.success);
+  const message =
+    result.body.message ||
+    (typeof result.body.error?.details === 'string' ? result.body.error.details : '');
+
+  // Nếu backend xác nhận thanh toán hợp lệ -> Chuyển hướng trực tiếp đến trang Payment Success
+  if (success && invoiceId) {
+    const successUrl = new URL(`/letan/billing/${invoiceId}/success`, req.url);
+    return NextResponse.redirect(successUrl);
+  }
+
+  // Nếu thất bại hoặc bị hủy -> Chuyển về trang danh sách với thông báo tương ứng
   const redirectUrl = new URL(
-    `/billing?payment=vnpay&success=${success}&invoiceId=${invoiceId}`,
+    `/letan/billing?payment=vnpay&success=false&invoiceId=${invoiceId}${message ? `&msg=${encodeURIComponent(message)}` : ''}`,
     req.url
   );
 

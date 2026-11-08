@@ -1,9 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useBilling } from '../hooks/useBilling';
 
 export function BillingPanel() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const vnpayPayment = searchParams?.get('payment');
+  const vnpaySuccess = searchParams?.get('success');
+  const vnpayInvoiceId = searchParams?.get('invoiceId');
+  const vnpayMsg = searchParams?.get('msg');
+
   const {
     invoices,
     summary,
@@ -70,6 +78,7 @@ export function BillingPanel() {
       });
       setShowPaymentModal(false);
       setSelectedInvoice(null);
+      router.push(`/letan/billing/${invoiceId}/success`);
     } catch {
       // Error handled by hook
     }
@@ -98,42 +107,54 @@ export function BillingPanel() {
   const changeDue = Math.max(0, cashReceived - activeInvoiceTotal);
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
-      {/* Header Module */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Hóa Đơn & Thanh Toán Cuối Lượt Khám
-          </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Tổng hợp tiền khám, tiền thuốc, loại trừ các khoản CLS đã trả trước, hỗ trợ thu tiền mặt và VNPay Sandbox.
-          </p>
-        </div>
-
-        {/* Tab chuyển đổi */}
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
-          <button
-            onClick={() => setActiveTab('FINAL_BILLING')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'FINAL_BILLING'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Bảng kê & Thanh toán cuối lượt
-          </button>
-          <button
-            onClick={() => setActiveTab('INVOICE_LIST')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'INVOICE_LIST'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Danh sách tất cả hóa đơn ({invoices.length})
-          </button>
-        </div>
+    <div className="flex flex-col gap-5 text-[#20334b]">
+      {/* Tab chuyển đổi */}
+      <div className="flex bg-[#edf5ff] p-1 rounded-[9px] border border-[#dce5ef] self-start">
+        <button
+          onClick={() => setActiveTab('FINAL_BILLING')}
+          className={`px-3.5 py-1.5 text-[12px] font-semibold rounded-[7px] transition-all cursor-pointer ${
+            activeTab === 'FINAL_BILLING'
+              ? 'bg-white text-[#235f9e] shadow-xs'
+              : 'text-[#6c7e93] hover:text-[#20334b]'
+          }`}
+        >
+          Bảng kê & Thanh toán cuối lượt
+        </button>
+        <button
+          onClick={() => setActiveTab('INVOICE_LIST')}
+          className={`px-3.5 py-1.5 text-[12px] font-semibold rounded-[7px] transition-all cursor-pointer ${
+            activeTab === 'INVOICE_LIST'
+              ? 'bg-white text-[#235f9e] shadow-xs'
+              : 'text-[#6c7e93] hover:text-[#20334b]'
+          }`}
+        >
+          Danh sách tất cả hóa đơn ({invoices.length})
+        </button>
       </div>
+
+      {/* Banner thông báo kết quả giao dịch VNPay Sandbox */}
+      {vnpayPayment === 'vnpay' && (
+        <div
+          className={`p-4 rounded-[9px] border text-xs flex items-center justify-between shadow-2xs ${
+            vnpaySuccess === 'true'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          }`}
+        >
+          <div>
+            <p className="font-bold text-sm">
+              {vnpaySuccess === 'true'
+                ? '✓ Thanh toán VNPay Sandbox thành công!'
+                : '⚠ Giao dịch VNPay Sandbox chưa hoàn tất hoặc đã bị hủy'}
+            </p>
+            <p className="mt-1 text-xs">
+              {vnpaySuccess === 'true'
+                ? `Hóa đơn ${vnpayInvoiceId || ''} đã được ghi nhận thanh toán thành công và cập nhật trạng thái ĐÃ THANH TOÁN.`
+                : vnpayMsg || `Giao dịch đối với hóa đơn ${vnpayInvoiceId || ''} chưa được thanh toán.`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Thông báo Alert */}
       {error && (
@@ -358,67 +379,67 @@ export function BillingPanel() {
 
       {/* TAB 2: DANH SÁCH TẤT CẢ HÓA ĐƠN TRONG HỆ THỐNG */}
       {activeTab === 'INVOICE_LIST' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="text-base font-semibold text-slate-800">
+        <div className="bg-white border border-[#dce5ef] rounded-[9px] p-5 shadow-2xs flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-[#e6edf5] pb-3">
+            <h2 className="text-[15px] font-bold text-[#20334b]">
               Danh Sách Hóa Đơn Khám Bệnh & Dịch Vụ
             </h2>
-            <span className="text-xs text-slate-500 font-medium">
-              Tổng số: <strong>{invoices.length}</strong> hóa đơn
+            <span className="text-[12px] text-[#6c7e93]">
+              Tổng số: <strong className="text-[#20334b]">{invoices.length}</strong> hóa đơn
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+            <table className="w-full text-left border-collapse text-[12px]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 uppercase">
-                  <th className="py-3 px-4">Mã hóa đơn</th>
-                  <th className="py-3 px-4">Mã lượt khám</th>
-                  <th className="py-3 px-4 text-right">Tổng tiền</th>
-                  <th className="py-3 px-4 text-center">Trạng thái</th>
-                  <th className="py-3 px-4 text-center">Giao dịch thanh toán</th>
-                  <th className="py-3 px-4 text-center">Thao tác</th>
+                <tr className="border-b border-[#e6edf5] bg-[#f5f8fc] text-[11px] font-semibold text-[#6c7e93]">
+                  <th className="py-2.5 px-3">Mã hóa đơn</th>
+                  <th className="py-2.5 px-3">Mã lượt khám</th>
+                  <th className="py-2.5 px-3 text-right">Tổng tiền</th>
+                  <th className="py-2.5 px-3 text-center">Trạng thái</th>
+                  <th className="py-2.5 px-3 text-center">Giao dịch thanh toán</th>
+                  <th className="py-2.5 px-3 text-center">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              <tbody className="divide-y divide-[#e6edf5] text-[12px] text-[#20334b]">
                 {invoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-900">{inv.id}</td>
-                    <td className="py-3 px-4 font-mono">{inv.visitId}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                  <tr key={inv.id} className="hover:bg-[#f8fafd] transition-colors">
+                    <td className="py-2.5 px-3 font-mono font-medium">{inv.id}</td>
+                    <td className="py-2.5 px-3 font-mono text-[#6c7e93]">{inv.visitId}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-[#20334b]">
                       {inv.total.toLocaleString('vi-VN')} đ
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2.5 px-3 text-center">
                       {inv.status === 'PAID' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
                           ĐÃ THANH TOÁN
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/50">
                           CHỜ THANH TOÁN
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2.5 px-3 text-center">
                       {inv.payments && inv.payments.length > 0 ? (
-                        <span className="font-mono text-slate-600">
-                          {inv.payments[0].method} ({new Date(inv.payments[0].paidAt).toLocaleTimeString('vi-VN')})
+                        <span className="font-mono text-[11px] text-[#6c7e93]">
+                          {inv.payments[0].method} ({new Date(inv.payments[0].paidAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})
                         </span>
                       ) : (
-                        <span className="text-slate-400">Chưa có giao dịch</span>
+                        <span className="text-[#8091a5] text-[11px]">Chưa có giao dịch</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-2.5 px-3 text-center">
                       {inv.status !== 'PAID' ? (
                         <button
                           type="button"
                           onClick={() => handleOpenInvoicePayment(inv)}
-                          className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                          className="px-3 py-1.5 bg-[#246dce] hover:bg-[#1f5cb0] text-white rounded-[7px] text-[11px] font-semibold shadow-2xs transition-colors cursor-pointer"
                         >
                           Thu tiền (Cash/VNPay)
                         </button>
                       ) : (
-                        <span className="text-slate-400 text-xs">Hoàn tất</span>
+                        <span className="text-[#8091a5] text-[11px]">Hoàn tất</span>
                       )}
                     </td>
                   </tr>
@@ -431,10 +452,10 @@ export function BillingPanel() {
 
       {/* MODAL THANH TOÁN (BIL-02 & CLS-04: CASH & VNPAY SANDBOX) */}
       {showPaymentModal && (selectedInvoice || summary) && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-5">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-lg font-bold text-slate-900">
+        <div className="fixed inset-0 z-50 bg-[#0f172a]/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[9px] max-w-lg w-full p-6 shadow-xl border border-[#dce5ef] flex flex-col gap-4 text-[#20334b]">
+            <div className="flex items-center justify-between border-b border-[#e6edf5] pb-3">
+              <h3 className="text-[16px] font-bold text-[#20334b]">
                 {selectedInvoice?.title || 'Thanh Toán Hóa Đơn'}
               </h3>
               <button
@@ -443,58 +464,58 @@ export function BillingPanel() {
                   setShowPaymentModal(false);
                   setSelectedInvoice(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer font-bold"
+                className="text-[#6c7e93] hover:text-[#20334b] cursor-pointer font-bold text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
+            <div className="p-3 bg-[#edf5ff] rounded-[7px] border border-[#dce5ef] flex justify-between items-center text-[12px]">
               <div>
-                <span className="text-slate-500">Mã hóa đơn:</span>{' '}
-                <strong className="font-mono">{selectedInvoice?.id || summary?.finalInvoiceId}</strong>
+                <span className="text-[#6c7e93]">Mã hóa đơn:</span>{' '}
+                <strong className="font-mono text-[#20334b]">{selectedInvoice?.id || summary?.finalInvoiceId}</strong>
               </div>
               <div>
-                <span className="text-slate-500">Số tiền phải thu:</span>{' '}
-                <strong className="font-mono text-teal-700 text-sm">
+                <span className="text-[#6c7e93]">Số tiền phải thu:</span>{' '}
+                <strong className="font-mono text-[#246dce] text-sm">
                   {activeInvoiceTotal.toLocaleString('vi-VN')} đ
                 </strong>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-medium">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-[7px] text-[12px] text-rose-700 font-medium">
                 {error}
               </div>
             )}
 
             {/* Lựa chọn phương thức thanh toán */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="text-[12px] font-semibold text-[#20334b]">
                 Chọn phương thức thanh toán:
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CASH')}
-                  className={`p-3 rounded-lg border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                  className={`p-3 rounded-[7px] border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                     paymentMethod === 'CASH'
-                      ? 'bg-teal-50 border-teal-600 text-teal-800 font-bold'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-[#edf5ff] border-[#246dce] text-[#235f9e] font-bold'
+                      : 'border-[#dce5ef] text-[#6c7e93] hover:bg-[#f8fafd]'
                   }`}
                 >
-                  <span className="text-xs font-semibold">Tiền Mặt (CASH)</span>
+                  <span className="text-[12px] font-semibold">Tiền Mặt (CASH)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('VNPAY')}
-                  className={`p-3 rounded-lg border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                  className={`p-3 rounded-[7px] border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
                     paymentMethod === 'VNPAY'
-                      ? 'bg-teal-50 border-teal-600 text-teal-800 font-bold'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-[#edf5ff] border-[#246dce] text-[#235f9e] font-bold'
+                      : 'border-[#dce5ef] text-[#6c7e93] hover:bg-[#f8fafd]'
                   }`}
                 >
-                  <span className="text-xs font-semibold">VNPay Sandbox (QR/ATM)</span>
+                  <span className="text-[12px] font-semibold">VNPay Sandbox (QR/ATM)</span>
                 </button>
               </div>
             </div>
@@ -503,7 +524,7 @@ export function BillingPanel() {
             {paymentMethod === 'CASH' && (
               <form onSubmit={handleProcessCashPayment} className="flex flex-col gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#20334b] mb-1">
                     Số tiền khách đưa (VND):
                   </label>
                   <input
@@ -511,42 +532,42 @@ export function BillingPanel() {
                     value={cashReceived}
                     onChange={(e) => setCashReceived(Number(e.target.value))}
                     min={activeInvoiceTotal}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono font-bold"
+                    className="w-full px-3 py-2 text-sm border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] font-mono font-bold"
                     required
                   />
                 </div>
 
-                <div className="p-2.5 bg-slate-100 rounded-lg flex justify-between text-xs">
-                  <span className="text-slate-600">Tiền thừa trả lại khách:</span>
-                  <span className="font-mono font-bold text-slate-900">
+                <div className="p-2.5 bg-[#f5f8fc] rounded-[7px] flex justify-between text-[12px]">
+                  <span className="text-[#6c7e93]">Tiền thừa trả lại khách:</span>
+                  <span className="font-mono font-bold text-[#20334b]">
                     {changeDue.toLocaleString('vi-VN')} đ
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#20334b] mb-1">
                     Ghi chú thu ngân:
                   </label>
                   <input
                     type="text"
                     value={cashNotes}
                     onChange={(e) => setCashNotes(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-1.5 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                    className="px-4 py-2 text-[12px] font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow cursor-pointer"
+                    className="px-5 py-2 text-[12px] font-bold text-white bg-[#246dce] hover:bg-[#1f5cb0] rounded-[7px] shadow-xs cursor-pointer transition-colors"
                   >
                     {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Thu Tiền Mặt'}
                   </button>
@@ -557,19 +578,19 @@ export function BillingPanel() {
             {/* Giao diện Thanh toán VNPAY SANDBOX */}
             {paymentMethod === 'VNPAY' && (
               <div className="flex flex-col gap-3">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                  Hệ thống sẽ kết nối trực tiếp đến cổng thanh toán <strong>VNPay Sandbox</strong>. Bạn có thể sử dụng
-                  ứng dụng Mobile Banking quét mã QR hoặc thẻ ATM nội địa demo để hoàn tất giao dịch.
+                <div className="p-3 bg-[#edf5ff] border border-[#dce5ef] rounded-[7px] text-[12px] text-[#235f9e]">
+                  Hệ thống kết nối trực tiếp đến cổng thanh toán <strong>VNPay Sandbox</strong>. Bạn có thể sử dụng
+                  ứng dụng Mobile Banking quét mã QR hoặc thẻ ATM nội địa demo để thanh toán.
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[12px] font-semibold text-[#20334b] mb-1">
                     Chọn ngân hàng / Phương thức (Tùy chọn):
                   </label>
                   <select
                     value={vnpayBankCode}
                     onChange={(e) => setVnpayBankCode(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] bg-white text-[#20334b]"
                   >
                     <option value="">Cổng VNPay (Quét QR hoặc chọn ngân hàng tại cổng)</option>
                     <option value="VNPAYQR">Cổng thanh toán VNPAYQR</option>
@@ -578,11 +599,11 @@ export function BillingPanel() {
                   </select>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                    className="px-4 py-2 text-[12px] font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                   >
                     Hủy
                   </button>
@@ -590,7 +611,7 @@ export function BillingPanel() {
                     type="button"
                     onClick={handleProcessVNPayPayment}
                     disabled={isSubmitting}
-                    className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2 text-[12px] font-bold text-white bg-[#246dce] hover:bg-[#1f5cb0] rounded-[7px] shadow-xs cursor-pointer flex items-center gap-1.5 transition-colors"
                   >
                     {isSubmitting ? 'Đang chuyển hướng...' : 'Chuyển Hướng Đến VNPay'}
                   </button>

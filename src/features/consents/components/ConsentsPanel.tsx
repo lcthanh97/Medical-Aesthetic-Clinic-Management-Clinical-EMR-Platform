@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useConsents } from '../hooks/useConsents';
-import { ConsentSignaturePad } from './ConsentSignaturePad';
 import type { SignerType } from '../types/consents.types';
+import { ConsentSignaturePad } from './ConsentSignaturePad';
 
 export function ConsentsPanel() {
   const {
@@ -180,46 +180,46 @@ export function ConsentsPanel() {
   });
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6">
       {/* Header Module */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#e1e9f2] gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Bản Cam Kết & Chữ Ký Điện Tử
+          <h1 className="text-[25px] font-bold text-[#20334b]">
+            Biểu mẫu & Cam kết điều trị
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-[12px] text-[#6c7e93] mt-1">
             Quản lý biểu mẫu y khoa, phiên bản lựa chọn và chữ ký trực tiếp của người bệnh / người đại diện.
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
+        <div className="flex bg-[#edf5ff] p-1 rounded-[9px] border border-[#dce5ef] self-start md:self-auto">
           <button
             onClick={() => setActiveTab('SIGNING')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-[7px] transition-all cursor-pointer ${
               activeTab === 'SIGNING'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-[#235f9e] shadow-xs'
+                : 'text-[#6c7e93] hover:text-[#20334b]'
             }`}
           >
             Ký cam kết trên thiết bị
           </button>
           <button
             onClick={() => setActiveTab('TEMPLATES')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-[7px] transition-all cursor-pointer ${
               activeTab === 'TEMPLATES'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-[#235f9e] shadow-xs'
+                : 'text-[#6c7e93] hover:text-[#20334b]'
             }`}
           >
             Quản lý biểu mẫu
           </button>
           <button
             onClick={() => setActiveTab('SIGNED_LIST')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-[7px] transition-all cursor-pointer ${
               activeTab === 'SIGNED_LIST'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-[#235f9e] shadow-xs'
+                : 'text-[#6c7e93] hover:text-[#20334b]'
             }`}
           >
             Danh sách đã ký ({signedConsents.length})
@@ -228,7 +228,7 @@ export function ConsentsPanel() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700 flex items-center justify-between">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-[7px] text-xs text-rose-700 flex items-center justify-between">
           <span>{error}</span>
         </div>
       )}
@@ -238,13 +238,13 @@ export function ConsentsPanel() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Cột trái: Cấu hình lượt khám, chỉ định & người ký (4 cols) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-              <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2">
+            <div className="bg-white border border-[#dce5ef] rounded-[9px] p-5 shadow-2xs flex flex-col gap-4">
+              <h3 className="text-sm font-bold text-[#20334b] border-b border-[#e6edf5] pb-2">
                 1. Thông tin Lượt khám & Chỉ định
               </h3>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Mã lượt khám (Visit ID) <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -252,12 +252,12 @@ export function ConsentsPanel() {
                   value={visitId}
                   onChange={(e) => setVisitId(e.target.value)}
                   placeholder="Nhập mã lượt khám..."
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Mã chỉ định / Thủ thuật liên quan (Tùy chọn)
                 </label>
                 <input
@@ -265,16 +265,16 @@ export function ConsentsPanel() {
                   value={clinicalOrderId}
                   onChange={(e) => setClinicalOrderId(e.target.value)}
                   placeholder="Ví dụ: ord-cls-01"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-xs"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Chọn biểu mẫu cam kết <span className="text-rose-500">*</span>
                 </label>
                 {templates.length === 0 ? (
-                  <div className="text-xs text-slate-500 p-3 bg-slate-50 rounded border border-slate-200">
+                  <div className="text-xs text-[#6c7e93] p-3 bg-[#f5f8fc] rounded-[7px] border border-[#dce5ef]">
                     Chưa có biểu mẫu nào. Vui lòng chuyển sang tab &quot;Quản lý Biểu mẫu&quot; để tạo.
                   </div>
                 ) : (
@@ -284,7 +284,7 @@ export function ConsentsPanel() {
                       const found = templates.find((t) => t.id === e.target.value);
                       if (found) setSelectedTemplate(found);
                     }}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] bg-white text-[#20334b]"
                   >
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -296,23 +296,23 @@ export function ConsentsPanel() {
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-              <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2">
+            <div className="bg-white border border-[#dce5ef] rounded-[9px] p-5 shadow-2xs flex flex-col gap-4">
+              <h3 className="text-sm font-bold text-[#20334b] border-b border-[#e6edf5] pb-2">
                 2. Thông tin Người ký cam kết
               </h3>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1.5">
                   Tư cách người ký
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setSignerType('PATIENT')}
-                    className={`px-3 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
+                    className={`px-3 py-2 text-xs font-semibold rounded-[7px] border text-center transition-all cursor-pointer ${
                       signerType === 'PATIENT'
-                        ? 'bg-teal-50 border-teal-600 text-teal-800 font-semibold'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-[#edf5ff] border-[#246dce] text-[#235f9e]'
+                        : 'border-[#dce5ef] text-[#6c7e93] hover:bg-[#f8fafd]'
                     }`}
                   >
                     Bệnh nhân trực tiếp
@@ -320,10 +320,10 @@ export function ConsentsPanel() {
                   <button
                     type="button"
                     onClick={() => setSignerType('REPRESENTATIVE')}
-                    className={`px-3 py-2 text-xs font-medium rounded-lg border text-center transition-all ${
+                    className={`px-3 py-2 text-xs font-semibold rounded-[7px] border text-center transition-all cursor-pointer ${
                       signerType === 'REPRESENTATIVE'
-                        ? 'bg-teal-50 border-teal-600 text-teal-800 font-semibold'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-[#edf5ff] border-[#246dce] text-[#235f9e]'
+                        : 'border-[#dce5ef] text-[#6c7e93] hover:bg-[#f8fafd]'
                     }`}
                   >
                     Người đại diện hợp pháp
@@ -332,7 +332,7 @@ export function ConsentsPanel() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Họ và tên người ký <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -340,13 +340,13 @@ export function ConsentsPanel() {
                   value={signerName}
                   onChange={(e) => setSignerName(e.target.value)}
                   placeholder="Nhập đầy đủ họ tên..."
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                 />
               </div>
 
               {signerType === 'REPRESENTATIVE' && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                     Quan hệ với người bệnh (Bố, Mẹ, Vợ, Chồng...) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -354,7 +354,7 @@ export function ConsentsPanel() {
                     value={relationship}
                     onChange={(e) => setRelationship(e.target.value)}
                     placeholder="Ví dụ: Mẹ ruột của bệnh nhân"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                   />
                 </div>
               )}
@@ -363,15 +363,15 @@ export function ConsentsPanel() {
 
           {/* Cột phải: Khung tài liệu A4 điện tử & Signature Pad (8 cols) */}
           <div className="lg:col-span-8 flex flex-col gap-5">
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-5">
-              <div className="border-b-2 border-slate-800 pb-4 text-center">
-                <span className="text-xs uppercase tracking-widest font-semibold text-slate-500">
+            <div className="bg-white border border-[#dce5ef] rounded-[9px] p-6 shadow-2xs flex flex-col gap-5">
+              <div className="border-b-2 border-[#20334b] pb-4 text-center">
+                <span className="text-[11px] uppercase tracking-widest font-semibold text-[#6c7e93]">
                   Phòng Khám Da Liễu & Thẩm Mỹ Y Khoa
                 </span>
-                <h2 className="text-xl font-bold text-slate-900 uppercase mt-1">
+                <h2 className="text-lg font-bold text-[#20334b] uppercase mt-1">
                   {selectedTemplate?.name || 'BẢN CAM KẾT ĐỒNG THUẬN ĐIỀU TRỊ'}
                 </h2>
-                <div className="flex items-center justify-center gap-4 text-xs text-slate-500 mt-1">
+                <div className="flex items-center justify-center gap-4 text-xs text-[#6c7e93] mt-1">
                   <span>Phiên bản biểu mẫu: <strong>v{selectedTemplate?.version || 1}</strong></span>
                   <span>•</span>
                   <span>Lượt khám: <strong>{visitId || 'Chưa chọn'}</strong></span>
@@ -384,17 +384,17 @@ export function ConsentsPanel() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 max-h-72 overflow-y-auto text-sm text-slate-800 leading-relaxed font-sans whitespace-pre-wrap select-none">
+              <div className="bg-[#f8fafd] p-4 rounded-[7px] border border-[#e6edf5] max-h-72 overflow-y-auto text-xs text-[#20334b] leading-relaxed font-sans whitespace-pre-wrap select-none">
                 {selectedTemplate?.content || 'Chưa có nội dung cam kết.'}
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-[7px]">
                 <input
                   type="checkbox"
                   id="consentAgreement"
                   checked={isAgreed}
                   onChange={(e) => setIsAgreed(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 text-[#246dce] rounded border-[#dce5ef] focus:ring-[#246dce] cursor-pointer"
                 />
                 <label htmlFor="consentAgreement" className="text-xs text-amber-900 leading-5 cursor-pointer">
                   <strong>Tôi xác nhận rằng:</strong> Đã đọc, được Bác sĩ giải thích rõ ràng về tình trạng bệnh,
@@ -410,27 +410,27 @@ export function ConsentsPanel() {
               />
 
               {signErrorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-[7px] text-xs text-rose-700">
                   {signErrorMessage}
                 </div>
               )}
 
               {signSuccessMessage && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 font-medium">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-[7px] text-xs text-emerald-800 font-medium">
                   {signSuccessMessage}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                 <button
                   type="button"
                   onClick={handleSubmitSignature}
                   disabled={isSubmitting || !isAgreed || !signatureData}
-                  className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow transition-colors cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-[7px] text-xs font-semibold text-white bg-[#246dce] hover:bg-[#1f5cb0] disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Đang xử lý chữ ký...
                     </>
                   ) : (
@@ -450,10 +450,10 @@ export function ConsentsPanel() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-800">
+              <h2 className="text-sm font-bold text-[#20334b]">
                 Danh mục Biểu mẫu Cam kết & Lựa chọn Phiên bản
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#6c7e93]">
                 Quản lý nội dung biểu mẫu, phân loại theo thủ thuật và cập nhật phiên bản.
               </p>
             </div>
@@ -463,7 +463,7 @@ export function ConsentsPanel() {
               <select
                 value={filterProcedure}
                 onChange={(e) => setFilterProcedure(e.target.value)}
-                className="px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="px-3 py-1.5 text-xs border border-[#dce5ef] rounded-[7px] bg-white text-[#20334b] focus:outline-none focus:border-[#246dce]"
               >
                 <option value="ALL">Tất cả thủ thuật / dịch vụ</option>
                 <option value="Laser">Thủ thuật Laser & Ánh sáng</option>
@@ -473,7 +473,7 @@ export function ConsentsPanel() {
 
               <button
                 onClick={handleOpenNewTemplate}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+                className="px-3 py-1.5 bg-[#246dce] hover:bg-[#1f5cb0] text-white rounded-[7px] text-xs font-semibold transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
               >
                 + Tạo biểu mẫu mới
               </button>
@@ -484,32 +484,32 @@ export function ConsentsPanel() {
             {filteredTemplates.map((tpl) => (
               <div
                 key={tpl.id}
-                className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-teal-300 transition-all"
+                className="bg-white border border-[#dce5ef] rounded-[9px] p-5 shadow-2xs flex flex-col justify-between hover:border-[#246dce] transition-all"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="px-2 py-0.5 text-xs font-bold rounded bg-teal-100 text-teal-800">
+                    <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-[#edf5ff] text-[#235f9e]">
                       Phiên bản v{tpl.version}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-[#6c7e93]">
                       {tpl.signedCount || 0} lượt đã ký
                     </span>
                   </div>
-                  <h3 className="font-semibold text-slate-900 text-base mb-2">
+                  <h3 className="font-bold text-[#20334b] text-sm mb-2">
                     {tpl.name}
                   </h3>
-                  <div className="text-xs text-slate-600 line-clamp-4 bg-slate-50 p-2.5 rounded border border-slate-100 font-mono">
+                  <div className="text-xs text-[#6c7e93] line-clamp-4 bg-[#f8fafd] p-2.5 rounded-[7px] border border-[#e6edf5] font-mono">
                     {tpl.content}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 gap-2">
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#e6edf5] gap-2">
                   <button
                     onClick={() => {
                       setSelectedTemplate(tpl);
                       setActiveTab('SIGNING');
                     }}
-                    className="text-xs font-semibold text-teal-600 hover:text-teal-800 cursor-pointer"
+                    className="text-xs font-semibold text-[#246dce] hover:text-[#1f5cb0] cursor-pointer"
                   >
                     Sử dụng để ký ➔
                   </button>
@@ -519,7 +519,7 @@ export function ConsentsPanel() {
                     {(tpl.signedCount || 0) === 0 ? (
                       <button
                         onClick={() => handleOpenEditModal(tpl)}
-                        className="text-xs font-medium text-slate-600 hover:text-teal-600 cursor-pointer"
+                        className="text-xs font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                       >
                         Sửa
                       </button>
@@ -527,7 +527,7 @@ export function ConsentsPanel() {
 
                     <button
                       onClick={() => handleOpenVersionModal(tpl)}
-                      className="text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                      className="text-xs font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                     >
                       Nâng bản (v{tpl.version + 1})
                     </button>
@@ -541,67 +541,67 @@ export function ConsentsPanel() {
 
       {/* TAB 3: DANH SÁCH CAM KẾT ĐÃ KÝ (CON-02) */}
       {activeTab === 'SIGNED_LIST' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="bg-white border border-[#dce5ef] rounded-[9px] p-5 shadow-2xs flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-[#e6edf5] pb-3">
             <div>
-              <h2 className="text-base font-semibold text-slate-800">
+              <h2 className="text-sm font-bold text-[#20334b]">
                 Danh sách Cam kết đã ký trên thiết bị
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#6c7e93]">
                 Lưu giữ thông tin người ký, chữ ký điện tử và thời điểm ký từ hệ thống.
               </p>
             </div>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-[#6c7e93]">
               Tổng số: <strong>{signedConsents.length}</strong> bản ký
             </span>
           </div>
 
           {signedConsents.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm">
+            <div className="py-12 text-center text-[#6c7e93] text-xs">
               Chưa có bản cam kết nào được ký. Vui lòng chuyển sang tab &quot;Ký cam kết trên thiết bị&quot; để thực hiện.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+            <div className="overflow-x-auto rounded-[7px] border border-[#dce5ef]">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 uppercase">
-                    <th className="py-3 px-4">Mã bản cam kết</th>
-                    <th className="py-3 px-4">Tên biểu mẫu</th>
-                    <th className="py-3 px-4">Mã lượt khám</th>
-                    <th className="py-3 px-4">Người ký</th>
-                    <th className="py-3 px-4">Chữ ký điện tử</th>
-                    <th className="py-3 px-4">Thời điểm ký</th>
+                  <tr className="border-b border-[#dce5ef] bg-[#f5f8fc] text-[11px] font-semibold text-[#6c7e93]">
+                    <th className="py-2.5 px-3">Mã bản cam kết</th>
+                    <th className="py-2.5 px-3">Tên biểu mẫu</th>
+                    <th className="py-2.5 px-3">Mã lượt khám</th>
+                    <th className="py-2.5 px-3">Người ký</th>
+                    <th className="py-2.5 px-3">Chữ ký điện tử</th>
+                    <th className="py-2.5 px-3">Thời điểm ký</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                <tbody className="divide-y divide-[#e6edf5] text-xs text-[#20334b]">
                   {signedConsents.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono font-semibold text-slate-900">
+                    <tr key={item.id} className="hover:bg-[#f8fafd] transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-semibold text-[#246dce]">
                         {item.id.slice(0, 8)}...
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900">{item.templateName || 'Biểu mẫu'}</div>
-                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] bg-slate-100 text-slate-600 font-mono">
+                      <td className="py-2.5 px-3">
+                        <div className="font-semibold text-[#20334b]">{item.templateName || 'Biểu mẫu'}</div>
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] bg-[#edf5ff] text-[#235f9e] font-mono">
                           v{item.templateVersion || 1}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono">{item.visitId}</td>
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-slate-900">{item.signerName}</span>
+                      <td className="py-2.5 px-3 font-mono">{item.visitId}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-semibold text-[#20334b]">{item.signerName}</span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-3">
                         {item.signatureUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={item.signatureUrl}
                             alt="Chữ ký"
-                            className="h-10 max-w-[120px] object-contain border border-slate-200 rounded bg-white p-1"
+                            className="h-9 max-w-[110px] object-contain border border-[#dce5ef] rounded-[5px] bg-white p-1"
                           />
                         ) : (
-                          <span className="text-slate-400">Không có ảnh</span>
+                          <span className="text-[#6c7e93]">Không có ảnh</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-mono text-slate-600">
+                      <td className="py-2.5 px-3 font-mono text-[#6c7e93]">
                         {new Date(item.signedAt).toLocaleString('vi-VN')}
                       </td>
                     </tr>
@@ -616,13 +616,13 @@ export function ConsentsPanel() {
       {/* MODAL TẠO TEMPLATE MỚI (CON-01) */}
       {showNewTemplateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">
+          <div className="bg-white rounded-[9px] max-w-2xl w-full p-6 shadow-xl border border-[#dce5ef] flex flex-col gap-4">
+            <h3 className="text-base font-bold text-[#20334b] border-b border-[#e6edf5] pb-2">
               Tạo mới Biểu mẫu Cam kết Y tế (Phiên bản v1)
             </h3>
             <form onSubmit={handleSaveNewTemplate} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Tên biểu mẫu cam kết <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -630,36 +630,36 @@ export function ConsentsPanel() {
                   value={newTemplateName}
                   onChange={(e) => setNewTemplateName(e.target.value)}
                   placeholder="Ví dụ: Cam kết làm thủ thuật Laser CO2 Fractional"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Nội dung điều khoản cam kết y khoa <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={8}
                   value={newTemplateContent}
                   onChange={(e) => setNewTemplateContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-sans leading-relaxed"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] font-sans leading-relaxed"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                 <button
                   type="button"
                   onClick={() => setShowNewTemplateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#246dce] hover:bg-[#1f5cb0] rounded-[7px] shadow-2xs cursor-pointer"
                 >
                   Lưu & Tạo mới
                 </button>
@@ -672,48 +672,48 @@ export function ConsentsPanel() {
       {/* MODAL CHỈNH SỬA TEMPLATE (CON-01 - KHI CHƯA CÓ BẢN KÝ) */}
       {showEditTemplateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">
+          <div className="bg-white rounded-[9px] max-w-2xl w-full p-6 shadow-xl border border-[#dce5ef] flex flex-col gap-4">
+            <h3 className="text-base font-bold text-[#20334b] border-b border-[#e6edf5] pb-2">
               Chỉnh sửa Biểu mẫu Cam kết
             </h3>
             <form onSubmit={handleSaveEditTemplate} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Tên biểu mẫu cam kết
                 </label>
                 <input
                   type="text"
                   value={editTemplateName}
                   onChange={(e) => setEditTemplateName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Nội dung điều khoản <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={8}
                   value={editTemplateContent}
                   onChange={(e) => setEditTemplateContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-sans leading-relaxed"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] font-sans leading-relaxed"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                 <button
                   type="button"
                   onClick={() => setShowEditTemplateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#246dce] hover:bg-[#1f5cb0] rounded-[7px] shadow-2xs cursor-pointer"
                 >
                   Lưu thay đổi
                 </button>
@@ -726,39 +726,39 @@ export function ConsentsPanel() {
       {/* MODAL NÂNG PHIÊN BẢN TEMPLATE (CON-01 VERSIONING) */}
       {showVersionModal && selectedTemplate && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b pb-2">
+          <div className="bg-white rounded-[9px] max-w-2xl w-full p-6 shadow-xl border border-[#dce5ef] flex flex-col gap-4">
+            <h3 className="text-base font-bold text-[#20334b] border-b border-[#e6edf5] pb-2">
               Phát hành Phiên bản mới: v{selectedTemplate.version + 1}
             </h3>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-[#6c7e93]">
               Biểu mẫu: <strong>{selectedTemplate.name}</strong>. Phiên bản mới sẽ có hiệu lực cho các lần tạo yêu cầu ký tiếp theo.
             </p>
             <form onSubmit={handleSaveNewVersion} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#6c7e93] mb-1">
                   Nội dung điều khoản phiên bản mới <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={8}
                   value={versionContent}
                   onChange={(e) => setVersionContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-sans leading-relaxed"
+                  className="w-full px-3 py-2 text-xs border border-[#dce5ef] rounded-[7px] focus:outline-none focus:border-[#246dce] font-sans leading-relaxed"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e6edf5]">
                 <button
                   type="button"
                   onClick={() => setShowVersionModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium text-[#6c7e93] hover:text-[#20334b] cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#246dce] hover:bg-[#1f5cb0] rounded-[7px] shadow-2xs cursor-pointer"
                 >
                   Phát hành v{selectedTemplate.version + 1}
                 </button>

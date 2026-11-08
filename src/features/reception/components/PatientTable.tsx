@@ -42,7 +42,7 @@ export function PatientTable({
   };
 
   return (
-    <div className="rounded-2xl border border-[#e2ebf5] bg-white shadow-sm overflow-hidden">
+    <div className="rounded-[9px] border border-[#dce5ef] bg-white shadow-2xs overflow-hidden">
       {isLoading ? (
         <div className="py-20 flex justify-center items-center">
           <LoadingSpinner />
@@ -51,8 +51,8 @@ export function PatientTable({
         <div className="p-8">
           <EmptyState>
             <div className="flex flex-col items-center justify-center gap-2">
-              <p className="font-semibold text-slate-700">Chưa tìm thấy hồ sơ bệnh nhân nào</p>
-              <p className="text-xs text-slate-500">
+              <p className="font-semibold text-[#20334b]">Chưa tìm thấy hồ sơ bệnh nhân nào</p>
+              <p className="text-[12px] text-[#6c7e93]">
                 Hãy thử tìm kiếm với từ khóa khác hoặc bấm nút "+ Tiếp nhận bệnh nhân" để tạo mới.
               </p>
             </div>
@@ -61,19 +61,19 @@ export function PatientTable({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-[#f8fafc] text-xs font-semibold text-[#0e3a78] uppercase border-b border-[#e2ebf5]">
+            <table className="w-full text-left text-[12px] text-[#20334b]">
+              <thead className="bg-[#f5f8fc] text-[11px] font-semibold text-[#6c7e93] border-b border-[#e6edf5]">
                 <tr>
-                  <th scope="col" className="px-6 py-4">Mã BN</th>
-                  <th scope="col" className="px-6 py-4">Họ và tên</th>
-                  <th scope="col" className="px-6 py-4">Ngày sinh (Tuổi)</th>
-                  <th scope="col" className="px-6 py-4">Số điện thoại</th>
-                  <th scope="col" className="px-6 py-4">Cảnh báo dị ứng</th>
-                  <th scope="col" className="px-6 py-4">Lượt khám</th>
-                  <th scope="col" className="px-6 py-4 text-right">Thao tác</th>
+                  <th scope="col" className="px-4 py-3">Mã BN</th>
+                  <th scope="col" className="px-4 py-3">Họ và tên</th>
+                  <th scope="col" className="px-4 py-3">Ngày sinh (Tuổi)</th>
+                  <th scope="col" className="px-4 py-3">Số điện thoại</th>
+                  <th scope="col" className="px-4 py-3">Cảnh báo dị ứng</th>
+                  <th scope="col" className="px-4 py-3">Lượt khám</th>
+                  <th scope="col" className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e2ebf5]">
+              <tbody className="divide-y divide-[#e6edf5]">
                 {patients.map((p) => {
                   const age = calculateAge(p.dateOfBirth);
                   const hasAllergies = p.allergies && p.allergies.length > 0;
@@ -81,70 +81,70 @@ export function PatientTable({
                   return (
                     <tr
                       key={p.id}
-                      className="hover:bg-[#f4f8fd] transition-colors duration-150 group cursor-pointer"
+                      className="hover:bg-[#f8fafd] transition-colors duration-150 group cursor-pointer"
                     >
-                      <td className="px-6 py-4 font-bold text-[#0e3a78]">
+                      <td className="px-4 py-3 font-bold text-[#235f9e]">
                         <Link
                           href={`/reception/${p.id}`}
                           className="hover:underline flex items-center gap-1.5"
                         >
-                          <span className="rounded bg-[#e8f1fc] px-2 py-0.5 text-xs text-[#0e3a78]">
+                          <span className="rounded-[5px] bg-[#edf5ff] px-2 py-0.5 text-[11px] font-semibold text-[#235f9e]">
                             {p.patientCode}
                           </span>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-800">
-                        <Link href={`/reception/${p.id}`} className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-[#e8f1fc] text-[#0e3a78] flex items-center justify-center font-bold text-xs uppercase">
+                      <td className="px-4 py-3 font-semibold text-[#20334b]">
+                        <Link href={`/reception/${p.id}`} className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-[#edf5ff] text-[#246dce] flex items-center justify-center font-bold text-[11px] uppercase">
                             {p.fullName.slice(0, 1)}
                           </div>
                           <span>{p.fullName}</span>
                         </Link>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="px-4 py-3 text-[#38536d]">
                         {formatDate(p.dateOfBirth)}
                         {age !== null && (
-                          <span className="ml-1.5 text-xs text-slate-400">({age} tuổi)</span>
+                          <span className="ml-1.5 text-[11px] text-[#6c7e93]">({age} tuổi)</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-mono text-slate-600">
-                        {p.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
+                      <td className="px-4 py-3 font-mono text-[#38536d]">
+                        {p.phone || <span className="text-[#8091a5] italic">Chưa có SĐT</span>}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         {hasAllergies ? (
                           <div className="flex flex-wrap gap-1 items-center">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#fef2f2] px-2.5 py-0.5 text-xs font-semibold text-[#dc2626] border border-[#fecaca]">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 border border-rose-200/60">
                               {p.allergies.length} dị ứng
                             </span>
-                            <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                            <span className="text-[11px] text-[#6c7e93] truncate max-w-[150px]">
                               ({p.allergies.map((a) => a.substance).join(', ')})
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">Không ghi nhận</span>
+                          <span className="text-[11px] text-[#8091a5]">Không ghi nhận</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs font-semibold text-slate-700">
+                      <td className="px-4 py-3">
+                        <div className="text-[11px] font-semibold text-[#20334b]">
                           {p.visitsCount} lượt khám
                         </div>
                         {p.lastVisitDate && (
-                          <div className="text-[11px] text-slate-400">
+                          <div className="text-[10px] text-[#6c7e93]">
                             Gần nhất: {formatDate(p.lastVisitDate)}
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <Link href={`/reception/${p.id}`}>
-                            <Button variant="ghost" size="sm">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-[7px] text-[11px] font-semibold text-[#246dce] hover:bg-[#edf5ff] transition-colors">
                               Chi tiết
-                            </Button>
+                            </span>
                           </Link>
                           <Link href={`/reception/${p.id}/edit`}>
-                            <Button variant="secondary" size="sm">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-[7px] text-[11px] font-semibold text-[#6c7e93] hover:text-[#20334b] hover:bg-[#f8fafd] border border-[#dce5ef] transition-colors">
                               Sửa
-                            </Button>
+                            </span>
                           </Link>
                         </div>
                       </td>
@@ -156,32 +156,32 @@ export function PatientTable({
           </div>
 
           {/* Pagination bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 bg-[#f8fafc] border-t border-[#e2ebf5] text-xs text-slate-600">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-[#f8fafc] border-t border-[#e6edf5] text-[11px] text-[#6c7e93]">
             <div>
-              Hiển thị <span className="font-semibold text-slate-800">{patients.length}</span> /{' '}
-              <span className="font-semibold text-slate-800">{total}</span> hồ sơ bệnh nhân
+              Hiển thị <span className="font-semibold text-[#20334b]">{patients.length}</span> /{' '}
+              <span className="font-semibold text-[#20334b]">{total}</span> hồ sơ bệnh nhân
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
                 disabled={page <= 1}
                 onClick={() => onPageChange(page - 1)}
+                className="px-3 py-1 rounded-[7px] border border-[#dce5ef] bg-white text-[#20334b] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f8fafd] transition-colors cursor-pointer text-[11px] font-medium"
               >
                 ← Trang trước
-              </Button>
-              <span className="font-semibold px-2">
-                Trang {page} / {totalPages}
+              </button>
+              <span className="font-medium px-2 text-[#20334b]">
+                Trang {page} / {totalPages || 1}
               </span>
-              <Button
-                variant="secondary"
-                size="sm"
+              <button
+                type="button"
                 disabled={page >= totalPages}
                 onClick={() => onPageChange(page + 1)}
+                className="px-3 py-1 rounded-[7px] border border-[#dce5ef] bg-white text-[#20334b] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f8fafd] transition-colors cursor-pointer text-[11px] font-medium"
               >
                 Trang sau →
-              </Button>
+              </button>
             </div>
           </div>
         </>

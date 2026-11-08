@@ -287,4 +287,47 @@ describe('TASK: DEBUG & FIX – Billing Cash & VNPay Sandbox Comprehensive Tests
     expect(res.body.message).toContain('đã được ghi nhận thành công trước đó');
     expect(mockBillingRepo.recordPaymentAndUpdateInvoice).not.toHaveBeenCalled();
   });
+
+  // 10. Payment Success Data Retrieval – Lấy đầy đủ thông tin hóa đơn đã thanh toán từ DB
+  it('Payment Success – Lấy dữ liệu chi tiết hóa đơn, thông tin bệnh nhân và phương thức giao dịch', async () => {
+    vi.mocked(mockBillingRepo.findInvoiceById).mockResolvedValue({
+      id: 'inv-success-100',
+      visitId: 'visit-100',
+      total: 700000,
+      status: PaymentStatus.PAID,
+      createdAt: new Date('2026-11-07T09:00:00Z'),
+      visit: {
+        patient: {
+          id: 'p-01',
+          patientCode: 'BN2026-001',
+          fullName: 'Nguyễn Văn An',
+          phone: '0901234567',
+        },
+      },
+      payments: [
+        {
+          id: 'pay-vnp-100',
+          invoiceId: 'inv-success-100',
+          amount: 700000,
+          method: 'VNPAY',
+          paidAt: new Date('2026-11-07T09:15:00Z'),
+        },
+      ],
+    });
+
+    vi.mocked(mockBillingRepo.findAuditLogByActionAndEntity).mockResolvedValue(null);
+
+    const invoice = await billingService.getById('inv-success-100');
+
+    expect(invoice).not.toBeNull();
+    expect(invoice?.id).toBe('inv-success-100');
+    expect(invoice?.status).toBe(PaymentStatus.PAID);
+    expect(invoice?.patientName).toBe('Nguyễn Văn An');
+    expect(invoice?.patientCode).toBe('BN2026-001');
+    expect(invoice?.paymentMethod).toBe('VNPAY');
+    expect(invoice?.transactionId).toBe('pay-vnp-100');
+    expect(invoice?.total).toBe(700000);
+    expect(invoice?.items).toBeDefined();
+    expect(invoice?.items?.length).toBeGreaterThan(0);
+  });
 });

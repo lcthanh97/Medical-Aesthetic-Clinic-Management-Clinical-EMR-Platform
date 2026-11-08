@@ -126,39 +126,39 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-          <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-100 space-y-5">
-            <h3 className="font-semibold text-gray-800 text-lg mb-4 flex items-center">
-              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm">1</span>
-              Thông tin cá nhân
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+          <div className="bg-[#fbfdff] p-5 rounded-[9px] border border-[#dce5ef] space-y-4">
+            <h3 className="font-bold text-[#20334b] text-[14px] mb-3 flex items-center">
+              <span className="w-6 h-6 rounded-[5px] bg-[#edf5ff] text-[#246dce] flex items-center justify-center mr-2.5 text-xs font-bold">1</span>
+              Thông tin bệnh nhân
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
-                <input required type="text" placeholder="Nguyễn Văn A" suppressHydrationWarning value={formData.fullName} onChange={e=>{setFormData({...formData, fullName: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" />
+                <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
+                <input required type="text" placeholder="Nguyễn Văn A" suppressHydrationWarning value={formData.fullName} onChange={e=>{setFormData({...formData, fullName: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại <span className="text-red-500">*</span></label>
-                <input required type="tel" placeholder="090..." suppressHydrationWarning value={formData.phone} onChange={e=>{setFormData({...formData, phone: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" />
+                <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Số điện thoại <span className="text-red-500">*</span></label>
+                <input required type="tel" placeholder="090..." suppressHydrationWarning value={formData.phone} onChange={e=>{setFormData({...formData, phone: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày sinh</label>
-              <input type="date" suppressHydrationWarning value={formData.dateOfBirth} onChange={e=>setFormData({...formData, dateOfBirth: e.target.value})} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" />
+              <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Ngày sinh</label>
+              <input type="date" suppressHydrationWarning value={formData.dateOfBirth} onChange={e=>setFormData({...formData, dateOfBirth: e.target.value})} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs" />
             </div>
           </div>
           
-          <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-100 space-y-5">
-            <h3 className="font-semibold text-gray-800 text-lg mb-4 flex items-center">
-              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm">2</span>
-              Thông tin dịch vụ & Thời gian
+          <div className="bg-[#fbfdff] p-5 rounded-[9px] border border-[#dce5ef] space-y-4">
+            <h3 className="font-bold text-[#20334b] text-[14px] mb-3 flex items-center">
+              <span className="w-6 h-6 rounded-[5px] bg-[#edf5ff] text-[#246dce] flex items-center justify-center mr-2.5 text-xs font-bold">2</span>
+              Dịch vụ & Thời gian hẹn
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phòng khám / Dịch vụ</label>
-                <select suppressHydrationWarning value={formData.roomId} onChange={e=>{setFormData({...formData, roomId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm">
+                <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Phòng khám / Dịch vụ</label>
+                <select suppressHydrationWarning value={formData.roomId} onChange={e=>{setFormData({...formData, roomId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs">
                   <option value="">-- Chọn dịch vụ / phòng --</option>
                   {rooms.map(r => (
                     <option key={r.id} value={r.id}>{r.name}{r.department?.name ? ` · ${r.department.name}` : ''}</option>
@@ -166,8 +166,8 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Bác sĩ / Kỹ thuật viên</label>
-                <select suppressHydrationWarning value={formData.employeeId} onChange={e=>{setFormData({...formData, employeeId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm">
+                <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Bác sĩ / Kỹ thuật viên</label>
+                <select suppressHydrationWarning value={formData.employeeId} onChange={e=>{setFormData({...formData, employeeId: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs">
                   <option value="">-- Chọn bác sĩ (Tùy chọn) --</option>
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>{emp.fullName}{emp.department?.name ? ` · ${emp.department.name}` : ''}</option>
@@ -177,30 +177,30 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Thời gian hẹn <span className="text-red-500">*</span></label>
-              <input required type="datetime-local" suppressHydrationWarning min={minDateTime || undefined} value={formData.scheduledAt} onChange={e=>{setFormData({...formData, scheduledAt: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm" />
+              <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Thời gian hẹn <span className="text-red-500">*</span></label>
+              <input required type="datetime-local" suppressHydrationWarning min={minDateTime || undefined} value={formData.scheduledAt} onChange={e=>{setFormData({...formData, scheduledAt: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs" />
             </div>
 
-            <div className="flex items-center gap-2 p-3 bg-blue-50/80 border border-blue-100 rounded-xl text-blue-700 text-xs leading-relaxed">
-              <span className="text-sm">ℹ️</span>
-              <span><strong>Quy định đặt lịch:</strong> Các lịch hẹn phải cách nhau tối thiểu 30 phút theo từng Bác sĩ, Phòng khám hoặc Bệnh nhân để đảm bảo chất lượng phục vụ.</span>
+            <div className="flex items-center gap-2 p-3 bg-[#edf5ff] border border-[#dce5ef] rounded-[7px] text-[#235f9e] text-[11px] leading-relaxed">
+              <span className="font-bold">ℹ️ Quy định đặt lịch:</span>
+              <span>Các lịch hẹn cách nhau tối thiểu 30 phút theo từng Bác sĩ hoặc Phòng khám để đảm bảo chất lượng phục vụ.</span>
             </div>
           </div>
           
-          <div className="pt-4">
-            <Button type="submit" disabled={isLoading} suppressHydrationWarning className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-lg">
+          <div className="pt-2">
+            <button type="submit" disabled={isLoading} suppressHydrationWarning className="w-full bg-[#246dce] hover:bg-[#1f5cb0] text-white font-semibold py-3 rounded-[7px] shadow-2xs hover:shadow-xs transition-all flex items-center justify-center text-[13px] cursor-pointer">
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Đang xử lý...
                 </span>
               ) : (
-                'Xác Nhận Đặt Lịch'
+                'Xác Nhận Đặt Lịch Hẹn'
               )}
-            </Button>
+            </button>
           </div>
         </form>
       </section>
