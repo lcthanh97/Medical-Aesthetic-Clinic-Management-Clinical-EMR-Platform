@@ -179,7 +179,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
             Tiếp nhận bệnh nhân đến trực tiếp tại quầy và cấp số thứ tự khám (STT).
           </p>
         </div>
-        <Link href="/reception/visits">
+        <Link href="/letan/reception">
           <Button variant="secondary" size="sm">
             ← Xem bảng hàng đợi
           </Button>
@@ -297,8 +297,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
               <p className="text-[11px] text-slate-500">
                 Bệnh nhân chưa có hồ sơ?{' '}
                 <Link
-                  href="/reception/new"
-                  target="_blank"
+                  href="/letan/reception/new"
                   className="text-[#0e3a78] font-semibold underline hover:text-[#124794]"
                 >
                   Tạo hồ sơ bệnh nhân mới tại đây ↗
@@ -425,7 +424,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
 
         {/* SECTION D — ACTIONS */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/reception/visits">
+          <Link href="/letan/reception">
             <Button type="button" variant="secondary" disabled={isSubmitting}>
               Hủy bỏ
             </Button>

@@ -48,7 +48,7 @@ export function PatientSearchFilters({
         </button>
 
         <Link
-          href="/reception/new"
+          href="/letan/reception/new"
           className="h-10 px-4 rounded-[7px] bg-[#246dce] hover:bg-[#1f5cb0] text-[12px] font-semibold text-white shadow-2xs transition-colors inline-flex items-center justify-center cursor-pointer"
         >
           + Tiếp nhận bệnh nhân

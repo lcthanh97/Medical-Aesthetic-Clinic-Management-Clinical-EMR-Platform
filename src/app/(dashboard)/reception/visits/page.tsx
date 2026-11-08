@@ -1,17 +1,7 @@
-import { VisitsQueuePanel } from '@/features/reception/visits';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Hàng đợi khám bệnh | DERMACARE',
-  description: 'Theo dõi và quản lý bệnh nhân đang chờ tại các phòng khám da liễu thẩm mỹ.',
-};
+export const dynamic = 'force-dynamic';
 
-export default function ReceptionVisitsPage() {
-  return (
-    <div className="min-h-screen bg-[#f4f8fd] py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <VisitsQueuePanel />
-      </div>
-    </div>
-  );
+export default function ReceptionVisitsRedirect() {
+  redirect('/letan/reception');
 }
-

@@ -63,7 +63,7 @@ export function VisitTicketModal({ visit, isOpen, onClose, onNext }: VisitTicket
 
         {/* Actions */}
         <div className="pt-2 flex flex-col gap-2">
-          <Link href="/reception/visits" className="w-full">
+          <Link href="/letan/reception" className="w-full">
             <Button variant="primary" className="w-full">
               Xem hàng đợi phòng khám →
             </Button>

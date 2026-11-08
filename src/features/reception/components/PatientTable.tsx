@@ -85,7 +85,7 @@ export function PatientTable({
                     >
                       <td className="px-4 py-3 font-bold text-[#235f9e]">
                         <Link
-                          href={`/reception/${p.id}`}
+                          href={`/letan/reception/${p.id}`}
                           className="hover:underline flex items-center gap-1.5"
                         >
                           <span className="rounded-[5px] bg-[#edf5ff] px-2 py-0.5 text-[11px] font-semibold text-[#235f9e]">
@@ -94,7 +94,7 @@ export function PatientTable({
                         </Link>
                       </td>
                       <td className="px-4 py-3 font-semibold text-[#20334b]">
-                        <Link href={`/reception/${p.id}`} className="flex items-center gap-2">
+                        <Link href={`/letan/reception/${p.id}`} className="flex items-center gap-2">
                           <div className="h-7 w-7 rounded-full bg-[#edf5ff] text-[#246dce] flex items-center justify-center font-bold text-[11px] uppercase">
                             {p.fullName.slice(0, 1)}
                           </div>
@@ -136,12 +136,12 @@ export function PatientTable({
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1.5">
-                          <Link href={`/reception/${p.id}`}>
+                          <Link href={`/letan/reception/${p.id}`}>
                             <span className="inline-flex items-center px-2.5 py-1 rounded-[7px] text-[11px] font-semibold text-[#246dce] hover:bg-[#edf5ff] transition-colors">
                               Chi tiết
                             </span>
                           </Link>
-                          <Link href={`/reception/${p.id}/edit`}>
+                          <Link href={`/letan/reception/${p.id}/edit`}>
                             <span className="inline-flex items-center px-2.5 py-1 rounded-[7px] text-[11px] font-semibold text-[#6c7e93] hover:text-[#20334b] hover:bg-[#f8fafd] border border-[#dce5ef] transition-colors">
                               Sửa
                             </span>

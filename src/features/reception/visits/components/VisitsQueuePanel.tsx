@@ -32,12 +32,12 @@ export function VisitsQueuePanel() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/reception">
+          <Link href="/letan/reception">
             <Button variant="secondary" size="md" className="border-[#cbdff2] text-[#0e3a78]">
               Danh sách bệnh nhân
             </Button>
           </Link>
-          <Link href="/reception/visits/new">
+          <Link href="/letan/reception/visits/new">
             <Button variant="primary" size="md" className="bg-[#0e3a78] hover:bg-[#124794]">
               + Đăng ký lượt khám (Lấy STT)
             </Button>

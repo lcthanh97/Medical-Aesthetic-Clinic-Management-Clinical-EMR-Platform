@@ -56,7 +56,7 @@ export default async function LetanDashboardPage() {
           </p>
         </div>
         <Link
-          href="/letan/reception"
+          href="/letan/reception/new"
           className="inline-flex h-10 items-center gap-2 rounded-[7px] bg-[#246dce] hover:bg-[#1f5cb0] px-4 text-[12px] font-semibold text-white shadow-xs transition-colors self-start md:self-auto"
         >
           <Users size={15} /> Tiếp nhận bệnh nhân mới

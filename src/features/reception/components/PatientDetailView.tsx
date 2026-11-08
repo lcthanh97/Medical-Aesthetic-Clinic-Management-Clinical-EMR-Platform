@@ -66,12 +66,12 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <Link href="/reception">
+            <Link href="/letan/reception">
               <Button variant="secondary">
                 ← Danh sách
               </Button>
             </Link>
-            <Link href={`/reception/${patient.id}/edit`}>
+            <Link href={`/letan/reception/${patient.id}/edit`}>
               <Button variant="primary">
                 Chỉnh sửa hồ sơ
               </Button>

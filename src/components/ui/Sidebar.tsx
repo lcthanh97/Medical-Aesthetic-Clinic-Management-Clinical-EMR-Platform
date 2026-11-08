@@ -108,7 +108,7 @@ export function Sidebar() {
     </aside>
   }
 
-  if (pathname?.startsWith('/letan')) {
+  if (pathname?.startsWith('/letan') || pathname?.startsWith('/reception')) {
     const receptionistItems = [
       { href: '/letan', icon: LayoutDashboard, label: 'Tổng quan lễ tân' },
       { href: '/letan/reception', icon: Users, label: 'Tiếp đón bệnh nhân' },
@@ -147,7 +147,7 @@ export function Sidebar() {
             {receptionistItems.map((item) => {
               const active = item.href === '/letan' 
                 ? pathname === '/letan' 
-                : pathname.startsWith(item.href);
+                : pathname.startsWith(item.href) || (item.href === '/letan/reception' && pathname.startsWith('/reception'));
               return (
                 <Link
                   key={item.label}
