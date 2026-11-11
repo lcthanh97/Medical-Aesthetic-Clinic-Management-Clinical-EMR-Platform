@@ -14,7 +14,7 @@ describe('TASK: DEBUG & FIX – Billing Cash & VNPay Sandbox Comprehensive Tests
 
   beforeEach(() => {
     VNPAY_CONFIG.tmnCode = 'MPYAWF14';
-    VNPAY_CONFIG.hashSecret = 'VEGLVYOVSEMEYRLZNBOYUXVWNHAYJTXI';
+    VNPAY_CONFIG.hashSecret = 'TEST_ONLY_SECRET_NOT_REAL_0123456789';
     VNPAY_CONFIG.paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
     VNPAY_CONFIG.returnUrl = 'http://localhost:3000/api/payments/vnpay/return';
 
