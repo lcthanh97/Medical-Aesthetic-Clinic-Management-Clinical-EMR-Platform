@@ -3,6 +3,8 @@ import { Activity, ArrowRight, CalendarCheck, CircleCheck, Users } from 'lucide-
 import prisma from '@/infrastructure/database/prisma';
 import { getDoctorSession } from '@/server/auth/doctor-session';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BacSiDashboardPage(){
  const session=await getDoctorSession();
  if(!session)return null;

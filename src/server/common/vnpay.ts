@@ -8,10 +8,10 @@ export interface VNPayConfig {
 }
 
 export const VNPAY_CONFIG: VNPayConfig = {
-  tmnCode: process.env.VNPAY_TMN_CODE || '',
-  hashSecret: process.env.VNPAY_HASH_SECRET || '',
+  tmnCode: process.env.VNPAY_TMN_CODE || 'MPYAWF14',
+  hashSecret: process.env.VNPAY_HASH_SECRET || 'VEGLVYOVSEMEYRLZNBOYUXVWNHAYJTXI',
   paymentUrl: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  returnUrl: process.env.VNPAY_RETURN_URL || '',
+  returnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:3000/api/payments/vnpay/return',
 };
 
 export class VNPayService {
@@ -32,7 +32,14 @@ export class VNPayService {
     }
     const date = new Date();
     const createDate = this.formatDate(date);
+    const expireDate = this.formatDate(new Date(date.getTime() + 15 * 60 * 1000));
     const txnRef = `${params.invoiceId}_${Date.now()}`;
+
+    // Chuẩn hóa địa chỉ IP client sang định dạng IPv4 chuẩn
+    let cleanIp = params.ipAddr ? params.ipAddr.split(',')[0].trim() : '127.0.0.1';
+    if (cleanIp === '::1' || cleanIp.startsWith('::ffff:')) {
+      cleanIp = '127.0.0.1';
+    }
 
     const vnpParams: Record<string, string> = {
       vnp_Version: '2.1.0',
@@ -45,8 +52,9 @@ export class VNPayService {
       vnp_OrderType: 'other',
       vnp_Amount: String(Math.round(params.amount * 100)), // VNPay yêu cầu nhân 100
       vnp_ReturnUrl: params.returnUrl || VNPAY_CONFIG.returnUrl,
-      vnp_IpAddr: params.ipAddr || '127.0.0.1',
+      vnp_IpAddr: cleanIp,
       vnp_CreateDate: createDate,
+      vnp_ExpireDate: expireDate,
     };
 
     if (params.bankCode && params.bankCode.trim() !== '') {

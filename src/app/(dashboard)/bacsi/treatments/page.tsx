@@ -6,6 +6,8 @@ import { getPlansByVisitId } from '@/features/treatments/actions';
 import { prisma } from '@/infrastructure/database/prisma';
 import { getDoctorSession } from '@/server/auth/doctor-session';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BacSiTreatmentsPage({ searchParams }: { searchParams: Promise<{ visitId?: string }> }) {
   const session = await getDoctorSession();
   if (!session) return null;

@@ -40,15 +40,6 @@ export class PrismaBillingRepository implements IBillingRepository {
         visit: {
           include: {
             patient: true,
-            prescriptions: {
-              include: {
-                items: {
-                  include: {
-                    medicine: true,
-                  },
-                },
-              },
-            },
           },
         },
       },
@@ -118,6 +109,45 @@ export class PrismaBillingRepository implements IBillingRepository {
       ...created,
       amount: Number(created.amount),
     };
+  }
+
+  async recordPaymentAndUpdateInvoice(
+    input: CreatePaymentInput,
+    status: string
+  ): Promise<{ payment: any; invoice: any }> {
+    return prisma.$transaction(
+      async (tx) => {
+        const payment = await tx.payment.create({
+          data: {
+            invoiceId: input.invoiceId,
+            amount: input.amount,
+            method: input.method,
+            paidAt: input.paidAt,
+          },
+        });
+
+        const invoice = await tx.invoice.update({
+          where: { id: input.invoiceId },
+          data: { status },
+          include: { payments: true },
+        });
+
+        return {
+          payment: {
+            ...payment,
+            amount: Number(payment.amount),
+          },
+          invoice: {
+            ...invoice,
+            total: Number(invoice.total),
+          },
+        };
+      },
+      {
+        maxWait: 10000,
+        timeout: 15000,
+      }
+    );
   }
 
   async findPaymentsByInvoiceId(invoiceId: string): Promise<any[]> {

@@ -59,6 +59,9 @@ export class PrismaVisitsRepository implements IVisitsRepository {
         },
         queueNumber,
       };
+    }, {
+      maxWait: 10000,
+      timeout: 15000,
     });
   }
 

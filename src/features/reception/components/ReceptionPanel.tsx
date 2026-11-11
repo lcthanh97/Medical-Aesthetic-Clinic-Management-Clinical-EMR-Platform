@@ -1,8 +1,8 @@
 'use client';
 
 import { useReception } from '../hooks/useReception';
-import { PatientSummaryCards } from './PatientSummaryCards';
 import { PatientSearchFilters } from './PatientSearchFilters';
+import { PatientSummaryCards } from './PatientSummaryCards';
 import { PatientTable } from './PatientTable';
 
 export function ReceptionPanel() {
@@ -21,15 +21,15 @@ export function ReceptionPanel() {
   } = useReception();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 text-[#20334b]">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e2ebf5] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e1e9f2] pb-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0e3a78] tracking-tight">
+          <h1 className="text-[25px] font-bold text-[#20334b]">
             Tiếp nhận & Quản lý Hồ sơ bệnh nhân
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Tra cứu, tiếp nhận bệnh nhân mới, quản lý thông tin hành chính, tiền sử và dị ứng lâm sàng.
+          <p className="mt-1 text-[12px] text-[#6c7e93]">
+            Tra cứu, tiếp nhận bệnh nhân mới, quản lý thông tin hành chính, tiền sử và dị ứng lâm sàng
           </p>
         </div>
       </div>

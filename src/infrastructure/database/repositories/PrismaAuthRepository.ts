@@ -32,6 +32,9 @@ export class PrismaAuthRepository implements IAuthRepository {
       if (input.roleIds) await tx.accountRole.deleteMany({ where: { accountId: id } });
       return tx.account.update({ where: { id }, data: { email: input.email, status: input.status, passwordHash: input.passwordHash,
         roles: input.roleIds ? { create: input.roleIds.map((roleId) => ({ role: { connect: { id: roleId } } })) } : undefined }, include: accountInclude });
+    }, {
+      maxWait: 10000,
+      timeout: 15000,
     });
     return mapAccount(row);
   }

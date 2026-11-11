@@ -1,23 +1,15 @@
-import { WalkInVisitForm } from '@/features/reception/visits';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Đăng ký lượt khám tại quầy (REC-02) | DERMACARE',
-  description: 'Tiếp nhận bệnh nhân đến trực tiếp tại quầy và cấp số thứ tự khám.',
-};
+export const dynamic = 'force-dynamic';
 
 interface NewVisitPageProps {
   searchParams: Promise<{ patientId?: string }>;
 }
 
-export default async function NewVisitPage({ searchParams }: NewVisitPageProps) {
+export default async function ReceptionVisitsNewRedirect({ searchParams }: NewVisitPageProps) {
   const { patientId } = await searchParams;
-
-  return (
-    <div className="min-h-screen bg-[#f4f8fd] py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <WalkInVisitForm initialPatientId={patientId} />
-      </div>
-    </div>
-  );
+  if (patientId) {
+    redirect(`/letan/reception/visits/new?patientId=${encodeURIComponent(patientId)}`);
+  }
+  redirect('/letan/reception/visits/new');
 }
-

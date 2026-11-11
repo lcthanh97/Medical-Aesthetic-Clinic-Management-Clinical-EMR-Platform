@@ -67,7 +67,7 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/reception/visits">
+          <Link href="/letan/reception">
             <Button variant="secondary" size="sm">
               ← Quay lại hàng đợi
             </Button>
@@ -120,7 +120,7 @@ export function VisitDetailView({ visit, onRefresh }: VisitDetailViewProps) {
             <h3 className="font-bold text-[#0e3a78] text-sm flex items-center justify-between border-b border-[#e2ebf5] pb-2">
               <span>Thông tin bệnh nhân</span>
               <Link
-                href={`/reception/${visit.patientId}`}
+                href={`/letan/reception/${visit.patientId}`}
                 className="text-xs text-[#0e3a78] underline hover:text-[#124794]"
               >
                 Xem hồ sơ bệnh án ↗

@@ -39,22 +39,22 @@ export function PatientSummaryCards({ stats, isLoading }: PatientSummaryCardsPro
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className={`rounded-2xl border ${card.accent} ${card.bg} p-5 shadow-sm transition-all duration-200 hover:shadow-md`}
+          className="rounded-[9px] border border-[#dce5ef] bg-white p-4 shadow-2xs transition-all hover:border-[#246dce]"
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">{card.title}</span>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${card.badgeColor}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-medium text-[#6c7e93]">{card.title}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${card.badgeColor}`}>
               {card.badge}
             </span>
           </div>
-          <div className="text-2xl font-extrabold text-[#0e3a78] tracking-tight mb-1">
+          <div className="text-[26px] font-bold text-[#20334b] tracking-tight">
             {card.value}
           </div>
-          <div className="text-xs text-slate-500">{card.desc}</div>
+          <div className="text-[10px] text-[#8091a5] mt-1">{card.desc}</div>
         </div>
       ))}
     </div>

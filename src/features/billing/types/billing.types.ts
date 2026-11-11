@@ -79,6 +79,13 @@ export interface InvoiceDto {
   items?: InvoiceItemDetail[];
   payments?: PaymentDto[];
   isFinalInvoice?: boolean;
+  patientName?: string;
+  patientCode?: string;
+  patientPhone?: string;
+  createdAt?: string;
+  paidAt?: string;
+  paymentMethod?: string;
+  transactionId?: string;
 }
 
 export interface PaymentConfirmResponse {

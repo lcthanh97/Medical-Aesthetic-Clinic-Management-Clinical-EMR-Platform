@@ -19,6 +19,7 @@ export interface IBillingRepository {
   updateInvoiceStatus(id: string, status: string): Promise<any>;
   updateInvoiceTotal(id: string, total: number): Promise<any>;
   createPayment(input: CreatePaymentInput): Promise<any>;
+  recordPaymentAndUpdateInvoice(input: CreatePaymentInput, status: string): Promise<{ payment: any; invoice: any }>;
   findPaymentsByInvoiceId(invoiceId: string): Promise<any[]>;
   createAudit(data: { action: string; entity: string; entityId: string; accountId?: string }): Promise<void>;
   findAuditLogByActionAndEntity(actionPrefix: string, entity: string, entityId: string): Promise<any | null>;

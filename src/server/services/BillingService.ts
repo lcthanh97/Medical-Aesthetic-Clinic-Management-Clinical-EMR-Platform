@@ -24,18 +24,74 @@ export class BillingService implements IBillingService {
   async getById(id: string): Promise<InvoiceDto | null> {
     const invoice = await this.billingRepository.findInvoiceById(id);
     if (!invoice) return null;
+
+    let items: InvoiceItemDetail[] = [];
+    try {
+      const clsSnapshot = await this.billingRepository.findAuditLogByActionAndEntity(
+        'CLS_INVOICE_ITEMS_SNAPSHOT:',
+        'Invoice',
+        invoice.id
+      );
+      if (clsSnapshot) {
+        const rawJson = clsSnapshot.action.replace('CLS_INVOICE_ITEMS_SNAPSHOT:', '').trim();
+        items = JSON.parse(rawJson);
+      } else {
+        const finalSnapshot = await this.billingRepository.findAuditLogByActionAndEntity(
+          'FINAL_INVOICE_ITEMS_SNAPSHOT:',
+          'Invoice',
+          invoice.id
+        );
+        if (finalSnapshot) {
+          const rawJson = finalSnapshot.action.replace('FINAL_INVOICE_ITEMS_SNAPSHOT:', '').trim();
+          const parsed = JSON.parse(rawJson);
+          items = parsed.map((p: any) => ({
+            serviceCode: p.category || 'ITEM',
+            serviceName: p.name || 'Dịch vụ y tế',
+            price: Number(p.totalPrice ?? p.unitPrice ?? 0),
+            quantity: Number(p.quantity ?? 1),
+          }));
+        }
+      }
+    } catch {
+      // Bỏ qua lỗi parse nếu có
+    }
+
+    if (items.length === 0) {
+      items = [
+        {
+          serviceCode: 'CLINIC_SERVICE',
+          serviceName: 'Dịch vụ y tế & Viện phí lâm sàng',
+          price: invoice.total,
+          quantity: 1,
+        },
+      ];
+    }
+
+    const patient = invoice.visit?.patient;
+    const paymentsList = invoice.payments?.map((p: any) => ({
+      id: p.id,
+      invoiceId: p.invoiceId,
+      amount: p.amount,
+      method: p.method,
+      paidAt: p.paidAt instanceof Date ? p.paidAt.toISOString() : String(p.paidAt),
+    })) || [];
+
+    const latestPayment = paymentsList.length > 0 ? paymentsList[paymentsList.length - 1] : null;
+
     return {
       id: invoice.id,
       visitId: invoice.visitId,
       total: invoice.total,
       status: invoice.status,
-      payments: invoice.payments?.map((p: any) => ({
-        id: p.id,
-        invoiceId: p.invoiceId,
-        amount: p.amount,
-        method: p.method,
-        paidAt: p.paidAt instanceof Date ? p.paidAt.toISOString() : String(p.paidAt),
-      })),
+      items,
+      payments: paymentsList,
+      patientName: patient?.fullName || 'Khách hàng',
+      patientCode: patient?.patientCode || patient?.id || '',
+      patientPhone: patient?.phone || '',
+      createdAt: invoice.createdAt instanceof Date ? invoice.createdAt.toISOString() : String(invoice.createdAt || ''),
+      paidAt: latestPayment?.paidAt || (invoice.status === 'PAID' ? new Date().toISOString() : undefined),
+      paymentMethod: latestPayment?.method || (invoice.status === 'PAID' ? 'CASH' : undefined),
+      transactionId: latestPayment?.id || undefined,
     };
   }
 
@@ -236,16 +292,16 @@ export class BillingService implements IBillingService {
 
     const paidAt = new Date();
 
-    // 1. Ghi nhận giao dịch thanh toán CASH
-    const payment = await this.billingRepository.createPayment({
-      invoiceId: invoice.id,
-      amount: invoice.total,
-      method: 'CASH',
-      paidAt,
-    });
-
-    // 2. Cập nhật trạng thái hóa đơn sang PAID
-    const updatedInvoice = await this.billingRepository.updateInvoiceStatus(invoice.id, PaymentStatus.PAID);
+    // 1 & 2. Giao dịch nguyên tử: Ghi nhận thanh toán CASH và cập nhật hóa đơn sang PAID (ACID consistent)
+    const { payment, invoice: updatedInvoice } = await this.billingRepository.recordPaymentAndUpdateInvoice(
+      {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: 'CASH',
+        paidAt,
+      },
+      PaymentStatus.PAID
+    );
 
     // 3. Ghi vết kiểm toán tài chính
     await this.billingRepository.createAudit({
@@ -385,16 +441,16 @@ export class BillingService implements IBillingService {
 
     const paidAt = new Date();
 
-    // 1. Tạo bản ghi thanh toán VNPAY
-    const payment = await this.billingRepository.createPayment({
-      invoiceId: invoice.id,
-      amount: invoice.total,
-      method: 'VNPAY',
-      paidAt,
-    });
-
-    // 2. Cập nhật hóa đơn sang PAID
-    const updatedInvoice = await this.billingRepository.updateInvoiceStatus(invoice.id, PaymentStatus.PAID);
+    // 1 & 2. Giao dịch nguyên tử: Tạo bản ghi thanh toán VNPAY và cập nhật hóa đơn sang PAID (ACID consistent)
+    const { payment, invoice: updatedInvoice } = await this.billingRepository.recordPaymentAndUpdateInvoice(
+      {
+        invoiceId: invoice.id,
+        amount: invoice.total,
+        method: 'VNPAY',
+        paidAt,
+      },
+      PaymentStatus.PAID
+    );
 
     // 3. Ghi vết kiểm toán
     await this.billingRepository.createAudit({

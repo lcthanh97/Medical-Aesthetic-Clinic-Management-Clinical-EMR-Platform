@@ -2,6 +2,8 @@ import Link from 'next/link';
 import prisma from '@/infrastructure/database/prisma';
 import { getDoctorSession } from '@/server/auth/doctor-session';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DoctorQueuePage(){
  const session=await getDoctorSession();if(!session)return null;
  const visits=await prisma.visit.findMany({where:{employeeId:session.employeeId,status:{in:['WAITING','REGISTERED','IN_PROGRESS']}},include:{patient:true,room:true},orderBy:{visitDate:'asc'},take:50});

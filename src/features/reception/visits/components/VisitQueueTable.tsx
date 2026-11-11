@@ -183,7 +183,7 @@ export function VisitQueueTable({
                   Bệnh nhân đến trực tiếp tại quầy sẽ được cấp số thứ tự và xuất hiện tại đây theo thứ tự.
                 </p>
                 <div className="mt-3 flex justify-center">
-                  <Link href="/reception/visits/new">
+                  <Link href="/letan/reception/visits/new">
                     <Button variant="primary" size="sm">
                       + Đăng ký lượt khám ngay
                     </Button>
@@ -226,7 +226,7 @@ export function VisitQueueTable({
                       {/* Mã lượt khám */}
                       <td className="px-6 py-4 font-bold text-[#0e3a78]">
                         <Link
-                          href={`/reception/visits/${item.id}`}
+                          href={`/letan/reception/visits/${item.id}`}
                           className="hover:underline flex items-center gap-1"
                         >
                           {item.visitCode}
@@ -237,7 +237,7 @@ export function VisitQueueTable({
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-800 text-sm">
                           <Link
-                            href={`/reception/${item.patientId}`}
+                            href={`/letan/reception/${item.patientId}`}
                             className="hover:text-[#0e3a78] hover:underline"
                           >
                             {item.patientName}
@@ -276,7 +276,7 @@ export function VisitQueueTable({
                       {/* Thao tác */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Link href={`/reception/visits/${item.id}`}>
+                          <Link href={`/letan/reception/visits/${item.id}`}>
                             <Button size="sm" variant="ghost" className="text-xs">
                               Chi tiết
                             </Button>

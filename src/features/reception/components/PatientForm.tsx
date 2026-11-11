@@ -145,7 +145,7 @@ export function PatientForm({ initialData, isEdit = false }: PatientFormProps) {
 
         const res = await receptionApi.updatePatient(initialData.id, payload);
         if (res.success && res.data) {
-          router.push(`/reception/${initialData.id}`);
+          router.push(`/letan/reception/${initialData.id}`);
         } else {
           setFormError(res.message || 'Không thể cập nhật hồ sơ');
         }
@@ -160,7 +160,7 @@ export function PatientForm({ initialData, isEdit = false }: PatientFormProps) {
 
         const res = await receptionApi.createPatient(payload);
         if (res.success && res.data) {
-          router.push(`/reception/${res.data.id}`);
+          router.push(`/letan/reception/${res.data.id}`);
         } else {
           setFormError(res.message || 'Không thể tạo hồ sơ bệnh nhân');
         }
