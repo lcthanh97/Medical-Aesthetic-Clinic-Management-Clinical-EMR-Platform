@@ -25,8 +25,8 @@ type ExaminationVisit = {
     orderedAt: string;
     orderedBy: { fullName: string } | null;
     service: { code: string; name: string } | null;
-    labResults: Array<{ id: string; testName: string; result: string; unit: string | null }>;
-    imagingResults: Array<{ id: string; imagingType: string; conclusion: string; hasImage?: boolean }>;
+    labResults: Array<{ id: string; testName: string; result: string; unit: string | null; finding?: string | null; professionalConclusion?: string | null; hasFile?: boolean; fileMimeType?: string | null; fileName?: string | null }>;
+    imagingResults: Array<{ id: string; imagingType: string; conclusion: string; finding?: string | null; professionalConclusion?: string | null; hasFile?: boolean; hasImage?: boolean; fileMimeType?: string | null; fileName?: string | null }>;
   }>;
   prescriptions?: Array<{ id: string; status: string; items: Array<{ id: string; dosage: string; medicine: { name: string; unit: string } }> }>;
 };
@@ -60,6 +60,15 @@ const VISIT_STATUS_LABELS: Record<string, string> = {
 
 function dateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function orderStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    WAITING: 'Đang chờ', WAITING_RESULT: 'Đang chờ', CREATED: 'Đang chờ', AWAITING_PAYMENT: 'Đang chờ',
+    IN_PROGRESS: 'Đang thực hiện', READY: 'Đang thực hiện',
+    COMPLETED: 'Đã có kết quả', RESULT_READY: 'Đã có kết quả', CANCELLED: 'Đã hủy',
+  };
+  return labels[status] ?? status.replaceAll('_', ' ');
 }
 
 function age(value: string | null) {
@@ -117,8 +126,8 @@ export function DoctorExaminationPanel({ visit, visitOptions, selectedVisitId, s
     const orders = visit.orders ?? [];
     const value = query.trim().toLocaleLowerCase('vi-VN');
     return orders.filter((order) => (!orderStatus || order.status === orderStatus) && (!value || [order.id, order.type, order.status, order.service?.code, order.service?.name,
-      ...order.labResults.flatMap((result) => [result.testName, result.result]),
-      ...order.imagingResults.flatMap((result) => [result.imagingType, result.conclusion]),
+      ...order.labResults.flatMap((result) => [result.testName, result.result, result.finding, result.professionalConclusion]),
+      ...order.imagingResults.flatMap((result) => [result.imagingType, result.conclusion, result.finding, result.professionalConclusion]),
     ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(value)));
   }, [visit.orders, query, orderStatus]);
 
@@ -279,7 +288,7 @@ export function DoctorExaminationPanel({ visit, visitOptions, selectedVisitId, s
                         <p className="truncate text-sm font-semibold text-slate-800">{order.service?.name ?? order.type}</p>
                         <p className="mt-1 text-xs text-slate-500">{dateTime(order.orderedAt)}</p>
                       </div>
-                      <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-800">{order.status}</span>
+                      <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-800">{orderStatusLabel(order.status)}</span>
                     </div>
                   </li>
                 ))}
@@ -292,7 +301,7 @@ export function DoctorExaminationPanel({ visit, visitOptions, selectedVisitId, s
       </section>}
 
       {activeTab === 'orders' && <ClinicalOrders orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} canWrite={canManageClinicalOrders && (effectiveCanWrite || locallyStarted)} visitId={visit.id} storageConfigured={clinicalImageStorageConfigured} />}
-      {activeTab === 'results' && <ClinicalResults orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} />}
+      {activeTab === 'results' && <ClinicalResultsEditor orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} canWrite={canManageClinicalOrders && effectiveCanWrite} visitId={visit.id} storageConfigured={clinicalImageStorageConfigured} />}
       {activeTab === 'prescriptions' && <section className="rounded-xl border border-[#e1e9f2] bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[#20334b]">Đơn thuốc của lượt khám</h2>
         {!canReadPrescriptions ? <p className="mt-3 text-sm text-slate-600">Tài khoản hiện tại không có quyền xem đơn thuốc.</p> : (visit.prescriptions ?? []).length === 0 ? <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">Chưa có đơn thuốc được lưu cho lượt khám này.</p> : <div className="mt-4 space-y-3">{visit.prescriptions?.map((prescription) => <article key={prescription.id} className="rounded-lg border border-slate-200 p-4"><p className="font-semibold">{prescription.id} · {prescription.status}</p><ul className="mt-2 space-y-1 text-sm text-slate-600">{prescription.items.map((item) => <li key={item.id}>{item.medicine.name} ({item.medicine.unit}) · {item.dosage}</li>)}</ul></article>)}</div>}
@@ -315,7 +324,7 @@ function ClinicalOrders({ orders, query, onQuery, status, onStatus, statuses, ca
 }) {
   const router = useRouter();
   const [orderForm, setOrderForm] = useState<{ orderId?: string; category: 'LAB' | 'IMAGING'; title: string } | null>(null);
-  const [resultForm, setResultForm] = useState<{ orderId: string; resultId?: string; category: 'LAB' | 'IMAGING'; label: string; result: string; unit: string } | null>(null);
+  const [resultForm, setResultForm] = useState<{ orderId: string; resultId?: string; category: 'LAB' | 'IMAGING'; label: string; result: string; unit: string; finding: string; professionalConclusion: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploadingId, setUploadingId] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -372,23 +381,97 @@ function ClinicalOrders({ orders, query, onQuery, status, onStatus, statuses, ca
         <label className="text-sm font-medium text-slate-700">{resultForm.category === 'LAB' ? 'Tên xét nghiệm' : 'Loại hình ảnh'}<input required maxLength={180} value={resultForm.label} onChange={(event) => setResultForm({ ...resultForm, label: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
         {resultForm.category === 'LAB' && <label className="text-sm font-medium text-slate-700">Đơn vị<input maxLength={80} value={resultForm.unit} onChange={(event) => setResultForm({ ...resultForm, unit: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>}
       </div>
-      <label className="block text-sm font-medium text-slate-700">{resultForm.category === 'LAB' ? 'Kết quả' : 'Kết luận'}<textarea required rows={3} maxLength={10000} value={resultForm.result} onChange={(event) => setResultForm({ ...resultForm, result: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">{resultForm.category === 'LAB' ? 'Giá trị đo' : 'Kết quả máy đo'}<textarea rows={2} maxLength={10000} value={resultForm.result} onChange={(event) => setResultForm({ ...resultForm, result: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">Phát hiện hoặc nhận xét<textarea rows={3} maxLength={10000} value={resultForm.finding} onChange={(event) => setResultForm({ ...resultForm, finding: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">Kết luận chuyên môn<textarea rows={3} maxLength={10000} value={resultForm.professionalConclusion} onChange={(event) => setResultForm({ ...resultForm, professionalConclusion: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
       <div className="flex justify-end gap-2"><button type="button" onClick={() => setResultForm(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Hủy</button><button disabled={busy} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Đang lưu…' : 'Lưu kết quả'}</button></div>
     </form>}
     <div className="mt-4"><OrderSearch query={query} onQuery={onQuery} /></div>
-    <div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
+    <div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{orderStatusLabel(value)}</option>)}</select></div>
     {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc chỉ định cận lâm sàng của Visit này.</p> : orders.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Chưa có chỉ định trong Visit này.</p> : <div className="mt-4 space-y-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{titleOf(order)}</h3><p className="mt-1 text-xs text-slate-500">{categoryOf(order) === 'LAB' ? 'Xét nghiệm' : 'Chẩn đoán hình ảnh'} · {order.id} · {dateTime(order.orderedAt)} · Bác sĩ: {order.orderedBy?.fullName ?? '—'}</p></div><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{order.status}</span></div>
-      {canWrite && <div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setOrderForm({ orderId: order.id, category: categoryOf(order), title: titleOf(order) })} className="text-sm font-semibold text-blue-700 hover:underline">Sửa chỉ định</button><button type="button" onClick={() => setResultForm({ orderId: order.id, category: categoryOf(order), label: '', result: '', unit: '' })} className="text-sm font-semibold text-blue-700 hover:underline">+ Ghi kết quả</button></div>}
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{titleOf(order)}</h3><p className="mt-1 text-xs text-slate-500">{categoryOf(order) === 'LAB' ? 'Xét nghiệm' : 'Chẩn đoán hình ảnh'} · {order.id} · {dateTime(order.orderedAt)} · Bác sĩ: {order.orderedBy?.fullName ?? '—'}</p></div><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{orderStatusLabel(order.status)}</span></div>
+      {canWrite && <div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setOrderForm({ orderId: order.id, category: categoryOf(order), title: titleOf(order) })} className="text-sm font-semibold text-blue-700 hover:underline">Sửa chỉ định</button><button type="button" onClick={() => { const category = categoryOf(order); const existing = category === 'LAB' ? order.labResults[0] : order.imagingResults[0]; setResultForm({ orderId: order.id, ...(existing ? { resultId: existing.id } : {}), category, label: category === 'LAB' ? (order.labResults[0]?.testName ?? titleOf(order)) : (order.imagingResults[0]?.imagingType ?? titleOf(order)), result: category === 'LAB' ? (order.labResults[0]?.result ?? '') : '', unit: category === 'LAB' ? (order.labResults[0]?.unit ?? '') : '', finding: existing?.finding ?? '', professionalConclusion: existing?.professionalConclusion ?? (category === 'IMAGING' ? order.imagingResults[0]?.conclusion ?? '' : '') }); }} className="text-sm font-semibold text-blue-700 hover:underline">Nhập kết quả</button></div>}
       <div className="mt-3 space-y-2">
-        {order.labResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex justify-between gap-2"><p><strong>{result.testName}:</strong> {result.result}{result.unit ? ` ${result.unit}` : ''}</p>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'LAB', label: result.testName, result: result.result, unit: result.unit ?? '' })} className="shrink-0 text-xs font-semibold text-blue-700">Sửa kết quả</button>}</div></div>)}
-        {order.imagingResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex items-start justify-between gap-2"><p><strong>{result.imagingType}:</strong> {result.conclusion}</p>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'IMAGING', label: result.imagingType, result: result.conclusion, unit: '' })} className="shrink-0 text-xs font-semibold text-blue-700">Sửa kết quả</button>}</div>
-          {result.hasImage && <img src={`/api/bacsi/clinical-results/${encodeURIComponent(result.id)}/image`} alt={`Ảnh kết quả ${result.imagingType}`} className="mt-3 max-h-80 rounded-lg border border-slate-200 bg-white object-contain" />}
-          {canWrite && <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{uploadingId === result.id ? 'Đang tải ảnh…' : result.hasImage ? 'Thay ảnh kết quả' : 'Tải ảnh kết quả'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!storageConfigured || uploadingId === result.id} onChange={(event) => { void uploadResultImage(result.id, event.target.files?.[0]); event.currentTarget.value = ''; }} className="sr-only" /></label>}
+        {order.labResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex justify-between gap-2"><div><p><strong>{result.testName}:</strong> {result.result || 'Chưa nhập giá trị đo'}{result.unit ? ` ${result.unit}` : ''}</p>{result.finding && <p className="mt-1 whitespace-pre-wrap text-slate-600">Phát hiện: {result.finding}</p>}{result.professionalConclusion && <p className="mt-1 whitespace-pre-wrap text-slate-700">Kết luận chuyên môn: {result.professionalConclusion}</p>}</div>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'LAB', label: result.testName, result: result.result, unit: result.unit ?? '', finding: result.finding ?? '', professionalConclusion: result.professionalConclusion ?? '' })} className="shrink-0 text-xs font-semibold text-blue-700">Nhập / sửa kết quả</button>}</div>{result.hasFile && <ResultFilePreview resultId={result.id} fileName={result.fileName} mimeType={result.fileMimeType} title={result.testName} />}{canWrite && <ResultFileUpload resultId={result.id} fileName={result.fileName} disabled={!storageConfigured} onUpload={uploadResultImage} uploading={uploadingId === result.id} />}</div>)}
+        {order.imagingResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex items-start justify-between gap-2"><div><p><strong>{result.imagingType}:</strong> {result.finding || 'Chưa nhập phát hiện'} </p>{result.professionalConclusion && <p className="mt-1 whitespace-pre-wrap text-slate-700">Kết luận chuyên môn: {result.professionalConclusion}</p>}</div>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'IMAGING', label: result.imagingType, result: '', unit: '', finding: result.finding ?? '', professionalConclusion: result.professionalConclusion ?? result.conclusion ?? '' })} className="shrink-0 text-xs font-semibold text-blue-700">Nhập / sửa kết quả</button>}</div>
+          {(result.hasFile || result.hasImage) && <ResultFilePreview resultId={result.id} fileName={result.fileName} mimeType={result.fileMimeType} title={result.imagingType} />}
+          {canWrite && <ResultFileUpload resultId={result.id} fileName={result.fileName} disabled={!storageConfigured} onUpload={uploadResultImage} uploading={uploadingId === result.id} />}
         </div>)}
       </div>
     </article>)}</div>}
     {canWrite && !storageConfigured && <p className="mt-3 text-xs text-amber-800">Kho ảnh riêng tư chưa được cấu hình; bác sĩ vẫn có thể tạo chỉ định và ghi kết quả chữ.</p>}
+  </section>;
+}
+
+function ResultFilePreview({ resultId, fileName, mimeType, title }: { resultId: string; fileName?: string | null; mimeType?: string | null; title: string }) {
+  const href = `/api/bacsi/clinical-results/${encodeURIComponent(resultId)}/image`;
+  return <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+    <p className="mb-2 text-xs font-semibold text-slate-600">Tệp kết quả: {fileName || 'Tệp đính kèm'}</p>
+    {mimeType === 'application/pdf' ? <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">Mở file kết quả PDF</a> : <img src={href} alt={`Ảnh kết quả ${title}`} className="max-h-80 rounded border border-slate-200 object-contain" />}
+  </div>;
+}
+
+function ResultFileUpload({ resultId, fileName, disabled, onUpload, uploading }: { resultId: string; fileName?: string | null; disabled: boolean; onUpload: (resultId: string, file?: File) => Promise<void>; uploading: boolean }) {
+  return <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{uploading ? 'Đang tải tệp…' : fileName ? 'Thay tệp kết quả' : 'Tải ảnh / file kết quả'}<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={disabled || uploading} onChange={(event) => { void onUpload(resultId, event.target.files?.[0]); event.currentTarget.value = ''; }} className="sr-only" /></label>;
+}
+
+function ClinicalResultsEditor({ orders, query, onQuery, status, onStatus, statuses, canRead, canWrite, visitId, storageConfigured }: { orders: Order[]; query: string; onQuery: (value: string) => void; status: string; onStatus: (value: string) => void; statuses: string[]; canRead: boolean; canWrite: boolean; visitId: string; storageConfigured: boolean }) {
+  const router = useRouter();
+  const [form, setForm] = useState<{ orderId: string; resultId?: string; category: 'LAB' | 'IMAGING'; label: string; result: string; unit: string; finding: string; professionalConclusion: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploadingId, setUploadingId] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const rows = orders.flatMap((order) => [
+    ...order.labResults.map((result) => ({ id: result.id, order, category: 'LAB' as const, label: result.testName, value: result.result, unit: result.unit ?? '', finding: result.finding ?? '', conclusion: result.professionalConclusion ?? '', hasFile: result.hasFile ?? false, fileMimeType: result.fileMimeType, fileName: result.fileName })),
+    ...order.imagingResults.map((result) => ({ id: result.id, order, category: 'IMAGING' as const, label: result.imagingType, value: '', unit: '', finding: result.finding ?? '', conclusion: result.professionalConclusion ?? result.conclusion ?? '', hasFile: result.hasFile ?? false, fileMimeType: result.fileMimeType, fileName: result.fileName })),
+  ]);
+
+  const save = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form || busy) return;
+    setBusy(true); setFeedback('');
+    const result = await saveDoctorClinicalResult({ orderId: form.orderId, ...(form.resultId ? { resultId: form.resultId } : {}), label: form.label, result: form.result, unit: form.unit, finding: form.finding, professionalConclusion: form.professionalConclusion });
+    setBusy(false);
+    if (!result.success) { setFeedback(result.error); return; }
+    setForm(null); router.refresh();
+  };
+
+  const upload = async (resultId: string, file?: File) => {
+    if (!file) return;
+    setUploadingId(resultId); setFeedback('');
+    try {
+      const body = new FormData(); body.set('file', file);
+      const response = await fetch(`/api/bacsi/clinical-results/${encodeURIComponent(resultId)}/image`, { method: 'POST', body, credentials: 'same-origin' });
+      const result = await response.json() as { success?: boolean; error?: string };
+      if (!response.ok || !result.success) { setFeedback(result.error ?? 'Không tải được tệp kết quả.'); return; }
+      router.refresh();
+    } catch { setFeedback('Không tải được tệp kết quả. Hãy thử lại.'); }
+    finally { setUploadingId(''); }
+  };
+
+  return <section className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5">
+    <div><h2 className="text-lg font-bold text-[#20334b]">Kết quả cận lâm sàng</h2><p className="mt-1 text-sm text-slate-500">Nhập kết quả máy đo, nhận xét, kết luận chuyên môn và đính kèm ảnh hoặc file cho từng chỉ định.</p></div>
+    <div className="mt-4"><OrderSearch query={query} onQuery={onQuery} /></div>
+    <div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{orderStatusLabel(value)}</option>)}</select></div>
+    {feedback && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{feedback}</p>}
+    {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc kết quả cận lâm sàng của Visit này.</p> : orders.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Chưa có chỉ định phù hợp.</p> : <div className="mt-4 space-y-4">{orders.map((order) => <article key={order.id} className="rounded-xl border border-slate-200 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{order.type.includes(':') ? order.type.slice(order.type.indexOf(':') + 1) : order.service?.name ?? order.type}</h3><p className="mt-1 text-xs text-slate-500">{dateTime(order.orderedAt)} · Bác sĩ chỉ định: {order.orderedBy?.fullName ?? '—'}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-800'}`}>{orderStatusLabel(order.status)}</span></div>
+      <div className="mt-3 space-y-3">{rows.filter((row) => row.order.id === order.id).map((row) => <div key={row.id} className="rounded-lg bg-slate-50 p-3">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-slate-800">{row.category === 'LAB' ? `Xét nghiệm · ${row.label}` : `Hình ảnh · ${row.label}`}</p>{row.category === 'LAB' && <p className="mt-1 text-sm text-slate-700">Giá trị đo: {row.value || 'Chưa có'}{row.unit ? ` ${row.unit}` : ''}</p>}{row.finding && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">Phát hiện / nhận xét: {row.finding}</p>}{row.conclusion && <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-800">Kết luận chuyên môn: {row.conclusion}</p>}</div>{canWrite && <button type="button" onClick={() => setForm({ orderId: order.id, resultId: row.id, category: row.category, label: row.label, result: row.value, unit: row.unit, finding: row.finding, professionalConclusion: row.conclusion })} className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700">Nhập / sửa kết quả</button>}</div>
+        {row.hasFile && <ResultFilePreview resultId={row.id} fileName={row.fileName} mimeType={row.fileMimeType} title={row.label} />}
+        {canWrite && <ResultFileUpload resultId={row.id} fileName={row.fileName} disabled={!storageConfigured} onUpload={upload} uploading={uploadingId === row.id} />}
+      </div>)}</div>
+      {canWrite && order.labResults.length + order.imagingResults.length === 0 && <button type="button" onClick={() => { const category = order.type.startsWith('IMAGING:') ? 'IMAGING' : 'LAB'; setForm({ orderId: order.id, category, label: order.type.includes(':') ? order.type.slice(order.type.indexOf(':') + 1) : order.service?.name ?? '', result: '', unit: '', finding: '', professionalConclusion: '' }); }} className="mt-3 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700">Tạo dòng nhập kết quả</button>}
+    </article>)}</div>}
+    {form && <form onSubmit={(event) => void save(event)} className="mt-4 space-y-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+      <h3 className="font-semibold text-slate-900">Nhập kết quả · {form.category === 'LAB' ? 'Xét nghiệm' : 'Hình ảnh'}</h3>
+      <label className="block text-sm font-medium text-slate-700">{form.category === 'LAB' ? 'Chỉ số / tên xét nghiệm' : 'Loại hình ảnh'}<input required maxLength={180} value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      {form.category === 'LAB' && <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px]"><label className="text-sm font-medium text-slate-700">Giá trị đo<input maxLength={10000} value={form.result} onChange={(event) => setForm({ ...form, result: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label><label className="text-sm font-medium text-slate-700">Đơn vị<input maxLength={80} value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label></div>}
+      {form.category === 'IMAGING' && <label className="block text-sm font-medium text-slate-700">Kết quả máy đo<textarea rows={2} maxLength={10000} value={form.result} onChange={(event) => setForm({ ...form, result: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>}
+      <label className="block text-sm font-medium text-slate-700">Phát hiện hoặc nhận xét<textarea rows={3} maxLength={10000} value={form.finding} onChange={(event) => setForm({ ...form, finding: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">Kết luận chuyên môn<textarea rows={3} maxLength={10000} value={form.professionalConclusion} onChange={(event) => setForm({ ...form, professionalConclusion: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <div className="flex justify-end gap-2"><button type="button" onClick={() => setForm(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Hủy</button><button disabled={busy} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Đang lưu…' : 'Lưu kết quả và kết luận'}</button></div>
+    </form>}
   </section>;
 }
 

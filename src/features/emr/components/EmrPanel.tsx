@@ -45,6 +45,7 @@ interface EmrPanelProps {
   initialSelectedPatient?: any;
   canWrite?: boolean;
   canReadImages?: boolean;
+  canReadClinicalOrders?: boolean;
   canReadPrescriptions?: boolean;
   canReadTreatmentPlans?: boolean;
   imagesOnly?: boolean;
@@ -55,7 +56,7 @@ interface EmrPanelProps {
 
 export function EmrPanel({
   initialPatients = [], initialSelectedPatient, canWrite = false,
-    canReadImages = false, canReadPrescriptions = false, canReadTreatmentPlans = false,
+    canReadImages = false, canReadClinicalOrders = false, canReadPrescriptions = false, canReadTreatmentPlans = false,
     imagesOnly = false, initialActiveTab = 'records', initialTreatmentImages = [], initialTreatmentImageError = '',
 }: EmrPanelProps) {
   const [patients, setPatients] = useState<any[]>(initialPatients);
@@ -65,6 +66,7 @@ export function EmrPanel({
   const [selectedPatient, setSelectedPatient] = useState<any>(
     initialSelectedPatient || (initialPatients.length > 0 ? initialPatients[0] : null)
   );
+  const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailLoadError, setDetailLoadError] = useState(false);
   const detailRequestId = useRef(0);
@@ -111,6 +113,7 @@ export function EmrPanel({
   // Chọn bệnh nhân khác
   const handleSelectPatient = async (patientId: string) => {
     const requestId = ++detailRequestId.current;
+    setExpandedVisitId(null);
     setSelectedPatientId(patientId);
     setSelectedPatient(null);
     setTreatmentImages([]);
@@ -633,6 +636,14 @@ export function EmrPanel({
                                         <Edit3 size={13} /> Sửa bệnh án
                                       </button>
                                     )}
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedVisitId((current) => current === v.id ? null : v.id)}
+                                      aria-expanded={expandedVisitId === v.id}
+                                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                                    >
+                                      <FileText size={13} /> {expandedVisitId === v.id ? 'Ẩn chi tiết' : 'Xem chi tiết'}
+                                    </button>
                                   </div>
                                 </div>
 
@@ -663,6 +674,79 @@ export function EmrPanel({
                                     <span className="font-bold text-amber-900 block mb-0.5">Lời dặn & Diễn tiến lâm sàng:</span>
                                     <p className="text-slate-700 whitespace-pre-line">{mr.notes}</p>
                                   </div>
+                                )}
+
+                                {expandedVisitId === v.id && (
+                                  <section className="mt-4 space-y-4 border-t border-slate-200 pt-4" aria-label="Chi tiết lượt khám chỉ đọc">
+                                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                                      <div className="rounded-lg bg-slate-50 p-3">
+                                        <p className="text-xs text-slate-500">Bác sĩ phụ trách</p>
+                                        <p className="mt-1 font-semibold text-slate-800">{v.employee?.fullName || 'Chưa ghi nhận'}</p>
+                                      </div>
+                                      <div className="rounded-lg bg-slate-50 p-3">
+                                        <p className="text-xs text-slate-500">Phòng / khoa</p>
+                                        <p className="mt-1 font-semibold text-slate-800">{v.room?.name || 'Chưa ghi nhận'}{v.room?.department?.name ? ` · ${v.room.department.name}` : ''}</p>
+                                      </div>
+                                      <div className="rounded-lg bg-slate-50 p-3">
+                                        <p className="text-xs text-slate-500">Mã lượt khám</p>
+                                        <p className="mt-1 break-all font-semibold text-slate-800">{v.id}</p>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                      <div className="rounded-xl border border-slate-200 p-4">
+                                        <h4 className="mb-3 text-sm font-bold text-slate-900">Đơn thuốc trong lượt khám</h4>
+                                        {!canReadPrescriptions ? (
+                                          <p className="text-sm text-slate-500">Tài khoản hiện tại không có quyền xem đơn thuốc.</p>
+                                        ) : !v.prescriptions?.length ? (
+                                          <p className="text-sm text-slate-500">Không có đơn thuốc được phép hiển thị.</p>
+                                        ) : (
+                                          <div className="space-y-3">
+                                            {v.prescriptions.map((prescription: any) => (
+                                              <div key={prescription.id} className="rounded-lg bg-slate-50 p-3">
+                                                <p className="text-xs font-semibold text-slate-600">Trạng thái: {prescription.status || 'Chưa ghi nhận'}</p>
+                                                {prescription.items?.length ? (
+                                                  <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+                                                    {prescription.items.map((item: any) => (
+                                                      <li key={item.id}>
+                                                        <span className="font-medium">{item.medicine?.name || 'Thuốc'}</span>
+                                                        {item.quantity != null && <span> · SL {item.quantity}{item.medicine?.unit ? ` ${item.medicine.unit}` : ''}</span>}
+                                                        {item.dosage && <span> · {item.dosage}</span>}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                ) : <p className="mt-2 text-sm text-slate-500">Đơn chưa có thuốc.</p>}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="rounded-xl border border-slate-200 p-4">
+                                        <h4 className="mb-3 text-sm font-bold text-slate-900">Chỉ định và kết quả cận lâm sàng</h4>
+                                        {!canReadClinicalOrders ? (
+                                          <p className="text-sm text-slate-500">Tài khoản hiện tại không có quyền xem chỉ định và kết quả.</p>
+                                        ) : !v.orders?.length ? (
+                                          <p className="text-sm text-slate-500">Không có chỉ định được phép hiển thị.</p>
+                                        ) : (
+                                          <div className="space-y-3">
+                                            {v.orders.map((order: any) => (
+                                              <article key={order.id} className="rounded-lg bg-slate-50 p-3">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                  <p className="font-semibold text-slate-800">{order.service?.name || order.type || 'Chỉ định'}</p>
+                                                  <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">{order.status || 'Chưa ghi nhận'}</span>
+                                                </div>
+                                                <p className="mt-1 text-xs text-slate-500">{order.orderedAt ? new Date(order.orderedAt).toLocaleString('vi-VN') : ''}{order.orderedBy?.fullName ? ` · ${order.orderedBy.fullName}` : ''}</p>
+                                                {!!order.labResults?.length && <ul className="mt-2 space-y-1 text-sm text-slate-700">{order.labResults.map((result: any) => <li key={result.id}><span className="font-medium">{result.testName}</span>: {result.result || 'Chưa có kết quả'}{result.unit ? ` ${result.unit}` : ''}</li>)}</ul>}
+                                                {!!order.imagingResults?.length && <ul className="mt-2 space-y-1 text-sm text-slate-700">{order.imagingResults.map((result: any) => <li key={result.id}><span className="font-medium">{result.imagingType}</span>: {result.conclusion || 'Chưa có kết luận'}</li>)}</ul>}
+                                              </article>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">Đây là hồ sơ lịch sử ở chế độ chỉ đọc. Mọi nội dung của lượt khám đã lưu được giữ nguyên.</p>
+                                  </section>
                                 )}
 
                               </div>

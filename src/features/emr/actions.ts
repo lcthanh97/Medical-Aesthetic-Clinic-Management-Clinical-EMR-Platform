@@ -72,7 +72,17 @@ export async function getPatientFullEMR(patientId: string) {
       clinicalOrders: authorization.hasRolePermission(actor, 'IMAGE_READ'),
     });
     if (!data) return denied();
-    return { success: true as const, data: JSON.parse(JSON.stringify(data)) };
+    const safeData = JSON.parse(JSON.stringify(data));
+    for (const visit of safeData.visits ?? []) {
+      for (const order of visit.orders ?? []) {
+        for (const result of [...(order.labResults ?? []), ...(order.imagingResults ?? [])]) {
+          result.hasFile = Boolean(result.fileUrl);
+          result.fileMimeType ??= result.fileUrl?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null;
+          delete result.fileUrl;
+        }
+      }
+    }
+    return { success: true as const, data: safeData };
   } catch {
     return denied();
   }
@@ -92,7 +102,7 @@ export async function getAssignedVisitExamination(visitId: string) {
     }, {
       prescriptions: hasRoleRead(PRESCRIPTION_READ),
       treatmentPlans: false,
-      clinicalOrders: hasRoleRead('EMR_READ'),
+      clinicalOrders: hasRoleRead('IMAGE_READ'),
     }, authorization.allowedRoleNames('EMR_READ'));
     if (!data) return denied();
     const hasWritePermission = authorization.hasPermission(actor, 'EMR_WRITE');
@@ -101,8 +111,9 @@ export async function getAssignedVisitExamination(visitId: string) {
     const canStartVisit = hasWritePermission && data.employeeId === actor.employeeId && ['WAITING', 'CHECKED_IN'].includes(data.status);
     const safeData = JSON.parse(JSON.stringify(data));
     for (const order of safeData.orders ?? []) {
-      for (const result of order.imagingResults ?? []) {
-        result.hasImage = Boolean(result.fileUrl);
+      for (const result of [...(order.labResults ?? []), ...(order.imagingResults ?? [])]) {
+        result.hasFile = Boolean(result.fileUrl);
+        result.fileMimeType ??= result.fileUrl?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : null;
         delete result.fileUrl;
       }
     }
@@ -117,7 +128,7 @@ export async function getAssignedVisitExamination(visitId: string) {
         : data.status === 'COMPLETED'
           ? 'Visit đã hoàn tất; bệnh án chỉ được xem.'
           : 'Chỉ Visit đang khám mới cho phép sửa chẩn đoán và ghi chú.',
-      canReadClinicalOrders: hasRoleRead('EMR_READ'),
+      canReadClinicalOrders: hasRoleRead('IMAGE_READ'),
       canManageClinicalOrders: hasWritePermission,
       canReadPrescriptions: hasRoleRead(PRESCRIPTION_READ),
     };

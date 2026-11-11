@@ -58,6 +58,7 @@ export default async function BacSiEmrPage({
         initialSelectedPatient={JSON.parse(JSON.stringify(selectedPatient))}
         canWrite={patientsResult.canWrite}
         canReadImages={patientsResult.canReadImages}
+        canReadClinicalOrders={patientsResult.canReadImages}
         canReadPrescriptions={patientsResult.canReadPrescriptions}
         canReadTreatmentPlans={patientsResult.canReadTreatmentPlans}
       />

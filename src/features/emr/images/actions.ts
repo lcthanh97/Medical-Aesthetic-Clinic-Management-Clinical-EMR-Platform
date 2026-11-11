@@ -138,17 +138,6 @@ export async function getTreatmentImageUploadOptions(patientId: string) {
   });
   if (!visits.length) return { success: false as const, code: 'FORBIDDEN_SCOPE' as const, message: imageFailure('FORBIDDEN_SCOPE'), trace: [...access.trace, 'inScope:FAIL'] };
 
-  const templateName = process.env.EMR_IMAGE_CONSENT_TEMPLATE_NAME || 'Đồng ý lưu ảnh lâm sàng';
-  const consents = await prisma.signedConsent.findMany({
-    where: {
-      visitId: { in: visits.map((visit) => visit.id) },
-      template: { is: { name: templateName, version: 1 } },
-      OR: [{ treatmentPlanId: null }, { treatmentPlanId: { in: visits.flatMap((visit) => visit.treatmentPlans.map((plan) => plan.id)) } }],
-    },
-    select: { visitId: true, treatmentPlanId: true, signedAt: true, audits: { select: { action: true, createdAt: true } } },
-  });
-  const consentPairs = consents.filter((consent) => !consent.audits.some((audit) => audit.action === 'REVOKED' && audit.createdAt >= consent.signedAt))
-    .map(({ visitId, treatmentPlanId }) => `${visitId}:${treatmentPlanId ?? '*'}`);
   return {
     success: true as const,
     data: visits.map(({ treatmentPlans, ...visit }) => ({
@@ -156,7 +145,6 @@ export async function getTreatmentImageUploadOptions(patientId: string) {
       plans: treatmentPlans.map(({ stages, ...plan }) => ({
         ...plan,
         sessions: stages.flatMap((stage) => stage.sessions).filter((session) => session.visitId === visit.id).map(({ visitId: _visitId, ...session }) => session),
-        hasImageConsent: consentPairs.includes(`${visit.id}:${plan.id}`) || consentPairs.includes(`${visit.id}:*`),
       })),
     })),
     trace: [...access.trace, 'inScope:OK', 'listUploadOptions:OK'],

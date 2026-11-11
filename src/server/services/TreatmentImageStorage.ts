@@ -3,6 +3,7 @@ import sharp from 'sharp';
 
 export const MAX_TREATMENT_IMAGE_BYTES = 10 * 1024 * 1024;
 export type ClinicalImageMime = 'image/jpeg' | 'image/png' | 'image/webp';
+export type ClinicalResultMime = ClinicalImageMime | 'application/pdf';
 
 type ImageStorageConfig = { client: S3Client; bucket: string };
 
@@ -50,6 +51,11 @@ export function detectClinicalImageMime(bytes: Buffer): ClinicalImageMime | null
   return null;
 }
 
+export function detectClinicalResultMime(bytes: Buffer): ClinicalResultMime | null {
+  if (bytes.subarray(0, 5).toString('ascii') === '%PDF-') return 'application/pdf';
+  return detectClinicalImageMime(bytes);
+}
+
 export async function normalizeClinicalImage(input: Buffer, mimeType: ClinicalImageMime): Promise<Buffer> {
   let image = sharp(input, { limitInputPixels: 50_000_000, failOn: 'error' }).rotate();
   if (mimeType === 'image/jpeg') image = image.jpeg({ quality: 94, mozjpeg: true });
@@ -58,7 +64,7 @@ export async function normalizeClinicalImage(input: Buffer, mimeType: ClinicalIm
   return image.toBuffer();
 }
 
-export async function putPrivateTreatmentImage(key: string, body: Buffer, mimeType: ClinicalImageMime): Promise<void> {
+export async function putPrivateTreatmentImage(key: string, body: Buffer, mimeType: ClinicalResultMime): Promise<void> {
   const config = getStorageConfig();
   if (!config) throw new Error('IMAGE_STORAGE_NOT_CONFIGURED');
   await config.client.send(new PutObjectCommand({

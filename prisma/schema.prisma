@@ -257,6 +257,11 @@ model LabResult {
   testName String
   result   String
   unit     String?
+  finding               String?
+  professionalConclusion String?
+  fileUrl               String?
+  fileMimeType          String?
+  fileName              String?
   order    ClinicalOrder @relation(fields: [orderId], references: [id])
 }
 
@@ -266,6 +271,10 @@ model ImagingResult {
   imagingType String
   conclusion  String
   fileUrl     String?
+  finding               String?
+  professionalConclusion String?
+  fileMimeType          String?
+  fileName              String?
   order       ClinicalOrder @relation(fields: [orderId], references: [id])
 }
 

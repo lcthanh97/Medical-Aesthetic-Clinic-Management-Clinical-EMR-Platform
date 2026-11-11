@@ -68,7 +68,12 @@ export async function saveDoctorClinicalOrder(input: { visitId: string; orderId?
         await tx.auditLog.create({ data: { accountId: actor.accountId, action: 'CLINICAL_ORDER_UPDATED', entity: 'ClinicalOrder', entityId: orderId } });
         return orderId;
       }
-      const order = await tx.clinicalOrder.create({ data: { visitId, orderedById: actor.employeeId, type, status: 'IN_PROGRESS' }, select: { id: true } });
+      const order = await tx.clinicalOrder.create({ data: { visitId, orderedById: actor.employeeId, type, status: 'CREATED' }, select: { id: true } });
+      if (input.category === 'IMAGING') {
+        await tx.imagingResult.create({ data: { orderId: order.id, imagingType: title, conclusion: '' } });
+      } else {
+        await tx.labResult.create({ data: { orderId: order.id, testName: title, result: '' } });
+      }
       await tx.auditLog.create({ data: { accountId: actor.accountId, action: 'CLINICAL_ORDER_CREATED', entity: 'ClinicalOrder', entityId: order.id } });
       return order.id;
     }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
@@ -79,7 +84,7 @@ export async function saveDoctorClinicalOrder(input: { visitId: string; orderId?
   }
 }
 
-export async function saveDoctorClinicalResult(input: { orderId: string; resultId?: string; label: string; result: string; unit?: string }) {
+export async function saveDoctorClinicalResult(input: { orderId: string; resultId?: string; label: string; result: string; unit?: string; finding?: string; professionalConclusion?: string }) {
   const actor = await actorForWrite();
   if (!actor) return { success: false as const, error: 'Tài khoản chưa có quyền ghi kết quả hoặc phiên làm việc không hợp lệ.' };
   const orderId = clean(input?.orderId, 100);
@@ -87,7 +92,9 @@ export async function saveDoctorClinicalResult(input: { orderId: string; resultI
   const label = clean(input?.label, 180);
   const result = clean(input?.result, 10_000);
   const unit = clean(input?.unit, 80) || null;
-  if (!orderId || !label || !result) return { success: false as const, error: 'Vui lòng nhập tên xét nghiệm/loại hình ảnh và kết quả.' };
+  const finding = clean(input?.finding, 10_000) || null;
+  const professionalConclusion = clean(input?.professionalConclusion, 10_000) || null;
+  if (!orderId || !label || (!result && !finding && !professionalConclusion)) return { success: false as const, error: 'Vui lòng nhập giá trị, phát hiện/nhận xét hoặc kết luận chuyên môn.' };
   try {
     const visitId = await prisma.$transaction(async (tx) => {
       const order = await tx.clinicalOrder.findFirst({
@@ -100,16 +107,16 @@ export async function saveDoctorClinicalResult(input: { orderId: string; resultI
         if (resultId) {
           const existing = await tx.imagingResult.findFirst({ where: { id: resultId, orderId }, select: { id: true } });
           if (!existing) throw new Error('ORDER_NOT_FOUND');
-          await tx.imagingResult.update({ where: { id: resultId }, data: { imagingType: label, conclusion: result } });
+          await tx.imagingResult.update({ where: { id: resultId }, data: { imagingType: label, conclusion: professionalConclusion ?? finding ?? result, finding, professionalConclusion } });
         } else {
-          await tx.imagingResult.create({ data: { orderId, imagingType: label, conclusion: result } });
+          await tx.imagingResult.create({ data: { orderId, imagingType: label, conclusion: professionalConclusion ?? finding ?? result, finding, professionalConclusion } });
         }
       } else if (resultId) {
         const existing = await tx.labResult.findFirst({ where: { id: resultId, orderId }, select: { id: true } });
         if (!existing) throw new Error('ORDER_NOT_FOUND');
-        await tx.labResult.update({ where: { id: resultId }, data: { testName: label, result, unit } });
+        await tx.labResult.update({ where: { id: resultId }, data: { testName: label, result, unit, finding, professionalConclusion } });
       } else {
-        await tx.labResult.create({ data: { orderId, testName: label, result, unit } });
+        await tx.labResult.create({ data: { orderId, testName: label, result, unit, finding, professionalConclusion } });
       }
       await tx.clinicalOrder.update({ where: { id: orderId }, data: { status: 'COMPLETED' } });
       await tx.auditLog.create({ data: { accountId: actor.accountId, action: resultId ? 'CLINICAL_RESULT_UPDATED' : 'CLINICAL_RESULT_CREATED', entity: 'ClinicalOrder', entityId: orderId } });

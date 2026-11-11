@@ -105,15 +105,6 @@ export async function POST(request: Request) {
   if (!mimeType) return rejectUpload(request, { accountId: access.actor.accountId, patientId, code: 'INVALID_FILE_TYPE', message: imageFailure('INVALID_FILE_TYPE'), status: 422, trace: [...trace, 'fileSignature:FAIL'] });
   trace.push('fileSignature:OK');
 
-  const templateName = process.env.EMR_IMAGE_CONSENT_TEMPLATE_NAME || 'Đồng ý lưu ảnh lâm sàng';
-  const consents = await prisma.signedConsent.findMany({
-    where: { visitId, OR: [{ treatmentPlanId: null }, { treatmentPlanId: planId }], template: { is: { name: templateName, version: 1 } } },
-    select: { signedAt: true, audits: { select: { action: true, createdAt: true } } },
-  });
-  const hasConsent = consents.some((consent) => !consent.audits.some((audit) => audit.action === 'REVOKED' && audit.createdAt >= consent.signedAt));
-  if (!hasConsent) return rejectUpload(request, { accountId: access.actor.accountId, patientId, code: 'CONSENT_MISSING', message: imageFailure('CONSENT_MISSING'), status: 403, trace: [...trace, 'hasImageConsent:FAIL'] });
-  trace.push('hasImageConsent:OK');
-
   if (!isTreatmentImageStorageConfigured()) return rejectUpload(request, { accountId: access.actor.accountId, patientId, code: 'STORAGE_NOT_CONFIGURED', message: imageFailure('STORAGE_NOT_CONFIGURED'), status: 503, trace: [...trace, 'privateStorage:FAIL'] });
 
   let storedBytes: Buffer;
