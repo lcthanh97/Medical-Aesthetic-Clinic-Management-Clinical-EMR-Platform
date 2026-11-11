@@ -6,39 +6,52 @@ export interface ResourceContext {
   visitEmployeeId: string | null;
 }
 
-const APPROVED_EMR_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
-  'Bác sĩ da liễu': ['EMR_READ', 'EMR_WRITE'],
-  'Bác sĩ điều trị': ['EMR_READ', 'EMR_WRITE'],
-  'Bác sĩ nội trú': ['EMR_READ'],
-  'Bác sĩ tư vấn': ['EMR_READ'],
-};
-
-function isApprovedRole(roleName: string, permissionCode: string): boolean {
-  if (APPROVED_EMR_ROLE_PERMISSIONS[roleName]?.includes(permissionCode)) return true;
-  return process.env.DOCTOR_NEON_DEMO_ROLE_NAME === roleName &&
-    (permissionCode === 'EMR_READ' || permissionCode === 'EMR_WRITE');
-}
+export const DOCTOR_ROLE_NAME = 'Bác sĩ';
+export const VISIT_WRITE_STATUSES = ['EXAMINING', 'IN_PROGRESS'] as const;
+export const VISIT_SUPPLEMENT_STATUSES = ['RESULT_READY', 'WAITING_RESULT'] as const;
 
 export class AuthorizationService {
-  hasPermission(actor: AuthActor, permissionCode: string): boolean {
-    if (!actor.accountId || !actor.employeeId) return false;
-    if (permissionCode !== 'EMR_READ' && permissionCode !== 'EMR_WRITE') return false;
+  hasRolePermission(actor: AuthActor, permissionCode: string): boolean {
+    if (!actor.accountId || !actor.employeeId || !permissionCode) return false;
     return actor.rolePermissions.some(({ roleName, permissionCodes }) =>
-      isApprovedRole(roleName, permissionCode) &&
-      permissionCodes.includes(permissionCode),
+      roleName === DOCTOR_ROLE_NAME && permissionCodes.includes(permissionCode),
     );
   }
 
+  hasPermission(actor: AuthActor, permissionCode: string): boolean {
+    if (permissionCode !== 'EMR_READ' && permissionCode !== 'EMR_WRITE') return false;
+    return this.hasRolePermission(actor, permissionCode);
+  }
+
+  canReadVisit(actor: AuthActor, visitEmployeeId: string | null): boolean {
+    return Boolean(visitEmployeeId && this.hasPermission(actor, 'EMR_READ') && actor.employeeId === visitEmployeeId);
+  }
+
+  canReadPatientHistory(actor: AuthActor, hasActiveTreatmentRelationship: boolean): boolean {
+    return Boolean(hasActiveTreatmentRelationship && this.hasPermission(actor, 'EMR_READ'));
+  }
+
+  canWriteVisit(actor: AuthActor, visitEmployeeId: string | null, status: string): boolean {
+    return this.canReadVisit(actor, visitEmployeeId) && this.hasPermission(actor, 'EMR_WRITE') && VISIT_WRITE_STATUSES.includes(status as (typeof VISIT_WRITE_STATUSES)[number]);
+  }
+
+  canSupplementVisit(actor: AuthActor, visitEmployeeId: string | null, status: string): boolean {
+    return this.canReadVisit(actor, visitEmployeeId) && this.hasPermission(actor, 'EMR_WRITE') && VISIT_SUPPLEMENT_STATUSES.includes(status as (typeof VISIT_SUPPLEMENT_STATUSES)[number]);
+  }
+
+  canUpdateMedicalRecord(actor: AuthActor, visitEmployeeId: string | null, status: string): boolean {
+    return this.canWriteVisit(actor, visitEmployeeId, status) || this.canSupplementVisit(actor, visitEmployeeId, status);
+  }
+
   can(context: ResourceContext): boolean {
-    if (!context.visitEmployeeId || !this.hasPermission(context.actor, context.permissionCode)) return false;
-    return context.actor.employeeId === context.visitEmployeeId;
+    return this.canReadVisit(context.actor, context.visitEmployeeId) && this.hasPermission(context.actor, context.permissionCode);
   }
 
   allowedRoleNames(permissionCode: string): string[] {
-    if (permissionCode !== 'EMR_READ' && permissionCode !== 'EMR_WRITE') return [];
-    return Object.entries(APPROVED_EMR_ROLE_PERMISSIONS)
-      .filter(([, permissionCodes]) => permissionCodes.includes(permissionCode))
-      .map(([roleName]) => roleName)
-      .concat(process.env.DOCTOR_NEON_DEMO_ROLE_NAME ? [process.env.DOCTOR_NEON_DEMO_ROLE_NAME] : []);
+    return this.hasApprovedPermissionCode(permissionCode) ? [DOCTOR_ROLE_NAME] : [];
+  }
+
+  private hasApprovedPermissionCode(permissionCode: string): boolean {
+    return permissionCode === 'EMR_READ' || permissionCode === 'EMR_WRITE';
   }
 }

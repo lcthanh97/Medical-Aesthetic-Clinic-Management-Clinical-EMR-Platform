@@ -104,6 +104,11 @@ export class AppointmentsService implements IAppointmentsService {
     return this.repository.delete(id);
   }
 
+  getLatestDoctorActivityDate(employeeId: string) {
+    if (!employeeId) throw new Error('Employee is required.');
+    return this.repository.findLatestDoctorActivityDate(employeeId);
+  }
+
   async getDoctorDashboardSnapshot(employeeId: string, startAt: Date, endAt: Date) {
     if (!employeeId || !Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime()) || startAt >= endAt) {
       throw new Error('Phạm vi lịch bác sĩ không hợp lệ.');

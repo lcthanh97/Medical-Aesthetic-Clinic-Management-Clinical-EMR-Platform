@@ -27,10 +27,16 @@ export class EmrService implements IEmrService {
     return this.repository.getPatientFullEMRForEmployee(patientId, employeeId, scope);
   }
 
-  async getAssignedVisit(visitId: string, actor: EmrActorScope, scope: EmrRelatedReadScope = { prescriptions: false, treatmentPlans: false, clinicalOrders: false }) {
+  async getAssignedVisit(
+    visitId: string,
+    actor: EmrActorScope,
+    scope: EmrRelatedReadScope = { prescriptions: false, treatmentPlans: false, clinicalOrders: false },
+    allowedRoleNames: string[] = [],
+  ) {
     this.requireId(visitId, 'Thiếu mã lượt khám.');
     this.requireImageActor(actor);
-    return this.repository.getAssignedVisitForEmployee(visitId, actor, scope);
+    if (!allowedRoleNames.length) throw new Error('An approved EMR read role is required.');
+    return this.repository.getAssignedVisitForEmployee(visitId, actor, scope, allowedRoleNames);
   }
 
   async getTreatmentImageTimeline(

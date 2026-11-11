@@ -10,7 +10,7 @@ export interface IEmrService {
   getById(id: string, employeeId: string): Promise<any | null>;
   getList(employeeId: string, search?: string): Promise<any[]>;
   getPatientFullEMR(patientId: string, employeeId: string, scope?: EmrRelatedReadScope): Promise<any | null>;
-  getAssignedVisit(visitId: string, actor: EmrActorScope, scope?: EmrRelatedReadScope): Promise<any | null>;
+  getAssignedVisit(visitId: string, actor: EmrActorScope, scope?: EmrRelatedReadScope, allowedRoleNames?: string[]): Promise<any | null>;
   getTreatmentImageTimeline(
     patientId: string,
     actor: EmrActorScope,

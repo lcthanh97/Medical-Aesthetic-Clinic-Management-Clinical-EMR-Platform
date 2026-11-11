@@ -16,7 +16,9 @@ export function isLocalDoctorTestDatabase(): boolean {
 }
 
 export function isVerifiedNeonDoctorReadEnvironment(): boolean {
-  if (process.env.NODE_ENV === 'production' || process.env.DOCTOR_NEON_READ_ENABLED !== 'true') return false;
+  // Real Neon reads are permitted in production only when explicitly enabled.
+  // Host, database, TLS, session, role permission, and Visit scope are still checked.
+  if (process.env.DOCTOR_NEON_READ_ENABLED !== 'true') return false;
   try {
     const database = new URL(process.env.DATABASE_URL ?? '');
     return database.protocol === 'postgresql:' &&
@@ -28,13 +30,19 @@ export function isVerifiedNeonDoctorReadEnvironment(): boolean {
   }
 }
 
+export function isDoctorEmrReadEnvironment(): boolean {
+  return isDoctorReadEnvironment();
+}
+
 /**
- * Explicit production-only exception for draft prescriptions by one configured
- * demo doctor. This does not enable EMR or other module writes.
+ * Explicitly scoped exception for draft prescriptions by one configured demo
+ * doctor. In development, this remains limited to the verified Neon database.
  */
 export function isNeonPrescriptionDemoWriteEnvironment(): boolean {
-  if (process.env.NODE_ENV !== 'production' ||
+  if (!['production', 'development'].includes(process.env.NODE_ENV ?? '') ||
       process.env.DOCTOR_NEON_PRESCRIPTION_DRAFT_WRITE_ENABLED !== 'true') return false;
+  if (process.env.NODE_ENV === 'development' &&
+      (process.env.EMR_AUTHORIZATION_ENABLED !== 'true' || process.env.DOCTOR_NEON_READ_ENABLED !== 'true')) return false;
   try {
     const database = new URL(process.env.DATABASE_URL ?? '');
     return database.protocol === 'postgresql:' &&
@@ -60,6 +68,17 @@ export function isNeonPrescriptionDemoWriter(actor: AuthActor): boolean {
   );
 }
 
+export function isNeonPrescriptionDemoVisitAllowed(actor: AuthActor, visitId: string): boolean {
+  if (!isNeonPrescriptionDemoWriter(actor) || !visitId) return false;
+  const allowedVisitIds = new Set(
+    (process.env.DOCTOR_NEON_PRESCRIPTION_VISIT_IDS ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+  return allowedVisitIds.has(visitId);
+}
+
 export function isDoctorReadEnvironment(): boolean {
   return process.env.EMR_AUTHORIZATION_ENABLED === 'true' &&
     (isLocalDoctorTestDatabase() || isVerifiedNeonDoctorReadEnvironment());
@@ -78,6 +97,7 @@ export function isDoctorDemoMedicalRecordWriteAllowed(actor: AuthActor, visitId:
 
 function isDoctorDemoWriteAllowedForVisits(actor: AuthActor, visitId: string, allowedVisits: Array<string | undefined>): boolean {
   if (isLocalDoctorTestDatabase()) return true;
+  if (process.env.NODE_ENV === 'production') return false;
   if (!isVerifiedNeonDoctorReadEnvironment() || process.env.DOCTOR_NEON_DEMO_WRITE_ENABLED !== 'true') return false;
 
   const demoRoleName = process.env.DOCTOR_NEON_DEMO_ROLE_NAME;

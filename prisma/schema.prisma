@@ -118,6 +118,8 @@ model Employee {
   protocolTemplates       TreatmentProtocolTemplate[] @relation("TemplateCreatedBy")
   treatmentSessions       TreatmentSession[] @relation("SessionPerformedBy")
   imagesCaptured          TreatmentImage[] @relation("ImageCapturedBy")
+  imagesHidden            TreatmentImage[] @relation("ImageHiddenBy")
+  imageNotes              ImageNoteRevision[] @relation("ImageNoteAuthor")
   equipmentUsages         EquipmentUsage[]
   equipmentMaintenances   EquipmentMaintenance[]
   treatmentConsumptions   TreatmentConsumption[]
@@ -464,12 +466,40 @@ model TreatmentImage {
   description  String?
   capturedAt   DateTime
   capturedById String?
+  mimeType     String?
+  fileSizeBytes Int?
+  checksumSha256 String?
+  isHidden     Boolean  @default(false)
+  hiddenReason String?
+  hiddenById   String?
+  hiddenAt     DateTime?
   createdAt    DateTime @default(now())
   
   plan         TreatmentPlan     @relation(fields: [planId], references: [id])
   session      TreatmentSession? @relation(fields: [sessionId], references: [id])
   visit        Visit             @relation(fields: [visitId], references: [id])
   capturedBy   Employee?         @relation("ImageCapturedBy", fields: [capturedById], references: [id])
+  hiddenBy     Employee?         @relation("ImageHiddenBy", fields: [hiddenById], references: [id], onDelete: SetNull)
+  notes        ImageNoteRevision[]
+
+  @@index([visitId, capturedAt])
+  @@index([isHidden, capturedAt])
+  @@unique([planId, checksumSha256, capturedAt])
+}
+
+model ImageNoteRevision {
+  id        String   @id @default(cuid())
+  imageId   String
+  version   Int
+  text      String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  image     TreatmentImage @relation(fields: [imageId], references: [id], onDelete: Restrict)
+  author    Employee       @relation("ImageNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@unique([imageId, version])
+  @@index([imageId, createdAt])
 }
 
 model InteractionAlert {

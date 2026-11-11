@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { ArrowLeft, ClipboardList, ExternalLink, FileText, FlaskConical, RefreshCw, Save, Search, ShieldAlert, Stethoscope } from 'lucide-react';
-import { saveExaminationMedicalRecord } from '../actions';
+import { completeAssignedVisit, saveExaminationMedicalRecord, startAssignedVisit } from '../actions';
+import { ExaminationVisitPicker, type ExaminationVisitOption } from './ExaminationVisitPicker';
+import { saveDoctorClinicalOrder, saveDoctorClinicalResult } from '../clinical-orders/actions';
 
 type RecordFields = { preliminaryDiagnosis: string; finalDiagnosis: string; notes: string };
 type ExaminationVisit = {
@@ -23,16 +26,23 @@ type ExaminationVisit = {
     orderedBy: { fullName: string } | null;
     service: { code: string; name: string } | null;
     labResults: Array<{ id: string; testName: string; result: string; unit: string | null }>;
-    imagingResults: Array<{ id: string; imagingType: string; conclusion: string }>;
+    imagingResults: Array<{ id: string; imagingType: string; conclusion: string; hasImage?: boolean }>;
   }>;
   prescriptions?: Array<{ id: string; status: string; items: Array<{ id: string; dosage: string; medicine: { name: string; unit: string } }> }>;
 };
 
 type Props = {
   visit: ExaminationVisit;
+  visitOptions: ExaminationVisitOption[];
+  selectedVisitId: string;
+  selectedDate: string;
   canWrite: boolean;
+  canStartVisit: boolean;
+  canSupplementNotes?: boolean;
   writeBlockReason?: string;
   canReadClinicalOrders: boolean;
+  canManageClinicalOrders: boolean;
+  clinicalImageStorageConfigured: boolean;
   canReadPrescriptions: boolean;
 };
 
@@ -42,6 +52,11 @@ const tabs = [
   ['results', 'Kết quả'],
   ['prescriptions', 'Đơn thuốc'],
 ] as const;
+
+const VISIT_STATUS_LABELS: Record<string, string> = {
+  WAITING: 'Chờ khám', CHECKED_IN: 'Đã tiếp nhận', IN_PROGRESS: 'Đang khám', EXAMINING: 'Đang khám',
+  WAITING_RESULT: 'Chờ kết quả', RESULT_READY: 'Đã có kết quả', COMPLETED: 'Đã hoàn tất', CANCELLED: 'Đã hủy', NO_SHOW: 'Không đến',
+};
 
 function dateTime(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
@@ -65,7 +80,8 @@ function snapshot(record: ExaminationVisit['medicalRecord']) {
   } : null;
 }
 
-export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canReadClinicalOrders, canReadPrescriptions }: Props) {
+export function DoctorExaminationPanel({ visit, visitOptions, selectedVisitId, selectedDate, canWrite, canStartVisit, canSupplementNotes = false, writeBlockReason, canReadClinicalOrders, canManageClinicalOrders, clinicalImageStorageConfigured, canReadPrescriptions }: Props) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number][0]>('record');
   const initialDraft: RecordFields = {
     preliminaryDiagnosis: visit.medicalRecord?.preliminaryDiagnosis ?? '',
@@ -78,6 +94,9 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
   const savedRecord = savedRecordState.visitId === visit.id ? savedRecordState.value : visit.medicalRecord;
   const setDraft = (value: RecordFields) => setDraftState({ visitId: visit.id, value });
   const [saving, setSaving] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [visitStatus, setVisitStatus] = useState(visit.status);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [query, setQuery] = useState('');
@@ -87,6 +106,13 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
   const dirty = draft.preliminaryDiagnosis !== (savedRecord?.preliminaryDiagnosis ?? '') ||
     draft.finalDiagnosis !== (savedRecord?.finalDiagnosis ?? '') ||
     draft.notes !== (savedRecord?.notes ?? '');
+  const notesDirty = draft.notes !== (savedRecord?.notes ?? '');
+  const locallyStarted = canStartVisit && ['IN_PROGRESS', 'EXAMINING'].includes(visitStatus);
+  const effectiveCanWrite = canWrite || locallyStarted;
+  const canEditNotes = effectiveCanWrite || canSupplementNotes;
+  const canSave = effectiveCanWrite ? dirty : canSupplementNotes && notesDirty;
+  const hasSavedPrescription = Boolean(visit.prescriptions?.some((prescription) => prescription.items.length > 0));
+  const canCompleteVisit = effectiveCanWrite && canReadPrescriptions && hasSavedPrescription && ['IN_PROGRESS', 'EXAMINING'].includes(visitStatus);
   const filteredOrders = useMemo(() => {
     const orders = visit.orders ?? [];
     const value = query.trim().toLocaleLowerCase('vi-VN');
@@ -102,8 +128,47 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
     window.location.reload();
   }
 
+  async function completeVisit() {
+    if (!canCompleteVisit || completing) return;
+    if (!window.confirm('Xác nhận hoàn tất lượt khám? Visit sẽ chuyển sang Đã hoàn tất và khóa chỉnh sửa bệnh án.')) return;
+    setCompleting(true);
+    setMessage(null);
+    try {
+      const result = await completeAssignedVisit(visit.id);
+      if (!result.success) {
+        setMessage({ kind: 'error', text: result.error });
+        return;
+      }
+      router.push(`/bacsi/queue?date=${encodeURIComponent(new Date(visit.visitDate).toISOString().slice(0, 10))}`);
+      router.refresh();
+    } catch {
+      setMessage({ kind: 'error', text: 'Không thể hoàn tất Visit. Hãy tải lại trang và thử lại.' });
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  async function startVisit() {
+    if (!canStartVisit || starting) return;
+    setStarting(true);
+    setMessage(null);
+    try {
+      const result = await startAssignedVisit(visit.id);
+      if (!result.success) {
+        setMessage({ kind: 'error', text: result.error });
+        return;
+      }
+      setVisitStatus('IN_PROGRESS');
+      setMessage({ kind: 'success', text: 'Đã bắt đầu khám. Bệnh án của lượt khám hiện có thể cập nhật.' });
+    } catch {
+      setMessage({ kind: 'error', text: 'Không thể bắt đầu khám. Hãy tải lại trang và thử lại.' });
+    } finally {
+      setStarting(false);
+    }
+  }
+
   async function save() {
-    if (!canWrite || !dirty || saving) return;
+    if (!canEditNotes || !canSave || saving) return;
     setSaving(true);
     setMessage(null);
     try {
@@ -133,24 +198,27 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
 
   return (
     <main className="mx-auto w-full max-w-[1440px] space-y-5 pb-8 text-slate-800">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800"><Stethoscope size={14} /> Khu vực bác sĩ</span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-[27px]">Khám bệnh &amp; Chỉ định</h1>
-          <p className="mt-1 text-sm text-slate-500">Ghi nhận bệnh án trong phạm vi lượt khám được phân công.</p>
+      <section className="rounded-2xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5" aria-label="Khám bệnh và thông tin lượt khám">
+        <div className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[minmax(260px,0.8fr)_minmax(380px,1.2fr)]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800"><Stethoscope size={14} /> Khu vực bác sĩ</span>
+              <div className="flex gap-2">
+                <Link href={`/bacsi/queue?date=${encodeURIComponent(selectedDate)}`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"><ArrowLeft size={14} /> Hàng đợi</Link>
+                <button type="button" onClick={() => void refresh()} disabled={refreshing} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60"><RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> Làm mới</button>
+              </div>
+            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Khám bệnh &amp; Chỉ định</h1>
+            <p className="mt-1 text-sm text-slate-500">Ghi nhận bệnh án trong phạm vi lượt khám được phân công.</p>
+          </div>
+          <ExaminationVisitPicker visits={visitOptions} selectedVisitId={selectedVisitId} date={selectedDate} />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/bacsi/queue" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><ArrowLeft size={16} /> Hàng đợi khám</Link>
-          <button type="button" onClick={() => void refresh()} disabled={refreshing} className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /> Làm mới</button>
+        <div className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Thông tin lượt khám">
+          <div><p className="text-xs text-slate-500">Mã bệnh nhân · Tuổi · Điện thoại</p><p className="mt-1 text-sm font-semibold text-slate-800">{visit.patient.patientCode} · {age(visit.patient.dateOfBirth)}{visit.patient.phone ? ` · ${visit.patient.phone}` : ''}</p></div>
+          <div><p className="text-xs text-slate-500">Mã lượt khám</p><p className="mt-1 break-all text-sm font-semibold text-slate-800">{visit.id}</p></div>
+          <div><p className="text-xs text-slate-500">Thời điểm lượt khám</p><p className="mt-1 text-sm font-semibold text-slate-800">{dateTime(visit.visitDate)}</p></div>
+          <div><p className="text-xs text-slate-500">Trạng thái · Phòng / Bác sĩ</p><p className="mt-1 text-sm font-semibold text-slate-800">{VISIT_STATUS_LABELS[visitStatus] ?? visitStatus} · {visit.room ? `${visit.room.name} · ${visit.room.department.name}` : 'Chưa có phòng'}{visit.employee?.fullName ? ` · ${visit.employee.fullName}` : ''}</p></div>
         </div>
-      </header>
-
-      <section className="grid grid-cols-1 gap-3 rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_repeat(3,minmax(0,1fr))] sm:items-center sm:p-5" aria-label="Thông tin lượt khám">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ddedfe] font-bold text-[#235f9e]">{visit.patient.fullName.trim().split(/\s+/).slice(-2).map((part) => part[0]).join('').toLocaleUpperCase('vi-VN')}</div>
-        <div className="min-w-0"><p className="truncate font-semibold text-[#20334b]">{visit.patient.fullName}</p><p className="mt-1 text-xs text-slate-500">{visit.patient.patientCode} · {age(visit.patient.dateOfBirth)}{visit.patient.phone ? ` · ${visit.patient.phone}` : ''}</p></div>
-        <div><p className="text-xs text-slate-500">Lượt khám</p><p className="mt-1 break-all text-sm font-semibold text-slate-800">{visit.id}</p></div>
-        <div><p className="text-xs text-slate-500">Thời điểm lượt khám</p><p className="mt-1 text-sm font-semibold text-slate-800">{dateTime(visit.visitDate)}</p></div>
-        <div className="sm:text-right"><span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{visit.status}</span><p className="mt-1 text-xs text-slate-500">{visit.room ? `${visit.room.name} · ${visit.room.department.name}` : 'Chưa có phòng'}{visit.employee?.fullName ? ` · ${visit.employee.fullName}` : ''}</p></div>
       </section>
 
       {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`rounded-lg border p-3 text-sm ${message.kind === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>{message.text}</p>}
@@ -164,25 +232,26 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
           <div className="mb-5">
             <h2 className="text-lg font-bold text-[#20334b]">Ghi nhận khám bệnh</h2>
             {!savedRecord && <p className="mt-1 text-sm text-slate-500">
-              {canWrite
+              {effectiveCanWrite
                 ? 'Lượt khám chưa có bệnh án. Bệnh án sẽ được tạo khi bạn lưu nội dung khám lần đầu.'
                 : 'Lượt khám chưa có bệnh án.'}
             </p>}
           </div>
           <div className="space-y-4">
             <label className="block space-y-1.5 text-sm font-medium text-slate-700">Chẩn đoán sơ bộ
-              <input value={draft.preliminaryDiagnosis} onChange={(event) => setDraft({ ...draft, preliminaryDiagnosis: event.target.value })} readOnly={!canWrite} maxLength={10000} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={canWrite ? 'Nhập theo đánh giá chuyên môn' : 'Chưa ghi nhận'} />
+              <input value={draft.preliminaryDiagnosis} onChange={(event) => setDraft({ ...draft, preliminaryDiagnosis: event.target.value })} readOnly={!effectiveCanWrite} maxLength={10000} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={effectiveCanWrite ? 'Nhập theo đánh giá chuyên môn' : 'Chưa ghi nhận'} />
             </label>
             <label className="block space-y-1.5 text-sm font-medium text-slate-700">Chẩn đoán xác định
-              <input value={draft.finalDiagnosis} onChange={(event) => setDraft({ ...draft, finalDiagnosis: event.target.value })} readOnly={!canWrite} maxLength={10000} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={canWrite ? 'Nhập khi đã có kết luận chuyên môn' : 'Chưa ghi nhận'} />
+              <input value={draft.finalDiagnosis} onChange={(event) => setDraft({ ...draft, finalDiagnosis: event.target.value })} readOnly={!effectiveCanWrite} maxLength={10000} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={effectiveCanWrite ? 'Nhập khi đã có kết luận chuyên môn' : 'Chưa ghi nhận'} />
             </label>
             <label className="block space-y-1.5 text-sm font-medium text-slate-700">Ghi chú khám bệnh
-              <textarea rows={8} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} readOnly={!canWrite} maxLength={10000} className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 font-normal leading-6 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={canWrite ? 'Ghi nội dung khám theo quy trình đã được phê duyệt' : 'Chưa ghi nhận'} />
+              <textarea rows={8} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} readOnly={!canEditNotes} maxLength={10000} className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 font-normal leading-6 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50" placeholder={canEditNotes ? 'Ghi nội dung khám theo quy trình đã được phê duyệt' : 'Chưa ghi nhận'} />
             </label>
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-            {!canWrite && <p className="text-xs text-slate-500">{writeBlockReason ?? 'Lượt khám đang ở chế độ chỉ đọc.'}</p>}
-            {canWrite && <button type="button" onClick={() => void save()} disabled={!dirty || saving} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} /> {saving ? 'Đang lưu…' : 'Lưu bệnh án'}</button>}
+            {!canEditNotes && <p className="text-xs text-slate-500">{writeBlockReason ?? 'Lượt khám đang ở chế độ chỉ đọc.'}</p>}
+            {canStartVisit && !locallyStarted && <button type="button" onClick={() => void startVisit()} disabled={starting} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"><Stethoscope size={16} /> {starting ? 'Đang bắt đầu khám…' : 'Bắt đầu khám'}</button>}
+            {canEditNotes && <button type="button" onClick={() => void save()} disabled={!canSave || saving} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"><Save size={16} /> {saving ? 'Đang lưu…' : canSupplementNotes && !effectiveCanWrite ? 'Lưu ghi chú bổ sung' : 'Lưu bệnh án'}</button>}
           </div>
         </div>
         <aside className="space-y-3">
@@ -216,20 +285,20 @@ export function DoctorExaminationPanel({ visit, canWrite, writeBlockReason, canR
                 ))}
               </ul>
             )}
-            <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-amber-800">Tạo chỉ định và hoàn tất Visit đang khóa đến khi quy trình CLS/thanh toán và quyền được xác nhận.</p>
+            <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">Bác sĩ phụ trách ghi nhận chỉ định và cập nhật kết quả trực tiếp trong Visit.</p>
           </section>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1"><Link href={`/bacsi/emr?patientId=${encodeURIComponent(visit.patientId)}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"><FileText size={16} /> Hồ sơ bệnh nhân <ExternalLink size={14} /></Link>{canReadPrescriptions ? <Link href={`/bacsi/prescriptions?visitId=${encodeURIComponent(visit.id)}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"><ClipboardList size={16} /> Kê đơn <ExternalLink size={14} /></Link> : <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"><ClipboardList size={16} /> Kê đơn chưa được cấp quyền</span>}</div>
         </aside>
       </section>}
 
-      {activeTab === 'orders' && <ClinicalOrders orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} />}
+      {activeTab === 'orders' && <ClinicalOrders orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} canWrite={canManageClinicalOrders && (effectiveCanWrite || locallyStarted)} visitId={visit.id} storageConfigured={clinicalImageStorageConfigured} />}
       {activeTab === 'results' && <ClinicalResults orders={filteredOrders} query={query} onQuery={setQuery} status={orderStatus} onStatus={setOrderStatus} statuses={orderStatuses} canRead={canReadClinicalOrders} />}
       {activeTab === 'prescriptions' && <section className="rounded-xl border border-[#e1e9f2] bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[#20334b]">Đơn thuốc của lượt khám</h2>
         {!canReadPrescriptions ? <p className="mt-3 text-sm text-slate-600">Tài khoản hiện tại không có quyền xem đơn thuốc.</p> : (visit.prescriptions ?? []).length === 0 ? <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">Chưa có đơn thuốc được lưu cho lượt khám này.</p> : <div className="mt-4 space-y-3">{visit.prescriptions?.map((prescription) => <article key={prescription.id} className="rounded-lg border border-slate-200 p-4"><p className="font-semibold">{prescription.id} · {prescription.status}</p><ul className="mt-2 space-y-1 text-sm text-slate-600">{prescription.items.map((item) => <li key={item.id}>{item.medicine.name} ({item.medicine.unit}) · {item.dosage}</li>)}</ul></article>)}</div>}
         {canReadPrescriptions && <Link href={`/bacsi/prescriptions?visitId=${encodeURIComponent(visit.id)}`} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">Mở trang Kê đơn <ExternalLink size={14} /></Link>}
       </section>}
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e9f2] pt-4 text-xs text-slate-500"><span>Visit và bệnh án được giới hạn theo nhân viên được phân công.</span><div className="flex flex-wrap items-center gap-2"><button type="button" disabled title="Chưa có quy trình và quyền được phê duyệt để đổi trạng thái Visit." className="inline-flex h-10 cursor-not-allowed items-center rounded-lg border border-slate-200 bg-slate-100 px-4 text-sm font-semibold text-slate-500">Hoàn tất lượt khám</button><Link href="/bacsi/queue" className="font-semibold text-blue-700 hover:text-blue-900">Quay lại hàng đợi khám</Link></div></footer>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e9f2] pt-4 text-xs text-slate-500"><span>Visit và bệnh án được giới hạn theo nhân viên được phân công.</span><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => void completeVisit()} disabled={!canCompleteVisit || completing} title={!hasSavedPrescription ? "Cần lưu đơn thuốc có ít nhất một thuốc." : !effectiveCanWrite ? "Chỉ bác sĩ được phân công có quyền ghi mới được hoàn tất Visit." : undefined} className="inline-flex h-10 items-center rounded-lg border border-blue-600 bg-blue-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">{completing ? "Đang hoàn tất…" : "Hoàn tất lượt khám"}</button><Link href="/bacsi/queue" className="font-semibold text-blue-700 hover:text-blue-900">Quay lại hàng đợi khám</Link></div></footer>
     </main>
   );
 }
@@ -240,18 +309,95 @@ function OrderSearch({ query, onQuery }: { query: string; onQuery: (value: strin
   return <label className="relative block"><span className="sr-only">Tìm mã chỉ định, dịch vụ hoặc kết quả</span><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => onQuery(event.target.value)} maxLength={100} placeholder="Tìm mã chỉ định, dịch vụ hoặc kết quả…" className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" /></label>;
 }
 
-function ClinicalOrders({ orders, query, onQuery, status, onStatus, statuses, canRead }: { orders: Order[]; query: string; onQuery: (value: string) => void; status: string; onStatus: (value: string) => void; statuses: string[]; canRead: boolean }) {
-  return <section className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#20334b]">Chỉ định cận lâm sàng</h2><p className="mt-1 text-sm text-slate-500">Hiển thị các chỉ định đã lưu cho Visit này.</p></div><button type="button" disabled title="Chưa có luồng tạo ClinicalOrder được xác minh; thao tác được giữ khóa." className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white opacity-50">+ Thêm chỉ định</button></div><div className="mt-4"><OrderSearch query={query} onQuery={onQuery} /></div><div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
-    {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc chỉ định cận lâm sàng của Visit này.</p> : orders.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Không có chỉ định phù hợp trong Visit được phân công.</p> : <div className="mt-4 space-y-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{order.service?.name ?? order.type}</h3><p className="mt-1 text-xs text-slate-500">{order.service?.code ? `${order.service.code} · ` : ''}{order.id} · {dateTime(order.orderedAt)}</p><p className="mt-1 text-xs text-slate-500">Người chỉ định: {order.orderedBy?.fullName ?? 'Chưa có thông tin trong dữ liệu'}</p></div><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{order.status}</span></div><p className="mt-3 text-sm text-slate-600">Loại chỉ định: {order.type}</p><p className="mt-2 text-xs text-amber-800">Tạo chỉ định mới chưa được hỗ trợ vì chưa xác minh API, quyền, quy trình thanh toán và chính sách CLS-01/02.</p></article>)}</div>}
+function ClinicalOrders({ orders, query, onQuery, status, onStatus, statuses, canRead, canWrite, visitId, storageConfigured }: {
+  orders: Order[]; query: string; onQuery: (value: string) => void; status: string; onStatus: (value: string) => void;
+  statuses: string[]; canRead: boolean; canWrite: boolean; visitId: string; storageConfigured: boolean;
+}) {
+  const router = useRouter();
+  const [orderForm, setOrderForm] = useState<{ orderId?: string; category: 'LAB' | 'IMAGING'; title: string } | null>(null);
+  const [resultForm, setResultForm] = useState<{ orderId: string; resultId?: string; category: 'LAB' | 'IMAGING'; label: string; result: string; unit: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploadingId, setUploadingId] = useState('');
+  const [feedback, setFeedback] = useState('');
+
+  const saveOrder = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!orderForm || busy) return;
+    setBusy(true); setFeedback('');
+    const saved = await saveDoctorClinicalOrder({ visitId, ...orderForm });
+    setBusy(false);
+    if (!saved.success) { setFeedback(saved.error); return; }
+    setOrderForm(null); router.refresh();
+  };
+
+  const saveResult = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!resultForm || busy) return;
+    setBusy(true); setFeedback('');
+    const saved = await saveDoctorClinicalResult(resultForm);
+    setBusy(false);
+    if (!saved.success) { setFeedback(saved.error); return; }
+    setResultForm(null); router.refresh();
+  };
+
+  const uploadResultImage = async (resultId: string, file?: File) => {
+    if (!file) return;
+    setUploadingId(resultId); setFeedback('');
+    try {
+      const form = new FormData(); form.set('file', file);
+      const response = await fetch(`/api/bacsi/clinical-results/${encodeURIComponent(resultId)}/image`, { method: 'POST', body: form, credentials: 'same-origin' });
+      const body = await response.json() as { success?: boolean; error?: string };
+      if (!response.ok || !body.success) { setFeedback(body.error ?? 'Không tải được ảnh kết quả.'); return; }
+      router.refresh();
+    } catch { setFeedback('Không tải được ảnh kết quả. Hãy thử lại.'); }
+    finally { setUploadingId(''); }
+  };
+
+  const categoryOf = (order: Order): 'LAB' | 'IMAGING' => order.type.startsWith('IMAGING:') ? 'IMAGING' : 'LAB';
+  const titleOf = (order: Order) => order.type.includes(':') ? order.type.slice(order.type.indexOf(':') + 1) : order.service?.name ?? order.type;
+
+  return <section className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#20334b]">Chỉ định cận lâm sàng</h2><p className="mt-1 text-sm text-slate-500">Bác sĩ tạo chỉ định và ghi nhận kết quả trực tiếp trong Visit.</p></div>
+      {canWrite && <button type="button" onClick={() => { setFeedback(''); setOrderForm({ category: 'LAB', title: '' }); }} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">+ Thêm chỉ định</button>}
+    </div>
+    {feedback && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{feedback}</p>}
+    {orderForm && <form onSubmit={(event) => void saveOrder(event)} className="mt-4 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4 sm:grid-cols-[180px_minmax(0,1fr)_auto] sm:items-end">
+      <label className="text-sm font-medium text-slate-700">Nhóm chỉ định<select value={orderForm.category} onChange={(event) => setOrderForm({ ...orderForm, category: event.target.value as 'LAB' | 'IMAGING' })} disabled={Boolean(orderForm.orderId)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="LAB">Xét nghiệm</option><option value="IMAGING">Chẩn đoán hình ảnh</option></select></label>
+      <label className="text-sm font-medium text-slate-700">Tên chỉ định<input required maxLength={180} value={orderForm.title} onChange={(event) => setOrderForm({ ...orderForm, title: event.target.value })} placeholder="Nhập dịch vụ/chỉ định" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <div className="flex gap-2"><button type="button" onClick={() => setOrderForm(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Hủy</button><button disabled={busy} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Đang lưu…' : orderForm.orderId ? 'Lưu chỉ định' : 'Tạo chỉ định'}</button></div>
+    </form>}
+    {resultForm && <form onSubmit={(event) => void saveResult(event)} className="mt-4 space-y-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+      <h3 className="font-semibold text-slate-900">{resultForm.resultId ? 'Sửa kết quả' : 'Ghi kết quả'} · {resultForm.category === 'LAB' ? 'Xét nghiệm' : 'Hình ảnh'}</h3>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px]">
+        <label className="text-sm font-medium text-slate-700">{resultForm.category === 'LAB' ? 'Tên xét nghiệm' : 'Loại hình ảnh'}<input required maxLength={180} value={resultForm.label} onChange={(event) => setResultForm({ ...resultForm, label: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+        {resultForm.category === 'LAB' && <label className="text-sm font-medium text-slate-700">Đơn vị<input maxLength={80} value={resultForm.unit} onChange={(event) => setResultForm({ ...resultForm, unit: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>}
+      </div>
+      <label className="block text-sm font-medium text-slate-700">{resultForm.category === 'LAB' ? 'Kết quả' : 'Kết luận'}<textarea required rows={3} maxLength={10000} value={resultForm.result} onChange={(event) => setResultForm({ ...resultForm, result: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2" /></label>
+      <div className="flex justify-end gap-2"><button type="button" onClick={() => setResultForm(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Hủy</button><button disabled={busy} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Đang lưu…' : 'Lưu kết quả'}</button></div>
+    </form>}
+    <div className="mt-4"><OrderSearch query={query} onQuery={onQuery} /></div>
+    <div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
+    {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc chỉ định cận lâm sàng của Visit này.</p> : orders.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Chưa có chỉ định trong Visit này.</p> : <div className="mt-4 space-y-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{titleOf(order)}</h3><p className="mt-1 text-xs text-slate-500">{categoryOf(order) === 'LAB' ? 'Xét nghiệm' : 'Chẩn đoán hình ảnh'} · {order.id} · {dateTime(order.orderedAt)} · Bác sĩ: {order.orderedBy?.fullName ?? '—'}</p></div><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">{order.status}</span></div>
+      {canWrite && <div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => setOrderForm({ orderId: order.id, category: categoryOf(order), title: titleOf(order) })} className="text-sm font-semibold text-blue-700 hover:underline">Sửa chỉ định</button><button type="button" onClick={() => setResultForm({ orderId: order.id, category: categoryOf(order), label: '', result: '', unit: '' })} className="text-sm font-semibold text-blue-700 hover:underline">+ Ghi kết quả</button></div>}
+      <div className="mt-3 space-y-2">
+        {order.labResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex justify-between gap-2"><p><strong>{result.testName}:</strong> {result.result}{result.unit ? ` ${result.unit}` : ''}</p>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'LAB', label: result.testName, result: result.result, unit: result.unit ?? '' })} className="shrink-0 text-xs font-semibold text-blue-700">Sửa kết quả</button>}</div></div>)}
+        {order.imagingResults.map((result) => <div key={result.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex items-start justify-between gap-2"><p><strong>{result.imagingType}:</strong> {result.conclusion}</p>{canWrite && <button type="button" onClick={() => setResultForm({ orderId: order.id, resultId: result.id, category: 'IMAGING', label: result.imagingType, result: result.conclusion, unit: '' })} className="shrink-0 text-xs font-semibold text-blue-700">Sửa kết quả</button>}</div>
+          {result.hasImage && <img src={`/api/bacsi/clinical-results/${encodeURIComponent(result.id)}/image`} alt={`Ảnh kết quả ${result.imagingType}`} className="mt-3 max-h-80 rounded-lg border border-slate-200 bg-white object-contain" />}
+          {canWrite && <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{uploadingId === result.id ? 'Đang tải ảnh…' : result.hasImage ? 'Thay ảnh kết quả' : 'Tải ảnh kết quả'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!storageConfigured || uploadingId === result.id} onChange={(event) => { void uploadResultImage(result.id, event.target.files?.[0]); event.currentTarget.value = ''; }} className="sr-only" /></label>}
+        </div>)}
+      </div>
+    </article>)}</div>}
+    {canWrite && !storageConfigured && <p className="mt-3 text-xs text-amber-800">Kho ảnh riêng tư chưa được cấu hình; bác sĩ vẫn có thể tạo chỉ định và ghi kết quả chữ.</p>}
   </section>;
 }
 
 function ClinicalResults({ orders, query, onQuery, status, onStatus, statuses, canRead }: { orders: Order[]; query: string; onQuery: (value: string) => void; status: string; onStatus: (value: string) => void; statuses: string[]; canRead: boolean }) {
   const results = orders.flatMap((order) => [
-    ...order.labResults.map((result) => ({ key: result.id, order, kind: 'Xét nghiệm', title: result.testName, value: `${result.result}${result.unit ? ` ${result.unit}` : ''}` })),
-    ...order.imagingResults.map((result) => ({ key: result.id, order, kind: 'Hình ảnh', title: result.imagingType, value: result.conclusion })),
+    ...order.labResults.map((result) => ({ key: result.id, order, kind: 'Xét nghiệm', title: result.testName, value: `${result.result}${result.unit ? ` ${result.unit}` : ''}`, imageId: '' })),
+    ...order.imagingResults.map((result) => ({ key: result.id, order, kind: 'Hình ảnh', title: result.imagingType, value: result.conclusion, imageId: result.hasImage ? result.id : '' })),
   ]);
   return <section className="rounded-xl border border-[#e1e9f2] bg-white p-4 shadow-sm sm:p-5"><div><h2 className="text-lg font-bold text-[#20334b]">Kết quả cận lâm sàng</h2><p className="mt-1 text-sm text-slate-500">Kết quả lưu dưới các chỉ định được gắn với lượt khám.</p></div><div className="mt-4"><OrderSearch query={query} onQuery={onQuery} /></div><div className="mt-2"><label className="sr-only">Lọc theo trạng thái chỉ định</label><select value={status} onChange={(event) => onStatus(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 sm:w-auto"><option value="">Tất cả trạng thái</option>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
-    {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc kết quả cận lâm sàng của Visit này.</p> : results.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Chưa có kết quả được lưu trong phạm vi Visit này.</p> : <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-[#f5f8fc] text-xs text-slate-500"><tr><th className="px-3 py-3">Loại</th><th className="px-3 py-3">Kết quả</th><th className="px-3 py-3">Giá trị</th><th className="px-3 py-3">Chỉ định</th><th className="px-3 py-3">Trạng thái</th></tr></thead><tbody className="divide-y divide-slate-100">{results.map((result) => <tr key={result.key}><td className="px-3 py-3"><span className="inline-flex items-center gap-1.5"><FlaskConical size={15} className="text-blue-600" />{result.kind}</span></td><td className="px-3 py-3 font-medium">{result.title}</td><td className="max-w-[28rem] whitespace-pre-wrap px-3 py-3 text-slate-700">{result.value}</td><td className="px-3 py-3 text-xs text-slate-500">{result.order.service?.name ?? result.order.type} · {dateTime(result.order.orderedAt)}</td><td className="px-3 py-3"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{result.order.status}</span></td></tr>)}</tbody></table></div>}
+    {!canRead ? <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Không có quyền đọc kết quả cận lâm sàng của Visit này.</p> : results.length === 0 ? <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">Chưa có kết quả được lưu trong phạm vi Visit này.</p> : <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-[#f5f8fc] text-xs text-slate-500"><tr><th className="px-3 py-3">Loại</th><th className="px-3 py-3">Kết quả</th><th className="px-3 py-3">Giá trị</th><th className="px-3 py-3">Chỉ định</th><th className="px-3 py-3">Trạng thái</th></tr></thead><tbody className="divide-y divide-slate-100">{results.map((result) => <tr key={result.key}><td className="px-3 py-3"><span className="inline-flex items-center gap-1.5"><FlaskConical size={15} className="text-blue-600" />{result.kind}</span></td><td className="px-3 py-3 font-medium">{result.title}</td><td className="max-w-[28rem] whitespace-pre-wrap px-3 py-3 text-slate-700">{result.value}{result.imageId && <img src={`/api/bacsi/clinical-results/${encodeURIComponent(result.imageId)}/image`} alt={`Ảnh kết quả ${result.title}`} className="mt-2 max-h-64 rounded-lg border border-slate-200 bg-white object-contain" />}</td><td className="px-3 py-3 text-xs text-slate-500">{result.order.service?.name ?? result.order.type} · {dateTime(result.order.orderedAt)}</td><td className="px-3 py-3"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{result.order.status}</span></td></tr>)}</tbody></table></div>}
   </section>;
 }

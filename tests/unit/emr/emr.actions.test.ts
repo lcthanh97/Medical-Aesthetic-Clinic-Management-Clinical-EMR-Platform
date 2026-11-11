@@ -55,8 +55,8 @@ import {
 
 const dermatologist = {
   accountId: 'account-1', sessionId: 'session-1', username: 'synthetic.doctor', employeeId: 'employee-1', employeeName: 'Synthetic Doctor',
-  roleNames: ['Bác sĩ da liễu'],
-  rolePermissions: [{ roleName: 'Bác sĩ da liễu', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
+  roleNames: ['Bác sĩ'],
+  rolePermissions: [{ roleName: 'Bác sĩ', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
 };
 
 describe('EMR Server Actions authorization boundary', () => {
@@ -83,7 +83,7 @@ describe('EMR Server Actions authorization boundary', () => {
   it('lists and reads only via employee-scoped service methods for an approved reader', async () => {
     mocks.actor = dermatologist;
     mocks.service.getList.mockResolvedValue([{ id: 'patient-1', visits: [{ id: 'visit-1' }] }]);
-    mocks.service.getPatientFullEMR.mockResolvedValue({ id: 'patient-1', visits: [{ id: 'visit-1' }] });
+    mocks.service.getPatientFullEMR.mockResolvedValue({ id: 'patient-1', hasActiveTreatmentRelationship: true, visits: [{ id: 'visit-1', employeeId: 'employee-1', status: 'EXAMINING' }] });
 
     const list = await getPatients('synthetic search');
     const detail = await getPatientFullEMR('patient-1');
@@ -105,7 +105,7 @@ describe('EMR Server Actions authorization boundary', () => {
         permissionCodes: ['EMR_READ', 'IMAGE_READ', 'PRESCRIPTION_READ', 'TREATMENT_READ'],
       }],
     };
-    mocks.service.getPatientFullEMR.mockResolvedValue({ id: 'patient-1', visits: [{ id: 'visit-1' }] });
+    mocks.service.getPatientFullEMR.mockResolvedValue({ id: 'patient-1', hasActiveTreatmentRelationship: true, visits: [{ id: 'visit-1', employeeId: 'employee-1', status: 'EXAMINING' }] });
 
     const result = await getPatientFullEMR('patient-1');
 
@@ -117,14 +117,14 @@ describe('EMR Server Actions authorization boundary', () => {
 
   it('loads only the requested assigned Visit and derives write/read capabilities from the verified session', async () => {
     mocks.actor = dermatologist;
-    mocks.service.getAssignedVisit.mockResolvedValue({ id: 'visit-1', medicalRecord: null });
+    mocks.service.getAssignedVisit.mockResolvedValue({ id: 'visit-1', employeeId: 'employee-1', status: 'EXAMINING', medicalRecord: null });
 
     const result = await getAssignedVisitExamination('visit-1');
 
     expect(mocks.service.getAssignedVisit).toHaveBeenCalledWith('visit-1', {
       accountId: 'account-1', employeeId: 'employee-1', sessionId: 'session-1',
-    }, { prescriptions: false, treatmentPlans: false, clinicalOrders: false });
-    expect(result).toMatchObject({ success: true, canWrite: true, canReadClinicalOrders: false, canReadPrescriptions: false });
+    }, { prescriptions: false, treatmentPlans: false, clinicalOrders: false }, ['Bác sĩ']);
+    expect(result).toMatchObject({ success: true, canWrite: true, canSupplementNotes: false, canReadClinicalOrders: false, canReadPrescriptions: false });
   });
 
   it('fails closed for examination when the server session lacks an approved EMR reader role', async () => {
@@ -147,12 +147,12 @@ describe('EMR Server Actions authorization boundary', () => {
     process.env.DATABASE_URL = 'postgresql://test:test@127.0.0.1:55432/emr_test';
   });
 
-  it('allows resident read but denies write even if another unapproved role carries EMR_WRITE', async () => {
+  it('does not use a permission granted through another role to enable a Visit write', async () => {
     mocks.actor = {
       ...dermatologist,
-      roleNames: ['Bác sĩ nội trú', 'Lễ tân'],
+      roleNames: ['Bác sĩ', 'Lễ tân'],
       rolePermissions: [
-        { roleName: 'Bác sĩ nội trú', permissionCodes: ['EMR_READ'] },
+        { roleName: 'Bác sĩ', permissionCodes: ['EMR_READ'] },
         { roleName: 'Lễ tân', permissionCodes: ['EMR_WRITE'] },
       ],
     };
@@ -166,10 +166,21 @@ describe('EMR Server Actions authorization boundary', () => {
     expect(mocks.service.saveMedicalRecord).not.toHaveBeenCalled();
   });
 
+  it('allows notes only for result ready Visits and locks completed Visits', async () => {
+    mocks.actor = dermatologist;
+    mocks.service.getAssignedVisit.mockResolvedValueOnce({ id: 'visit-1', employeeId: 'employee-1', status: 'RESULT_READY', medicalRecord: null });
+    const supplement = await getAssignedVisitExamination('visit-1');
+    expect(supplement).toMatchObject({ success: true, canWrite: false, canSupplementNotes: true });
+
+    mocks.service.getAssignedVisit.mockResolvedValueOnce({ id: 'visit-2', employeeId: 'employee-1', status: 'COMPLETED', medicalRecord: null });
+    const completed = await getAssignedVisitExamination('visit-2');
+    expect(completed).toMatchObject({ success: true, canWrite: false, canSupplementNotes: false });
+  });
+
   it('denies an approved role without the matching database permission', async () => {
     mocks.actor = {
       ...dermatologist,
-      rolePermissions: [{ roleName: 'Bác sĩ da liễu', permissionCodes: ['EMR_READ'] }],
+      rolePermissions: [{ roleName: 'Bác sĩ', permissionCodes: ['EMR_READ'] }],
     };
 
     const result = await saveMedicalRecord('visit-1', { notes: 'Synthetic' }, null);
@@ -180,7 +191,7 @@ describe('EMR Server Actions authorization boundary', () => {
   it('requires IMAGE_READ in a verified role and scopes timeline, details, and comparison to the selected patient', async () => {
     mocks.actor = {
       ...dermatologist,
-      rolePermissions: [{ roleName: 'Bác sĩ da liễu', permissionCodes: ['EMR_READ', 'IMAGE_READ'] }],
+      rolePermissions: [{ roleName: 'Bác sĩ', permissionCodes: ['EMR_READ', 'IMAGE_READ'] }],
     };
     const syntheticImage = { id: 'image-1', planId: 'plan-1', visitId: 'visit-1', imageType: 'synthetic', phase: 'synthetic', capturedAt: new Date(), createdAt: new Date(), bodyArea: null, description: null, sessionId: null, plan: { id: 'plan-1', name: 'Synthetic plan' }, session: null };
     mocks.service.getTreatmentImageTimeline.mockResolvedValue([syntheticImage]);
@@ -223,7 +234,7 @@ describe('EMR Server Actions authorization boundary', () => {
     expect(mocks.service.saveMedicalRecord).toHaveBeenCalledWith(
       'visit-1',
       { accountId: 'account-1', employeeId: 'employee-1', sessionId: 'session-1' },
-      ['Bác sĩ da liễu', 'Bác sĩ điều trị'],
+      ['Bác sĩ'],
       { notes: 'Synthetic' },
       null,
     );

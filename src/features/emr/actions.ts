@@ -5,11 +5,11 @@ import { PrismaAuthRepository } from '@/infrastructure/database/repositories/Pri
 import { PrismaEmrRepository } from '@/infrastructure/database/repositories/PrismaEmrRepository';
 import { AuthService } from '@/server/services/AuthService';
 import { AuthorizationService } from '@/server/policies/AuthorizationService';
-import { isDoctorDemoMedicalRecordWriteAllowed, isDoctorReadEnvironment, isLocalDoctorTestDatabase } from '@/server/policies/DoctorDatabaseAccess';
+import { isDoctorEmrReadEnvironment, isDoctorReadEnvironment, isLocalDoctorTestDatabase } from '@/server/policies/DoctorDatabaseAccess';
 import { EmrService } from '@/server/services/EmrService';
-import { hasImageRead } from '@/server/services/ClinicalServicesService';
-import { hasPrescriptionPermission, PRESCRIPTION_READ } from '@/server/services/PrescriptionsService';
+import { PRESCRIPTION_READ } from '@/server/services/PrescriptionsService';
 import { revalidatePath } from 'next/cache';
+import { prisma } from '@/infrastructure/database/prisma';
 
 const emrRepository = new PrismaEmrRepository();
 const emrService = new EmrService(emrRepository);
@@ -20,11 +20,7 @@ const EMR_DISABLED = 'EMR đang bị khóa cho tới khi xác minh xong policy v
 const EMR_DENIED = 'Không có quyền truy cập Visit này.';
 const EMR_AUTHORIZATION_ENABLED = process.env.EMR_AUTHORIZATION_ENABLED === 'true';
 
-function isLocalEmrTestDatabase(): boolean {
-  return isDoctorReadEnvironment();
-}
-
-function isLocalImageTestDatabase(): boolean {
+function isImageFeatureEnabled(): boolean {
   return isDoctorReadEnvironment();
 }
 
@@ -46,7 +42,7 @@ function disabled(): EmrActionFailure {
 
 export async function getPatients(search?: string) {
   try {
-    if (!isDoctorReadEnvironment()) return disabled();
+    if (!isDoctorEmrReadEnvironment()) return disabled();
     const actor = await getActor();
     if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_READ')) return EMR_AUTHORIZATION_ENABLED ? denied() : disabled();
     const data = await emrService.getList(actor.employeeId, search);
@@ -56,9 +52,9 @@ export async function getPatients(search?: string) {
       // The patient-wide panel has no single Visit to authorize against. Keep its
       // edit affordance local-test-only; production demo writes are Visit-scoped.
       canWrite: isLocalDoctorTestDatabase() && authorization.hasPermission(actor, 'EMR_WRITE'),
-      canReadImages: hasImageRead(actor),
-      canReadPrescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
-      canReadTreatmentPlans: actor.rolePermissions.some(({ permissionCodes }) => permissionCodes.includes('TREATMENT_READ')),
+      canReadImages: authorization.hasRolePermission(actor, 'IMAGE_READ'),
+      canReadPrescriptions: authorization.hasRolePermission(actor, PRESCRIPTION_READ),
+      canReadTreatmentPlans: authorization.hasRolePermission(actor, 'TREATMENT_READ'),
     };
   } catch {
     return denied();
@@ -67,13 +63,13 @@ export async function getPatients(search?: string) {
 
 export async function getPatientFullEMR(patientId: string) {
   try {
-    if (!isDoctorReadEnvironment()) return disabled();
+    if (!isDoctorEmrReadEnvironment()) return disabled();
     const actor = await getActor();
     if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_READ')) return EMR_AUTHORIZATION_ENABLED ? denied() : disabled();
     const data = await emrService.getPatientFullEMR(patientId, actor.employeeId, {
-      prescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
-      treatmentPlans: actor.rolePermissions.some(({ permissionCodes }) => permissionCodes.includes('TREATMENT_READ')),
-      clinicalOrders: hasImageRead(actor),
+      prescriptions: authorization.hasRolePermission(actor, PRESCRIPTION_READ),
+      treatmentPlans: authorization.hasRolePermission(actor, 'TREATMENT_READ'),
+      clinicalOrders: authorization.hasRolePermission(actor, 'IMAGE_READ'),
     });
     if (!data) return denied();
     return { success: true as const, data: JSON.parse(JSON.stringify(data)) };
@@ -84,36 +80,116 @@ export async function getPatientFullEMR(patientId: string) {
 
 export async function getAssignedVisitExamination(visitId: string) {
   try {
-    if (!isLocalEmrTestDatabase()) return disabled();
+    if (!isDoctorEmrReadEnvironment()) return disabled();
     const actor = await getActor();
     if (!actor) return { success: false as const, code: 'AUTH_REQUIRED' as const, error: 'Vui lòng đăng nhập lại để mở lượt khám.' };
     if (!actor.employeeId || !authorization.hasPermission(actor, 'EMR_READ')) return denied();
+    const hasRoleRead = (permissionCode: string) => authorization.hasRolePermission(actor, permissionCode);
     const data = await emrService.getAssignedVisit(visitId, {
       accountId: actor.accountId,
       employeeId: actor.employeeId,
       sessionId: actor.sessionId,
     }, {
-      prescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
+      prescriptions: hasRoleRead(PRESCRIPTION_READ),
       treatmentPlans: false,
-      clinicalOrders: hasImageRead(actor),
-    });
+      clinicalOrders: hasRoleRead('EMR_READ'),
+    }, authorization.allowedRoleNames('EMR_READ'));
     if (!data) return denied();
     const hasWritePermission = authorization.hasPermission(actor, 'EMR_WRITE');
-    const canWrite = hasWritePermission && isDoctorDemoMedicalRecordWriteAllowed(actor, visitId);
+    const canWrite = authorization.canWriteVisit(actor, data.employeeId, data.status);
+    const canSupplementNotes = authorization.canSupplementVisit(actor, data.employeeId, data.status);
+    const canStartVisit = hasWritePermission && data.employeeId === actor.employeeId && ['WAITING', 'CHECKED_IN'].includes(data.status);
+    const safeData = JSON.parse(JSON.stringify(data));
+    for (const order of safeData.orders ?? []) {
+      for (const result of order.imagingResults ?? []) {
+        result.hasImage = Boolean(result.fileUrl);
+        delete result.fileUrl;
+      }
+    }
     return {
       success: true as const,
-      data: JSON.parse(JSON.stringify(data)),
+      data: safeData,
       canWrite,
-      writeBlockReason: canWrite ? undefined : hasWritePermission
-        ? 'Lượt khám này nằm ngoài phạm vi được phép ghi trên cổng hiện tại.'
-        : 'Tài khoản chưa có quyền ghi bệnh án.',
-      canReadClinicalOrders: hasImageRead(actor),
-      canReadPrescriptions: hasPrescriptionPermission(actor, PRESCRIPTION_READ),
+      canStartVisit,
+      canSupplementNotes,
+      writeBlockReason: canWrite || canSupplementNotes ? undefined : !hasWritePermission
+        ? 'Tài khoản chưa có quyền ghi bệnh án trong role Bác sĩ.'
+        : data.status === 'COMPLETED'
+          ? 'Visit đã hoàn tất; bệnh án chỉ được xem.'
+          : 'Chỉ Visit đang khám mới cho phép sửa chẩn đoán và ghi chú.',
+      canReadClinicalOrders: hasRoleRead('EMR_READ'),
+      canManageClinicalOrders: hasWritePermission,
+      canReadPrescriptions: hasRoleRead(PRESCRIPTION_READ),
     };
   } catch (error) {
     const failure = error as { name?: string; code?: string };
     console.error('[emr] examination read failed', { name: failure?.name, code: failure?.code });
     return { success: false as const, error: 'Không tải được lượt khám. Hãy thử lại sau.' };
+  }
+}
+
+export async function startAssignedVisit(visitId: string) {
+  if (!isDoctorEmrReadEnvironment()) return { success: false as const, error: EMR_DISABLED };
+  const actor = await getActor();
+  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE')) return EMR_AUTHORIZATION_ENABLED ? denied() : disabled();
+  if (typeof visitId !== 'string' || !visitId.trim() || visitId.length > 100) return { success: false as const, error: 'Visit không hợp lệ.' };
+  try {
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const session = await tx.refreshToken.findFirst({ where: { id: actor.sessionId, accountId: actor.accountId, revokedAt: null, expiresAt: { gt: now } }, select: { id: true } });
+      if (!session) throw new Error('AUTH_REQUIRED');
+      const updated = await tx.visit.updateMany({
+        where: {
+          id: visitId,
+          employeeId: actor.employeeId,
+          employee: { is: { accountId: actor.accountId } },
+          status: { in: ['WAITING', 'CHECKED_IN'] },
+        },
+        data: { status: 'IN_PROGRESS' },
+      });
+      if (updated.count !== 1) throw new Error('VISIT_SCOPE_OR_STATE_DENIED');
+      await tx.auditLog.create({ data: { accountId: actor.accountId, action: 'VISIT_STARTED', entity: 'Visit', entityId: visitId } });
+    }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
+    revalidatePath('/bacsi/queue'); revalidatePath('/bacsi/examination'); revalidatePath('/bacsi');
+    return { success: true as const };
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    return { success: false as const, error: code === 'AUTH_REQUIRED' ? 'Phiên đăng nhập hết hạn. Hãy đăng nhập lại.' : 'Không thể bắt đầu khám. Visit có thể không thuộc bác sĩ này hoặc trạng thái đã thay đổi.' };
+  }
+}
+
+export async function completeAssignedVisit(visitId: string) {
+  if (!isDoctorEmrReadEnvironment()) return { success: false as const, error: EMR_DISABLED };
+  const actor = await getActor();
+  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE') || !authorization.hasRolePermission(actor, 'PRESCRIPTION_WRITE')) return denied();
+  const employeeId = actor.employeeId;
+  if (typeof visitId !== 'string' || !visitId.trim() || visitId.length > 100) return { success: false as const, error: 'Visit không hợp lệ.' };
+  try {
+    await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const session = await tx.refreshToken.findFirst({ where: { id: actor.sessionId, accountId: actor.accountId, revokedAt: null, expiresAt: { gt: now } }, select: { id: true } });
+      if (!session) throw new Error('AUTH_REQUIRED');
+      const visit = await tx.visit.findFirst({
+        where: { id: visitId, employeeId, employee: { is: { accountId: actor.accountId } } },
+        select: { id: true, status: true },
+      });
+      if (!visit) throw new Error('VISIT_SCOPE_DENIED');
+      if (!['IN_PROGRESS', 'EXAMINING'].includes(visit.status)) throw new Error('VISIT_NOT_ACTIVE');
+      const prescription = await tx.prescription.findFirst({ where: { visitId, employeeId, items: { some: {} } }, select: { id: true } });
+      if (!prescription) throw new Error('PRESCRIPTION_REQUIRED');
+      const updated = await tx.visit.updateMany({ where: { id: visitId, employeeId, status: visit.status }, data: { status: 'COMPLETED' } });
+      if (updated.count !== 1) throw new Error('VISIT_STATE_CHANGED');
+      await tx.auditLog.create({ data: { accountId: actor.accountId, action: 'VISIT_COMPLETED', entity: 'Visit', entityId: visitId } });
+    }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
+    revalidatePath('/bacsi/queue'); revalidatePath('/bacsi/examination'); revalidatePath('/bacsi'); revalidatePath('/bacsi/emr');
+    return { success: true as const };
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    const message = code === 'PRESCRIPTION_REQUIRED' ? 'Cần lưu đơn thuốc có ít nhất một thuốc trước khi hoàn tất Visit.'
+      : code === 'VISIT_NOT_ACTIVE' ? 'Visit không còn ở trạng thái đang khám.'
+      : code === 'VISIT_STATE_CHANGED' ? 'Trạng thái Visit vừa thay đổi. Hãy tải lại trang.'
+      : code === 'AUTH_REQUIRED' ? 'Phiên đăng nhập hết hạn. Hãy đăng nhập lại.' : EMR_DENIED;
+    return { success: false as const, error: message };
   }
 }
 
@@ -123,7 +199,7 @@ async function saveMedicalRecordForVerifiedActor(
   expected: { preliminaryDiagnosis: string | null; finalDiagnosis: string | null; notes: string | null } | null,
 ) {
   const actor = await getActor();
-  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE') || !isDoctorDemoMedicalRecordWriteAllowed(actor, visitId)) {
+  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_WRITE')) {
     return EMR_AUTHORIZATION_ENABLED ? denied() : disabled();
   }
   const data = await emrService.saveMedicalRecord(
@@ -144,11 +220,11 @@ export async function saveExaminationMedicalRecord(
   input: { preliminaryDiagnosis?: string; finalDiagnosis?: string; notes?: string },
   expected: { preliminaryDiagnosis: string | null; finalDiagnosis: string | null; notes: string | null } | null,
 ) {
-  if (!isDoctorReadEnvironment()) return disabled();
+  if (!isDoctorEmrReadEnvironment()) return disabled();
   try {
     return await saveMedicalRecordForVerifiedActor(visitId, input, expected);
   } catch (error) {
-    const message = error instanceof Error && error.message.includes('Ä‘Ã£ thay Ä‘á»•i')
+    const message = error instanceof Error && (error.message.includes('\u0111\u00e3 thay \u0111\u1ed5i') || error.message.includes('\u0111\u00e3 \u0111\u01b0\u1ee3c t\u1ea1o \u1edf n\u01a1i kh\u00e1c'))
       ? error.message
       : EMR_DENIED;
     return { success: false as const, error: message };
@@ -163,7 +239,7 @@ export async function saveMedicalRecord(
   try {
     return await saveMedicalRecordForVerifiedActor(visitId, input, expected);
   } catch (error) {
-    const message = error instanceof Error && error.message.includes('đã thay đổi')
+    const message = error instanceof Error && (error.message.includes('\u0111\u00e3 thay \u0111\u1ed5i') || error.message.includes('\u0111\u00e3 \u0111\u01b0\u1ee3c t\u1ea1o \u1edf n\u01a1i kh\u00e1c'))
       ? error.message
       : EMR_DENIED;
     return { success: false as const, error: message };
@@ -189,9 +265,9 @@ function withoutPrivateImageUrls<T>(value: T): T {
 }
 
 async function getImageActor() {
-  if (!EMR_AUTHORIZATION_ENABLED || !isLocalImageTestDatabase()) return null;
+  if (!EMR_AUTHORIZATION_ENABLED || !isImageFeatureEnabled()) return null;
   const actor = await getActor();
-  if (!actor?.employeeId || !hasImageRead(actor)) return null;
+  if (!actor?.employeeId || !authorization.hasPermission(actor, 'EMR_READ') || !authorization.hasRolePermission(actor, 'IMAGE_READ')) return null;
   return actor;
 }
 
@@ -209,7 +285,7 @@ export async function getTreatmentImageTimeline(
   } = {},
 ) {
   try {
-    if (!isLocalImageTestDatabase()) return imageActionDenied();
+    if (!isImageFeatureEnabled()) return imageActionDenied();
     if (typeof patientId !== 'string' || !patientId.trim() || !filters || typeof filters !== 'object') return imageActionDenied();
     const textFilters = [filters.visitId, filters.planId, filters.sessionId, filters.phase, filters.imageType, filters.bodyArea];
     if (textFilters.some((value) => !validImageFilter(value))) return imageActionDenied();
@@ -231,7 +307,7 @@ export async function getTreatmentImageTimeline(
 
 export async function getTreatmentImageDetails(patientId: string, imageId: string) {
   try {
-    if (!isLocalImageTestDatabase() || typeof patientId !== 'string' || !patientId.trim() || typeof imageId !== 'string' || !imageId.trim()) return imageActionDenied();
+    if (!isImageFeatureEnabled() || typeof patientId !== 'string' || !patientId.trim() || typeof imageId !== 'string' || !imageId.trim()) return imageActionDenied();
     const actor = await getImageActor();
     if (!actor?.employeeId) return imageActionDenied();
     const data = await emrService.getTreatmentImageDetails(
@@ -247,7 +323,7 @@ export async function getTreatmentImageDetails(patientId: string, imageId: strin
 
 export async function compareTreatmentImages(patientId: string, imageIds: [string, string]) {
   try {
-    if (!isLocalImageTestDatabase() || typeof patientId !== 'string' || !patientId.trim() || !Array.isArray(imageIds) || imageIds.length !== 2) return imageActionDenied();
+    if (!isImageFeatureEnabled() || typeof patientId !== 'string' || !patientId.trim() || !Array.isArray(imageIds) || imageIds.length !== 2) return imageActionDenied();
     const actor = await getImageActor();
     if (!actor?.employeeId) return imageActionDenied();
     const data = await emrService.compareTreatmentImages(

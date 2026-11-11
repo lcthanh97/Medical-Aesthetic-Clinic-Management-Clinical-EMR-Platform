@@ -22,6 +22,22 @@ type QueueSearchParams = Promise<{
 
 const PAGE_SIZE = 6;
 
+const VISIT_STATUS_LABELS: Record<string, string> = {
+  WAITING: 'Chờ khám',
+  CHECKED_IN: 'Đã tiếp nhận',
+  IN_PROGRESS: 'Đang khám',
+  EXAMINING: 'Đang khám',
+  WAITING_RESULT: 'Chờ kết quả',
+  RESULT_READY: 'Đã có kết quả',
+  COMPLETED: 'Đã hoàn tất',
+  CANCELLED: 'Đã hủy',
+  NO_SHOW: 'Không đến',
+};
+
+function visitStatusLabel(status: string) {
+  return VISIT_STATUS_LABELS[status] ?? status.replaceAll('_', ' ').toLocaleLowerCase('vi-VN');
+}
+
 function timeLabel(value: Date | string) {
   return new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }
@@ -122,7 +138,7 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
         {statuses.map((status) => (
           <Link key={status} href={routeHref({ ...baseHref, status, page: 1 })} aria-current={selectedStatus === status ? 'page' : undefined}
             className={`shrink-0 border-b-2 px-1 py-3 text-sm ${selectedStatus === status ? 'border-blue-600 font-semibold text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-            {status} · {statusCounts.get(status)}
+            {visitStatusLabel(status)} · {statusCounts.get(status)}
           </Link>
         ))}
       </nav>
@@ -204,9 +220,9 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
                       <td className="px-4 py-4 text-slate-700">
                         {visit.room ? <><p>{visit.room.name}</p><p className="mt-0.5 text-xs text-slate-500">{visit.room.departmentName}</p></> : <span className="text-slate-400">Chưa có phòng</span>}
                       </td>
-                      <td className="px-4 py-4"><span className="inline-flex max-w-48 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{visit.status}</span></td>
+                      <td className="px-4 py-4"><span className="inline-flex max-w-48 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{visitStatusLabel(visit.status)}</span></td>
                       <td className="px-4 py-4">
-                        <Link href={`/bacsi/examination?visitId=${encodeURIComponent(visit.id)}`} className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-blue-700 hover:text-blue-900">
+                        <Link href={`/bacsi/examination?visitId=${encodeURIComponent(visit.id)}&date=${encodeURIComponent(selectedDate)}`} className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-blue-700 hover:text-blue-900">
                           Khám bệnh <ArrowRight size={14} />
                         </Link>
                         <Link href={`/bacsi/emr?patientId=${encodeURIComponent(visit.patientId)}`} className="mt-1 inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-slate-600 hover:text-blue-800">
@@ -249,14 +265,14 @@ export default async function DoctorQueuePage({ searchParams }: { searchParams: 
               <dl className="space-y-3 text-sm">
                 <div><dt className="text-xs text-slate-500">Thời điểm lượt khám</dt><dd className="mt-1 font-semibold text-slate-800">{timeLabel(nextVisit.visitDate)} · {selectedDate}</dd></div>
                 <div><dt className="text-xs text-slate-500">Phòng / Khoa</dt><dd className="mt-1 font-semibold text-slate-800">{nextVisit.room ? `${nextVisit.room.name} · ${nextVisit.room.departmentName}` : 'Chưa có phòng trong dữ liệu'}</dd></div>
-                <div><dt className="text-xs text-slate-500">Trạng thái trong hồ sơ</dt><dd className="mt-1 font-semibold text-slate-800">{nextVisit.status}</dd></div>
+                <div><dt className="text-xs text-slate-500">Trạng thái trong hồ sơ</dt><dd className="mt-1 font-semibold text-slate-800">{visitStatusLabel(nextVisit.status)}</dd></div>
                 <div><dt className="text-xs text-slate-500">Bệnh án</dt><dd className="mt-1 font-semibold text-slate-800">{nextVisit.medicalRecord ? 'Đã có bệnh án' : 'Chưa có bệnh án'}</dd></div>
               </dl>
               <div className="mt-5 rounded-lg border border-blue-100 bg-white/80 p-3 text-xs leading-5 text-slate-600">
                 Thao tác dưới đây chỉ mở EMR của lượt khám đã được phân công; không tự đổi trạng thái lượt khám.
               </div>
               <div className="mt-4 grid gap-2">
-                <Link href={`/bacsi/examination?visitId=${encodeURIComponent(nextVisit.id)}`} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700">
+                <Link href={`/bacsi/examination?visitId=${encodeURIComponent(nextVisit.id)}&date=${encodeURIComponent(selectedDate)}`} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#246dce] px-4 text-sm font-semibold text-white hover:bg-blue-700">
                   <Stethoscope size={16} /> Mở lượt khám <ArrowRight size={15} />
                 </Link>
                 <Link href={`/bacsi/emr?patientId=${encodeURIComponent(nextVisit.patientId)}`} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50">

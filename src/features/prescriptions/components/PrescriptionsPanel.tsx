@@ -1,6 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { completeAssignedVisit } from '@/features/emr/actions';
 import { prescriptionsApi } from '@/features/prescriptions/api/prescriptionsApi';
 import { usePrescriptions } from '@/features/prescriptions/hooks/usePrescriptions';
 import type { PrescriptionItemInput, PrescriptionView } from '@/features/prescriptions/schemas/prescriptions.schema';
@@ -13,6 +15,7 @@ function formatVisitDate(value: string) {
 }
 
 export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string }) {
+  const router = useRouter();
   const { data, visits, medicines, isLoading, error, setError, load, loadVisits, loadMedicines, getById } = usePrescriptions();
   const [search, setSearch] = useState('');
   const [medicineSearch, setMedicineSearch] = useState('');
@@ -23,7 +26,12 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
   const [visitFilterId, setVisitFilterId] = useState(initialVisitId ?? '');
   const [items, setItems] = useState<DraftItem[]>([blankItem()]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCompletingVisit, setIsCompletingVisit] = useState(false);
   const submitLock = useRef(false);
+
+  useEffect(() => {
+    if (initialVisitId) void loadVisits();
+  }, [initialVisitId, loadVisits]);
 
   const openCreate = async () => {
     setError(null);
@@ -99,12 +107,36 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
     !visitFilterId || prescription.visit.id === visitFilterId,
   );
   const selectedAssignedVisit = visits.find((visit) => visit.id === visitId);
+  const completionVisit = initialVisitId ? visits.find((visit) => visit.id === initialVisitId) : undefined;
+  const hasPrescriptionForVisit = Boolean(data?.prescriptions.some((prescription) => prescription.visit.id === initialVisitId && prescription.items.length > 0));
+  const visitCanBeCompleted = Boolean(completionVisit && ['IN_PROGRESS', 'EXAMINING'].includes(completionVisit.status));
+  const canCompleteVisit = Boolean(initialVisitId && data?.canWrite && visitCanBeCompleted && hasPrescriptionForVisit);
   const addMedicine = (medicineId: string) => {
     setItems((current) => {
       const emptyLine = current.findIndex((item) => !item.medicineId);
       if (emptyLine >= 0) return current.map((item, index) => index === emptyLine ? { ...item, medicineId } : item);
       return current.length < 50 ? [...current, { medicineId, quantity: '', dosage: '' }] : current;
     });
+  };
+
+  const completeVisit = async () => {
+    if (!initialVisitId || !canCompleteVisit || isCompletingVisit) return;
+    setIsCompletingVisit(true);
+    setError(null);
+    try {
+      const result = await completeAssignedVisit(initialVisitId);
+      if (!result.success) {
+        setError(result.error);
+        setIsCompletingVisit(false);
+        return;
+      }
+      const date = completionVisit?.visitDate.slice(0, 10);
+      router.push(`/bacsi/queue${date ? `?date=${encodeURIComponent(date)}` : ''}`);
+      router.refresh();
+    } catch {
+      setError('Không thể hoàn tất Visit. Hãy thử lại.');
+      setIsCompletingVisit(false);
+    }
   };
 
   return (
@@ -137,9 +169,12 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
           <button type="button" onClick={() => { setSearch(''); setVisitFilterId(''); void load(); }} className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Xóa lọc</button>
         </form>
 
-        {visitFilterId && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#edf5ff] px-3 py-2 text-sm text-[#235f9e]">
+        {visitFilterId && <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#edf5ff] px-3 py-2 text-sm text-[#235f9e]">
           <span>Danh sách được lọc theo Visit đã mở từ trang khám. Dữ liệu vẫn được giới hạn phía máy chủ theo tài khoản.</span>
-          <button type="button" onClick={() => setVisitFilterId('')} className="font-semibold hover:underline">Bỏ lọc Visit</button>
+          <div className="flex items-center gap-3">
+            {initialVisitId && <button type="button" onClick={() => void completeVisit()} disabled={!canCompleteVisit || isCompletingVisit} title={!completionVisit ? 'Đang xác minh Visit được phân công.' : !visitCanBeCompleted ? 'Visit cần ở trạng thái Đang khám.' : !hasPrescriptionForVisit ? 'Cần lưu đơn thuốc có ít nhất một thuốc.' : undefined} className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">{isCompletingVisit ? 'Đang hoàn tất…' : 'Hoàn tất lượt khám'}</button>}
+            <button type="button" onClick={() => setVisitFilterId('')} className="font-semibold hover:underline">Bỏ lọc Visit</button>
+          </div>
         </div>}
 
         {isLoading ? (

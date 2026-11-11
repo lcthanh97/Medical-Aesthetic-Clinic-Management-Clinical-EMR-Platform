@@ -58,6 +58,22 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
     });
   }
 
+  async findLatestDoctorActivityDate(employeeId: string): Promise<Date | null> {
+    const latestVisit = await prisma.visit.findFirst({
+      where: { employeeId },
+      orderBy: { visitDate: 'desc' },
+      select: { visitDate: true },
+    });
+    if (latestVisit) return latestVisit.visitDate;
+
+    const latestAppointment = await prisma.appointment.findFirst({
+      where: { employeeId },
+      orderBy: { scheduledAt: 'desc' },
+      select: { scheduledAt: true },
+    });
+    return latestAppointment?.scheduledAt ?? null;
+  }
+
   async findDoctorDashboardSnapshot(employeeId: string, startAt: Date, endAt: Date): Promise<DoctorDashboardSnapshot> {
     const [appointments, visits, treatmentSessions, workSchedules] = await Promise.all([
       prisma.appointment.findMany({

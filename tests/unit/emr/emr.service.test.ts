@@ -7,23 +7,26 @@ const tx = vi.hoisted(() => ({
   refreshToken: { findFirst: vi.fn() },
   visit: { findFirst: vi.fn() },
   medicalRecord: { create: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
+  auditLog: { create: vi.fn() },
 }));
 const db = vi.hoisted(() => ({
   patient: { findFirst: vi.fn(), findMany: vi.fn() },
+  visit: { findMany: vi.fn() },
   $transaction: vi.fn(),
 }));
 
 vi.mock('@/infrastructure/database/prisma', () => ({ prisma: db }));
 
 const ACTOR = { accountId: 'account-1', employeeId: 'employee-1', sessionId: 'session-1' };
-const WRITE_ROLES = ['Bác sĩ da liễu', 'Bác sĩ điều trị'];
+const WRITE_ROLES = ['Bác sĩ', 'Bác sĩ'];
 
 describe('EmrService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     db.$transaction.mockImplementation(async (callback: (transaction: typeof tx) => unknown) => callback(tx));
     tx.refreshToken.findFirst.mockResolvedValue({ id: 'session-1' });
-    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1' });
+    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1', status: 'EXAMINING', medicalRecord: null });
+    db.visit.findMany.mockResolvedValue([{ id: 'visit-1', status: 'COMPLETED' }]);
   });
 
   it('rejects a medical record without a visit id before reaching persistence', async () => {
@@ -94,7 +97,7 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
     vi.clearAllMocks();
     db.$transaction.mockImplementation(async (callback: (transaction: typeof tx) => unknown) => callback(tx));
     tx.refreshToken.findFirst.mockResolvedValue({ id: 'session-1' });
-    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1' });
+    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1', status: 'EXAMINING', medicalRecord: null });
   });
 
   it('filters the patient search to assigned Visits and excludes patient-wide sensitive relations', async () => {
@@ -109,12 +112,16 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
     }));
   });
 
-  it('returns only visits assigned to the employee and only their MedicalRecord', async () => {
+  it('returns only assigned Visits for a former relationship, and exposes no unrelated patient history', async () => {
     const repository = new PrismaEmrRepository();
     db.patient.findFirst.mockResolvedValue(null);
 
     await repository.getPatientFullEMRForEmployee('patient-1', 'employee-1');
 
+    expect(db.visit.findMany).toHaveBeenCalledWith({
+      where: { patientId: 'patient-1', employeeId: 'employee-1' },
+      select: { id: true, status: true },
+    });
     expect(db.patient.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'patient-1', visits: { some: { employeeId: 'employee-1' } } },
       select: expect.objectContaining({
@@ -128,9 +135,11 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
 
   it('selects demographics and only permission-scoped data attached to assigned Visits', async () => {
     const plan = { id: 'plan-1', visitId: 'visit-1', name: 'Synthetic plan', stages: [] };
+    db.visit.findMany.mockResolvedValue([{ id: 'visit-1', status: 'EXAMINING' }]);
     db.patient.findFirst.mockResolvedValue({
       id: 'patient-1', fullName: 'Synthetic patient', patientCode: 'SYN-1', dateOfBirth: null, phone: null,
-      visits: [{ id: 'visit-1', treatmentPlans: [plan] }],
+      hasActiveTreatmentRelationship: true,
+      visits: [{ id: 'visit-1', employeeId: 'employee-1', treatmentPlans: [plan] }],
     });
     const repository = new PrismaEmrRepository();
 
@@ -139,18 +148,14 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
     });
 
     expect(result?.treatmentPlans).toEqual([plan]);
+    expect(result?.hasActiveTreatmentRelationship).toBe(true);
     expect(db.patient.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'patient-1', visits: { some: { employeeId: 'employee-1' } } },
       select: expect.objectContaining({
         dateOfBirth: true,
         phone: true,
         visits: expect.objectContaining({
-          where: { employeeId: 'employee-1' },
-          select: expect.objectContaining({
-            prescriptions: expect.any(Object),
-            orders: expect.any(Object),
-            treatmentPlans: expect.any(Object),
-          }),
+          select: expect.objectContaining({ medicalRecord: expect.any(Object) }),
         }),
       }),
     }));
@@ -159,14 +164,32 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
     expect(query.select).not.toHaveProperty('histories');
   });
 
-  it('reads examination data only for a session-linked, active account assigned to that Visit', async () => {
-    const visit = { id: 'visit-1', patientId: 'patient-1', medicalRecord: null };
-    tx.visit.findFirst.mockResolvedValue(visit);
+  it('includes read-only history for another provider only while this doctor has an active Visit', async () => {
+    db.visit.findMany.mockResolvedValue([{ id: 'assigned-visit', status: 'EXAMINING' }]);
+    db.patient.findFirst.mockResolvedValue({
+      id: 'patient-1', visits: [
+        { id: 'assigned-visit', employeeId: 'employee-1', status: 'EXAMINING', medicalRecord: { visitId: 'assigned-visit' } },
+        { id: 'history-visit', employeeId: 'employee-2', status: 'COMPLETED', medicalRecord: { visitId: 'history-visit' } },
+      ],
+    });
     const repository = new PrismaEmrRepository();
 
-    await expect(repository.getAssignedVisitForEmployee('visit-1', ACTOR, { prescriptions: false, treatmentPlans: false, clinicalOrders: true })).resolves.toEqual(visit);
+    const result = await repository.getPatientFullEMRForEmployee('patient-1', 'employee-1');
+    const visitQuery = db.patient.findFirst.mock.calls[0][0].select.visits;
 
-    expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable' });
+    expect(result?.hasActiveTreatmentRelationship).toBe(true);
+    expect(visitQuery).not.toHaveProperty('where');
+    expect(visitQuery.select.medicalRecord).toEqual(expect.any(Object));
+  });
+
+  it('reads examination data only for a session-linked, active account assigned to that Visit', async () => {
+    const visit = { id: 'visit-1', patientId: 'patient-1', medicalRecord: null, status: 'EXAMINING' };
+    tx.visit.findFirst.mockResolvedValue({ ...visit, status: 'EXAMINING' });
+    const repository = new PrismaEmrRepository();
+
+    await expect(repository.getAssignedVisitForEmployee('visit-1', ACTOR, { prescriptions: false, treatmentPlans: false, clinicalOrders: true }, ['Bác sĩ'])).resolves.toEqual(visit);
+
+    expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
     expect(tx.refreshToken.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: 'session-1', accountId: 'account-1', revokedAt: null, expiresAt: expect.any(Object) }),
     }));
@@ -194,7 +217,7 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
 
     await expect(repository.saveMedicalRecord('visit-1', ACTOR, WRITE_ROLES, { notes: 'Synthetic' }, null)).resolves.toEqual(expected);
 
-    expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable' });
+    expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
     expect(tx.refreshToken.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: 'session-1', accountId: 'account-1', revokedAt: null }),
     }));
@@ -222,6 +245,30 @@ describe('PrismaEmrRepository access scope and MedicalRecord concurrency', () =>
     await expect(repository.saveMedicalRecord('visit-2', ACTOR, WRITE_ROLES, { notes: 'Synthetic' }, null)).rejects.toThrow('EMR access denied');
     expect(tx.medicalRecord.create).not.toHaveBeenCalled();
     expect(tx.medicalRecord.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows only notes on RESULT_READY and rejects writes to COMPLETED Visits', async () => {
+    const repository = new PrismaEmrRepository();
+    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1', status: 'RESULT_READY', medicalRecord: null });
+    tx.medicalRecord.create.mockResolvedValue({ visitId: 'visit-1', preliminaryDiagnosis: '', finalDiagnosis: '', notes: 'Supplement' });
+
+    await expect(repository.saveMedicalRecord('visit-1', ACTOR, WRITE_ROLES, { notes: 'Supplement' }, null)).resolves.toMatchObject({
+      visitId: 'visit-1', preliminaryDiagnosis: '', finalDiagnosis: '', notes: 'Supplement',
+    });
+    expect(tx.medicalRecord.create).toHaveBeenCalledWith({
+      data: { visitId: 'visit-1', preliminaryDiagnosis: '', finalDiagnosis: '', notes: 'Supplement' },
+    });
+
+    vi.clearAllMocks();
+    db.$transaction.mockImplementation(async (callback: (transaction: typeof tx) => unknown) => callback(tx));
+    tx.refreshToken.findFirst.mockResolvedValue({ id: 'session-1' });
+    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1', status: 'RESULT_READY', medicalRecord: null });
+    await expect(repository.saveMedicalRecord('visit-1', ACTOR, WRITE_ROLES, { finalDiagnosis: 'Changed' }, null)).rejects.toThrow('EMR access denied');
+    expect(tx.medicalRecord.create).not.toHaveBeenCalled();
+
+    tx.visit.findFirst.mockResolvedValue({ id: 'visit-1', status: 'COMPLETED', medicalRecord: null });
+    await expect(repository.saveMedicalRecord('visit-1', ACTOR, WRITE_ROLES, { notes: 'Blocked' }, null)).rejects.toThrow('EMR access denied');
+    expect(tx.medicalRecord.create).not.toHaveBeenCalled();
   });
 
   it('updates only when the persisted fields still match the loaded snapshot', async () => {

@@ -201,11 +201,11 @@ describe('AuthorizationService', () => {
   const actor = {
     accountId: 'account-1', username: 'doctor.test', employeeId: 'employee-1', employeeName: 'Synthetic Doctor',
     sessionId: 'session-1',
-    roleNames: ['Bác sĩ da liễu'],
-    rolePermissions: [{ roleName: 'Bác sĩ da liễu', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
+    roleNames: ['Bác sĩ'],
+    rolePermissions: [{ roleName: 'Bác sĩ', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
   };
 
-  it('allows a dermatologist with same-role DB permission only for the assigned Visit', () => {
+  it('allows the canonical doctor role with same-role DB permission only for the assigned Visit', () => {
     expect(authorization.can({ actor, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-1' })).toBe(true);
     expect(authorization.can({ actor, permissionCode: 'EMR_WRITE', visitEmployeeId: 'employee-1' })).toBe(true);
     expect(authorization.can({ actor, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-2' })).toBe(false);
@@ -213,32 +213,43 @@ describe('AuthorizationService', () => {
     expect(authorization.can({ actor: { ...actor, employeeId: null }, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-1' })).toBe(false);
   });
 
-  it('enforces approved read-only roles and denies unapproved roles', () => {
-    const resident = {
-      ...actor, roleNames: ['Bác sĩ nội trú'],
-      rolePermissions: [{ roleName: 'Bác sĩ nội trú', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
+  it('denies legacy physician and unapproved role names', () => {
+    const legacyRole = {
+      ...actor, roleNames: ['Bác sĩ da liễu'],
+      rolePermissions: [{ roleName: 'Bác sĩ da liễu', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
     };
     const receptionist = {
       ...actor, roleNames: ['Lễ tân'],
       rolePermissions: [{ roleName: 'Lễ tân', permissionCodes: ['EMR_READ', 'EMR_WRITE'] }],
     };
 
-    expect(authorization.can({ actor: resident, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-1' })).toBe(true);
-    expect(authorization.can({ actor: resident, permissionCode: 'EMR_WRITE', visitEmployeeId: 'employee-1' })).toBe(false);
+    expect(authorization.can({ actor: legacyRole, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-1' })).toBe(false);
+    expect(authorization.can({ actor: legacyRole, permissionCode: 'EMR_WRITE', visitEmployeeId: 'employee-1' })).toBe(false);
     expect(authorization.can({ actor: receptionist, permissionCode: 'EMR_WRITE', visitEmployeeId: 'employee-1' })).toBe(false);
   });
 
   it('does not combine a physician role with a permission granted through another role', () => {
     const mixedRoles = {
       ...actor,
-      roleNames: ['Bác sĩ nội trú', 'Lễ tân'],
+      roleNames: ['Bác sĩ', 'Lễ tân'],
       rolePermissions: [
-        { roleName: 'Bác sĩ nội trú', permissionCodes: ['EMR_READ'] },
+        { roleName: 'Bác sĩ', permissionCodes: ['EMR_READ'] },
         { roleName: 'Lễ tân', permissionCodes: ['EMR_WRITE'] },
       ],
     };
 
     expect(authorization.can({ actor: mixedRoles, permissionCode: 'EMR_READ', visitEmployeeId: 'employee-1' })).toBe(true);
     expect(authorization.can({ actor: mixedRoles, permissionCode: 'EMR_WRITE', visitEmployeeId: 'employee-1' })).toBe(false);
+  });
+
+  it('applies the Visit status policy and requires a live treatment relationship for cross-provider history', () => {
+    expect(authorization.canWriteVisit(actor, 'employee-1', 'EXAMINING')).toBe(true);
+      expect(authorization.canWriteVisit(actor, 'employee-1', 'IN_PROGRESS')).toBe(true);
+    expect(authorization.canWriteVisit(actor, 'employee-1', 'COMPLETED')).toBe(false);
+    expect(authorization.canSupplementVisit(actor, 'employee-1', 'RESULT_READY')).toBe(true);
+      expect(authorization.canSupplementVisit(actor, 'employee-1', 'WAITING_RESULT')).toBe(true);
+    expect(authorization.canSupplementVisit(actor, 'employee-1', 'WAITING')).toBe(false);
+    expect(authorization.canReadPatientHistory(actor, true)).toBe(true);
+    expect(authorization.canReadPatientHistory(actor, false)).toBe(false);
   });
 });

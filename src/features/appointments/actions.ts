@@ -30,13 +30,17 @@ function localDateBounds(dateValue?: string) {
   return { date: value, startAt, endAt };
 }
 
+function localDateValue(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export async function getDoctorDashboard(input: { date?: string } = {}) {
   if (!isLocalDashboardTestEnvironment()) {
     return { success: false as const, code: 'UNAVAILABLE' as const, error: 'Dashboard chưa được bật cho môi trường dữ liệu hiện tại.' };
   }
 
-  const dateBounds = localDateBounds(input.date);
-  if (!dateBounds) {
+  const requestedDate = input.date?.trim();
+  if (requestedDate && !localDateBounds(requestedDate)) {
     return { success: false as const, code: 'INVALID_DATE' as const, error: 'Ngày lọc không hợp lệ.' };
   }
 
@@ -49,6 +53,9 @@ export async function getDoctorDashboard(input: { date?: string } = {}) {
       return { success: false as const, code: 'ACCESS_DENIED' as const, error: 'Tài khoản không có quyền xem dashboard bác sĩ.' };
     }
 
+    // The queue is always limited to the selected day; the initial view means today.
+    const dateBounds = localDateBounds(requestedDate || localDateValue(new Date()));
+    if (!dateBounds) return { success: false as const, code: 'INVALID_DATE' as const, error: 'Ngày lọc không hợp lệ.' };
     const data = await service.getDoctorDashboardSnapshot(actor.employeeId, dateBounds.startAt, dateBounds.endAt);
     return { success: true as const, data, selectedDate: dateBounds.date, employeeName: actor.employeeName, asOf: new Date().toISOString() };
   } catch {

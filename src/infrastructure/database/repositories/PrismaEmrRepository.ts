@@ -7,6 +7,8 @@ import type {
 } from '@/server/repositories/IEmrRepository';
 import { prisma } from '@/infrastructure/database/prisma';
 
+const ACTIVE_VISIT_STATUSES = ['REGISTERED', 'PAID', 'WAITING', 'EXAMINING', 'IN_PROGRESS', 'WAITING_CLS', 'RESULT_READY', 'WAITING_RESULT', 'PRESCRIBED'];
+
 export class PrismaEmrRepository implements IEmrRepository {
   private async findAuthorizedTreatmentImages(
     patientId: string,
@@ -206,6 +208,14 @@ export class PrismaEmrRepository implements IEmrRepository {
       clinicalOrders: false,
     },
   ) {
+    const assignedVisits = await prisma.visit.findMany({
+      where: { patientId, employeeId },
+      select: { id: true, status: true },
+    });
+    if (!assignedVisits.length) return null;
+    const assignedVisitIds = assignedVisits.map(({ id }) => id);
+    const hasActiveTreatmentRelationship = assignedVisits.some(({ status }) => ACTIVE_VISIT_STATUSES.includes(status));
+
     const patient = await prisma.patient.findFirst({
       where: { id: patientId, visits: { some: { employeeId } } },
       select: {
@@ -215,7 +225,7 @@ export class PrismaEmrRepository implements IEmrRepository {
         dateOfBirth: true,
         phone: true,
         visits: {
-          where: { employeeId },
+          ...(hasActiveTreatmentRelationship ? {} : { where: { employeeId } }),
           select: {
             id: true,
             employeeId: true,
@@ -234,6 +244,7 @@ export class PrismaEmrRepository implements IEmrRepository {
             },
             ...(scope.clinicalOrders ? {
               orders: {
+                where: { visitId: { in: assignedVisitIds } },
                 select: {
                   id: true,
                   type: true,
@@ -249,7 +260,7 @@ export class PrismaEmrRepository implements IEmrRepository {
             } : {}),
             ...(scope.prescriptions ? {
               prescriptions: {
-                where: { employeeId },
+                where: { employeeId, visitId: { in: assignedVisitIds } },
                 select: {
                   id: true,
                   employeeId: true,
@@ -267,7 +278,7 @@ export class PrismaEmrRepository implements IEmrRepository {
             } : {}),
             ...(scope.treatmentPlans ? {
               treatmentPlans: {
-                where: { patientId },
+                where: { patientId, visitId: { in: assignedVisitIds } },
                 select: {
                   id: true,
                   visitId: true,
@@ -304,6 +315,7 @@ export class PrismaEmrRepository implements IEmrRepository {
     if (!patient) return null;
     return {
       ...patient,
+      hasActiveTreatmentRelationship,
       treatmentPlans: scope.treatmentPlans
         ? patient.visits.flatMap((visit) => visit.treatmentPlans ?? [])
         : [],
@@ -318,7 +330,9 @@ export class PrismaEmrRepository implements IEmrRepository {
       treatmentPlans: false,
       clinicalOrders: false,
     },
+    allowedRoleNames: string[] = [],
   ) {
+    if (!allowedRoleNames.length) return null;
     const now = new Date();
     const requiredReadPermissions = [
       'EMR_READ',
@@ -341,6 +355,7 @@ export class PrismaEmrRepository implements IEmrRepository {
                 some: {
                   role: {
                     is: {
+                      name: { in: allowedRoleNames },
                       AND: requiredReadPermissions.map((code) => ({
                         permissions: { some: { permission: { is: { code } } } },
                       })),
@@ -365,7 +380,7 @@ export class PrismaEmrRepository implements IEmrRepository {
               account: {
                 is: {
                   status: 'ACTIVE',
-                  roles: { some: { role: { is: { permissions: { some: { permission: { is: { code: 'EMR_READ' } } } } } } } },
+                  roles: { some: { role: { is: { name: { in: allowedRoleNames }, permissions: { some: { permission: { is: { code: 'EMR_READ' } } } } } } } },
                 },
               },
             },
@@ -374,6 +389,7 @@ export class PrismaEmrRepository implements IEmrRepository {
         select: {
           id: true,
           patientId: true,
+          employeeId: true,
           visitDate: true,
           status: true,
           patient: { select: { id: true, patientCode: true, fullName: true, dateOfBirth: true, phone: true } },
@@ -390,7 +406,7 @@ export class PrismaEmrRepository implements IEmrRepository {
                 orderedBy: { select: { fullName: true } },
                 service: { select: { code: true, name: true } },
                 labResults: { select: { id: true, testName: true, result: true, unit: true } },
-                imagingResults: { select: { id: true, imagingType: true, conclusion: true } },
+                imagingResults: { select: { id: true, imagingType: true, conclusion: true, fileUrl: true } },
               },
               orderBy: { orderedAt: 'desc' as const },
             },
@@ -458,19 +474,39 @@ export class PrismaEmrRepository implements IEmrRepository {
               },
             },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            status: true,
+            medicalRecord: { select: { id: true } },
+          },
         });
         if (!authorizedVisit) throw new Error('EMR access denied.');
 
+        const isExamining = authorizedVisit.status === 'EXAMINING' || authorizedVisit.status === 'IN_PROGRESS';
+        const isResultReady = authorizedVisit.status === 'RESULT_READY' || authorizedVisit.status === 'WAITING_RESULT';
+        if (!isExamining && !isResultReady) throw new Error('EMR access denied.');
+
+        if (isResultReady) {
+          const diagnosisChanged = expected
+            ? (input.preliminaryDiagnosis !== undefined && input.preliminaryDiagnosis !== (expected.preliminaryDiagnosis ?? '')) ||
+              (input.finalDiagnosis !== undefined && input.finalDiagnosis !== (expected.finalDiagnosis ?? ''))
+            : Boolean(input.preliminaryDiagnosis?.trim() || input.finalDiagnosis?.trim());
+          if (diagnosisChanged) throw new Error('EMR access denied.');
+        }
+
         if (expected === null) {
-          return tx.medicalRecord.create({
+          const created = await tx.medicalRecord.create({
             data: {
               visitId,
-              preliminaryDiagnosis: input.preliminaryDiagnosis ?? '',
-              finalDiagnosis: input.finalDiagnosis ?? '',
+              preliminaryDiagnosis: isResultReady ? '' : input.preliminaryDiagnosis ?? '',
+              finalDiagnosis: isResultReady ? '' : input.finalDiagnosis ?? '',
               notes: input.notes ?? '',
             },
           });
+          await tx.auditLog.create({
+            data: { accountId: actor.accountId, action: 'MEDICAL_RECORD_CREATED', entity: 'MedicalRecord', entityId: created.id },
+          });
+          return created;
         }
 
         const result = await tx.medicalRecord.updateMany({
@@ -487,6 +523,9 @@ export class PrismaEmrRepository implements IEmrRepository {
 
         const updated = await tx.medicalRecord.findUnique({ where: { visitId } });
         if (!updated) throw new Error('Không tìm thấy bệnh án sau khi cập nhật.');
+        await tx.auditLog.create({
+          data: { accountId: actor.accountId, action: 'MEDICAL_RECORD_UPDATED', entity: 'MedicalRecord', entityId: updated.id },
+        });
         return updated;
       }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 15_000 });
     } catch (error) {

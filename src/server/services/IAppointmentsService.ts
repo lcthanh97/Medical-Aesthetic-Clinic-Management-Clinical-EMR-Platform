@@ -7,5 +7,6 @@ export interface IAppointmentsService {
   create(input: Prisma.AppointmentUncheckedCreateInput): Promise<Appointment>;
   update(id: string, input: Prisma.AppointmentUpdateInput): Promise<Appointment>;
   delete(id: string): Promise<Appointment>;
+  getLatestDoctorActivityDate(employeeId: string): Promise<Date | null>;
   getDoctorDashboardSnapshot(employeeId: string, startAt: Date, endAt: Date): Promise<DoctorDashboardSnapshot>;
 }

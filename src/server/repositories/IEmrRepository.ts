@@ -43,7 +43,7 @@ export interface IEmrRepository {
   create(input: any): Promise<any>;
   update(id: string, input: any): Promise<any>;
   getPatientFullEMRForEmployee(patientId: string, employeeId: string, scope?: EmrRelatedReadScope): Promise<any | null>;
-  getAssignedVisitForEmployee(visitId: string, actor: EmrActorScope, scope?: EmrRelatedReadScope): Promise<any | null>;
+  getAssignedVisitForEmployee(visitId: string, actor: EmrActorScope, scope?: EmrRelatedReadScope, allowedRoleNames?: string[]): Promise<any | null>;
   getTreatmentImageTimelineForEmployee(
     patientId: string,
     actor: EmrActorScope,

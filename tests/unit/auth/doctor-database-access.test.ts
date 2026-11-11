@@ -3,6 +3,7 @@ import type { AuthActor } from '@/server/services/AuthService';
 import {
   isDoctorDemoWriteAllowed,
   isDoctorDemoMedicalRecordWriteAllowed,
+  isDoctorEmrReadEnvironment,
   isDoctorReadEnvironment,
   isNeonPrescriptionDemoWriter,
   isNeonPrescriptionDemoWriteEnvironment,
@@ -61,10 +62,11 @@ describe('doctor database access guard', () => {
     expect(isDoctorReadEnvironment()).toBe(false);
   });
 
-  it('never enables the Neon doctor mode under NODE_ENV=production', () => {
+  it('allows only the verified Neon doctor read environment in production, never the test branch', () => {
     setNeonEnvironment();
     vi.stubEnv('NODE_ENV', 'production');
-    expect(isDoctorReadEnvironment()).toBe(false);
+    expect(isDoctorReadEnvironment()).toBe(true);
+    expect(isDoctorEmrReadEnvironment()).toBe(true);
   });
 
   it('limits Neon writes to the configured demo account, employee, role, and Visit', () => {

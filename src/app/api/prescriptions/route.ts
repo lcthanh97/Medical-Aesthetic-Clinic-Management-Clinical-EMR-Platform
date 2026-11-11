@@ -9,6 +9,7 @@ import {
   isDoctorReadEnvironment,
   isLocalDoctorTestDatabase,
   isNeonPrescriptionDemoWriter,
+  isNeonPrescriptionDemoVisitAllowed,
   isNeonPrescriptionDemoWriteEnvironment,
 } from '@/server/policies/DoctorDatabaseAccess';
 
@@ -71,7 +72,7 @@ async function requireActor(request: NextRequest) {
 
 function mayWritePrescriptionForVisit(actor: NonNullable<Awaited<ReturnType<typeof auth.getSession>>>, visitId: string) {
   return isNeonPrescriptionDemoWriteEnvironment()
-    ? isNeonPrescriptionDemoWriter(actor)
+    ? isNeonPrescriptionDemoVisitAllowed(actor, visitId)
     : isDoctorDemoWriteAllowed(actor, visitId);
 }
 
@@ -89,7 +90,9 @@ export async function GET(request: NextRequest) {
     if (resource === 'medicines') return json({ success: true, data: await controller.getMedicines(session.actor, { q }) });
     const id = query.get('id');
     if (id) return json({ success: true, data: await controller.getById(session.actor, id) });
-    return json({ success: true, data: await controller.getList(session.actor, { q }) });
+    const data = await controller.getList(session.actor, { q });
+    data.canWrite = data.canWrite && (isLocalDoctorTestDatabase() || isNeonPrescriptionDemoWriter(session.actor));
+    return json({ success: true, data });
   } catch (error) {
     return handleError(error);
   }

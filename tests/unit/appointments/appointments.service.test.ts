@@ -272,6 +272,7 @@ describe('AppointmentsService - Tích hợp Service & Repository', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      findLatestDoctorActivityDate: vi.fn(),
       findDoctorDashboardSnapshot: vi.fn(),
     };
     service = new AppointmentsService(mockRepository);
