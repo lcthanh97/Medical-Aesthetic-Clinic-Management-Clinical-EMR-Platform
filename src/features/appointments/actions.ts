@@ -72,6 +72,42 @@ export async function getAppointmentsMetadata() {
   }
 }
 
+export async function getAppointmentsForDate(dateStr: string) {
+  try {
+    const { prisma } = await import('@/infrastructure/database/prisma');
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Vùng đệm bao quát mọi múi giờ (+- 14h) để đảm bảo quét trọn vẹn ngày dateStr
+    const startUtc = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    startUtc.setHours(startUtc.getHours() - 14);
+    const endUtc = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+    endUtc.setHours(endUtc.getHours() + 14);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        scheduledAt: {
+          gte: startUtc,
+          lte: endUtc,
+        },
+        status: {
+          not: 'CANCELLED',
+        },
+      },
+      include: {
+        employee: true,
+        room: true,
+        patient: true,
+      },
+      orderBy: {
+        scheduledAt: 'asc',
+      },
+    });
+
+    return { success: true, data: appointments };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function createCustomerAppointment(input: {
   fullName: string;
   phone: string;
