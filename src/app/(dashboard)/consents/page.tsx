@@ -1,5 +1,2 @@
-import { redirect } from 'next/navigation';
-
-export default function ConsentsRedirectPage() {
-  redirect('/letan/consents');
-}
+import { ConsentsPanel } from '@/features/consents';
+export default function Page(){return <main><h1>Consents</h1><ConsentsPanel /></main>}

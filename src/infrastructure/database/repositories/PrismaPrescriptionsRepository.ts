@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/infrastructure/database/prisma';
 import type { PrescriptionItemInput } from '@/features/prescriptions/schemas/prescriptions.schema';
 import type { IPrescriptionsRepository } from '@/server/repositories/IPrescriptionsRepository';
-import { PRESCRIPTION_DRAFT_TEST_STATUS } from '@/server/services/PrescriptionsService';
+import { PRESCRIPTION_DRAFT_STATUS } from '@/server/services/PrescriptionsService';
 
 const prescriptionSelect = {
   id: true,
@@ -114,7 +114,7 @@ export class PrismaPrescriptionsRepository implements IPrescriptionsRepository {
         data: {
           visitId,
           employeeId,
-          status: PRESCRIPTION_DRAFT_TEST_STATUS,
+          status: PRESCRIPTION_DRAFT_STATUS,
           items: {
             create: items.map((item) => ({
               medicineId: item.medicineId,
@@ -140,7 +140,7 @@ export class PrismaPrescriptionsRepository implements IPrescriptionsRepository {
         where: {
           id,
           employeeId,
-          status: PRESCRIPTION_DRAFT_TEST_STATUS,
+          status: PRESCRIPTION_DRAFT_STATUS,
           visit: { is: { employeeId } },
         },
         select: { id: true },

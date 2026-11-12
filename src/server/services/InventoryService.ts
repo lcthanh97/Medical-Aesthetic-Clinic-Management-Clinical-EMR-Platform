@@ -1,4 +1,4 @@
-import type { IInventoryRepository } from '@/server/repositories/IInventoryRepository';
+﻿import type { IInventoryRepository } from '@/server/repositories/IInventoryRepository';
 import type { IInventoryService } from './IInventoryService';
 import { Prisma } from '@prisma/client';
 import type {

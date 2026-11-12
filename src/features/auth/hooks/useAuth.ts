@@ -41,7 +41,15 @@ export function useAuth() {
 
   const login = useCallback(async (username: string, password: string) => {
     setError(null);
-    const result = await authApi.login(username, password);
+    let result;
+    try {
+      result = await authApi.login(username, password);
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+        throw new Error('Đăng nhập quá thời gian chờ. Dịch vụ dữ liệu có thể đang khởi động; vui lòng thử lại.');
+      }
+      throw cause;
+    }
     if (result.success && result.user) setUser(result.user);
     else setError(result.error ?? 'Tên đăng nhập hoặc mật khẩu không đúng.');
     return result.success;

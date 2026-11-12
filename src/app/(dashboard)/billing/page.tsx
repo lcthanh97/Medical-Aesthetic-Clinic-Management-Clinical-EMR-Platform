@@ -1,5 +1,2 @@
-import { redirect } from 'next/navigation';
-
-export default function BillingRedirectPage() {
-  redirect('/letan/billing');
-}
+import { BillingPanel } from '@/features/billing';
+export default function Page(){return <main><h1>Billing</h1><BillingPanel /></main>}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,7 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
   const [visitFilterId, setVisitFilterId] = useState(initialVisitId ?? '');
   const [items, setItems] = useState<DraftItem[]>([blankItem()]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isIssuing, setIsIssuing] = useState(false);
   const [isCompletingVisit, setIsCompletingVisit] = useState(false);
   const submitLock = useRef(false);
 
@@ -96,6 +97,23 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
     } finally {
       setIsSaving(false);
       submitLock.current = false;
+    }
+  };
+
+  const issueSelected = async () => {
+    if (!selected?.canEdit || isIssuing) return;
+    const confirmed = window.confirm('Phát hành đơn thuốc và trừ chính xác số lượng thuốc khỏi tồn kho? Hành động này không thể hoàn tác tại đây.');
+    if (!confirmed) return;
+    setError(null);
+    setIsIssuing(true);
+    try {
+      await prescriptionsApi.issue(selected.id);
+      setSelected({ ...selected, status: 'ISSUED', canEdit: false });
+      await load(search || undefined);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể phát hành đơn thuốc.');
+    } finally {
+      setIsIssuing(false);
     }
   };
 
@@ -242,7 +260,7 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
         </aside>
         <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4 rounded-lg border border-[#cfe0f3] bg-[#edf5ff] p-3 text-sm leading-6 text-[#235f9e]" role="note">
-            Dữ liệu thuốc lấy từ danh mục đang hoạt động. MED-01 chỉ lưu đơn nháp; chưa hỗ trợ phát hành, duyệt đơn, rà soát tương tác hoặc cập nhật tồn kho.
+            Đơn nháp chưa trừ kho. Khi bác sĩ phát hành, hệ thống kiểm tra Visit được phân công và tồn thuốc; nếu hợp lệ sẽ trừ kho và ghi lịch sử xuất kho cùng giao dịch.
           </div>
           {selectedAssignedVisit && <div className="mb-4 grid gap-3 rounded-xl border border-[#e1e9f2] bg-white p-4 sm:grid-cols-3 sm:items-center">
             <div><p className="text-xs text-slate-500">Bệnh nhân</p><p className="font-semibold text-[#20334b]">{selectedAssignedVisit.patient.fullName}</p><p className="text-xs text-slate-500">{selectedAssignedVisit.patient.patientCode}</p></div>
@@ -307,7 +325,7 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
             <div className="flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setIsEditorOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Hủy</button>
               <button type="submit" disabled={isSaving || (!editingId && !visits.length)} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? 'Đang lưu…' : editingId ? 'Lưu thay đổi' : 'Lưu đơn nháp'}</button>
-              <button type="button" disabled title="Phát hành chưa được hỗ trợ trong MED-01" className="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-500">Phát hành đơn thuốc</button>
+              <span className="self-center text-xs text-slate-500">Lưu đơn nháp trước khi phát hành.</span>
             </div>
           </form>
         </section>
@@ -325,6 +343,7 @@ export function PrescriptionsPanel({ initialVisitId }: { initialVisitId?: string
             <div className="flex gap-2">
               <button type="button" onClick={() => window.print()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">In đơn</button>
               {selected.canEdit && <button type="button" onClick={() => void openEdit(selected)} className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white">Sửa nháp</button>}
+              {selected.canEdit && <button type="button" disabled={isIssuing} onClick={() => void issueSelected()} className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">{isIssuing ? 'Đang phát hành…' : 'Phát hành & trừ kho'}</button>}
             </div>
           </div>
           <div className="mt-4 overflow-x-auto print:hidden">

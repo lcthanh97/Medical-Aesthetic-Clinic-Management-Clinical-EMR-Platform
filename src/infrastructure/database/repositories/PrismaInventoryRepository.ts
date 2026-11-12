@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   IInventoryRepository,
   CompleteSessionDeductInventoryInput,
   DeductInventoryResult
@@ -412,10 +412,23 @@ export class PrismaInventoryRepository implements IInventoryRepository {
     const now = new Date();
     const absoluteSessionStart = new Date(now.getTime() - 8 * 60 * 60 * 1000);
     const conditions: Prisma.Sql[] = [
-      Prisma.sql`v."employeeId" = ${actor.employeeId}`,
+      ...(actor.isAdmin ? [] : [Prisma.sql`v."employeeId" = ${actor.employeeId}`]),
       Prisma.sql`(ts."stepId" IS NULL OR step.id IS NOT NULL)`,
       Prisma.sql`((tc."medicineId" IS NOT NULL AND tc."supplyId" IS NULL) OR (tc."medicineId" IS NULL AND tc."supplyId" IS NOT NULL))`,
-      Prisma.sql`EXISTS (
+      actor.isAdmin ? Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "RefreshToken" rt
+        JOIN "Account" account ON account.id = rt."accountId"
+        JOIN "AccountRole" account_role ON account_role."accountId" = account.id
+        JOIN "Role" actor_role ON actor_role.id = account_role."roleId"
+        WHERE rt.id = ${actor.sessionId}
+          AND rt."accountId" = ${actor.accountId}
+          AND rt."revokedAt" IS NULL
+          AND rt."expiresAt" > ${now}
+          AND rt."createdAt" > ${absoluteSessionStart}
+          AND account.status = 'ACTIVE'
+          AND actor_role.name IN ('Quản trị hệ thống', 'ADMIN', 'ADMINISTRATOR')
+      )` : Prisma.sql`EXISTS (
         SELECT 1
         FROM "RefreshToken" rt
         JOIN "Account" account ON account.id = rt."accountId"
@@ -461,6 +474,19 @@ export class PrismaInventoryRepository implements IInventoryRepository {
       LEFT JOIN "Medicine" medicine ON medicine.id = tc."medicineId"
       LEFT JOIN "Supply" supply ON supply.id = tc."supplyId"
       JOIN "Employee" recorder ON recorder.id = tc."recordedById"
+      LEFT JOIN LATERAL (
+        SELECT sum(material."plannedQuantity") AS "plannedQuantity"
+        FROM "ProtocolStageTemplate" protocol_stage
+        JOIN "ProtocolStepTemplate" protocol_step ON protocol_step."stageTemplateId" = protocol_stage.id
+        JOIN "ProtocolStepMaterial" material ON material."stepTemplateId" = protocol_step.id
+        WHERE protocol_stage."protocolId" = plan."protocolTemplateId"
+          AND protocol_stage."orderNo" = stage."orderNo"
+          AND protocol_step."orderNo" = step."orderNo"
+          AND protocol_step."procedureId" = step."procedureId"
+          AND material.unit = tc.unit
+          AND ((tc."medicineId" IS NOT NULL AND material."medicineId" = tc."medicineId")
+            OR (tc."supplyId" IS NOT NULL AND material."supplyId" = tc."supplyId"))
+      ) standard ON true
     `;
     const where = Prisma.join(conditions, ' AND ');
 
@@ -481,7 +507,9 @@ export class PrismaInventoryRepository implements IInventoryRepository {
             CASE WHEN tc."medicineId" IS NOT NULL THEN 'MEDICINE' ELSE 'SUPPLY' END AS "itemType",
             COALESCE(medicine.name, supply.name) AS "itemName",
             tc."actualQuantity"::text AS "actualQuantity",
-            tc."plannedQuantity"::text AS "plannedQuantity",
+            COALESCE(tc."plannedQuantity", standard."plannedQuantity")::text AS "plannedQuantity",
+            CASE WHEN COALESCE(tc."plannedQuantity", standard."plannedQuantity") IS NULL THEN NULL
+              ELSE (COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text END AS "plannedCost",
             tc.unit,
             tc."unitCost"::text AS "unitCost",
             tc."totalCost"::text AS "totalCost",
@@ -492,21 +520,23 @@ export class PrismaInventoryRepository implements IInventoryRepository {
           ORDER BY tc."createdAt" DESC, tc.id DESC
           LIMIT ${pageSize + 1} OFFSET ${page * pageSize}
         `),
-        tx.$queryRaw<Array<{ totalRows: string; totalActualQuantity: string; totalCost: string }>>(Prisma.sql`
+        tx.$queryRaw<Array<{ totalRows: string; totalActualQuantity: string; totalPlannedCost: string | null; totalCost: string }>>(Prisma.sql`
           SELECT
             count(*)::text AS "totalRows",
             COALESCE(sum(tc."actualQuantity"), 0)::text AS "totalActualQuantity",
+            sum(COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text AS "totalPlannedCost",
             COALESCE(sum(tc."totalCost"), 0)::text AS "totalCost"
           ${fromAndJoins}
           WHERE ${where}
         `),
-        tx.$queryRaw<Array<{ itemType: 'MEDICINE' | 'SUPPLY'; itemId: string; itemName: string; unit: string; actualQuantity: string; totalCost: string; lineCount: string }>>(Prisma.sql`
+        tx.$queryRaw<Array<{ itemType: 'MEDICINE' | 'SUPPLY'; itemId: string; itemName: string; unit: string; actualQuantity: string; plannedCost: string | null; totalCost: string; lineCount: string }>>(Prisma.sql`
           SELECT
             CASE WHEN tc."medicineId" IS NOT NULL THEN 'MEDICINE' ELSE 'SUPPLY' END AS "itemType",
             COALESCE(tc."medicineId", tc."supplyId") AS "itemId",
             COALESCE(medicine.name, supply.name) AS "itemName",
             tc.unit,
             sum(tc."actualQuantity")::text AS "actualQuantity",
+            sum(COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text AS "plannedCost",
             sum(tc."totalCost")::text AS "totalCost",
             count(*)::text AS "lineCount"
           ${fromAndJoins}
@@ -515,7 +545,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
           ORDER BY COALESCE(medicine.name, supply.name) ASC
         `),
       ]);
-      const totals = summary[0] ?? { totalRows: '0', totalActualQuantity: '0', totalCost: '0' };
+      const totals = summary[0] ?? { totalRows: '0', totalActualQuantity: '0', totalPlannedCost: null, totalCost: '0' };
       return {
         rows: rows.slice(0, pageSize).map((row) => ({
           ...row,
@@ -533,6 +563,7 @@ export class PrismaInventoryRepository implements IInventoryRepository {
           itemName: String(row.itemName),
           actualQuantity: String(row.actualQuantity),
           plannedQuantity: row.plannedQuantity === null ? null : String(row.plannedQuantity),
+          plannedCost: row.plannedCost === null ? null : String(row.plannedCost),
           unit: String(row.unit),
           unitCost: String(row.unitCost),
           totalCost: String(row.totalCost),
@@ -545,11 +576,13 @@ export class PrismaInventoryRepository implements IInventoryRepository {
           itemName: item.itemName,
           unit: item.unit,
           actualQuantity: item.actualQuantity,
+          plannedCost: item.plannedCost,
           totalCost: item.totalCost,
           lineCount: Number(item.lineCount),
         })),
         totalRows: Number(totals.totalRows),
         totalActualQuantity: totals.totalActualQuantity,
+        totalPlannedCost: totals.totalPlannedCost,
         totalCost: totals.totalCost,
         page,
         pageSize,

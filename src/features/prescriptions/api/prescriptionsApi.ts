@@ -52,4 +52,7 @@ export const prescriptionsApi = {
   update(id: string, input: PrescriptionUpdateInput) {
     return request<PrescriptionView>(`/api/prescriptions?${query({ id })}`, { method: 'PUT', body: JSON.stringify(input) });
   },
+  issue(prescriptionId: string) {
+    return request<{ status: string }>('/api/prescriptions/issue', { method: 'POST', body: JSON.stringify({ prescriptionId }) });
+  },
 };

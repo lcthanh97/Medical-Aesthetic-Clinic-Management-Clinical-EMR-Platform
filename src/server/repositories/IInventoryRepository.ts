@@ -1,4 +1,4 @@
-import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
+﻿import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
 
 export interface ConsumeItemInput {
   type: 'MEDICINE' | 'SUPPLY';
@@ -49,7 +49,7 @@ export type TreatmentConsumptionReportFilters = {
   page?: number;
 };
 
-export type InventoryReportActor = { accountId: string; employeeId: string; sessionId: string };
+export type InventoryReportActor = { accountId: string; employeeId: string | null; sessionId: string; isAdmin?: boolean };
 
 export type TreatmentConsumptionReportRow = {
   id: string;
@@ -68,6 +68,7 @@ export type TreatmentConsumptionReportRow = {
   plannedQuantity: string | null;
   quantityVariance: string | null;
   variancePercent: string | null;
+  plannedCost: string | null;
   unit: string;
   unitCost: string;
   totalCost: string;
@@ -83,11 +84,13 @@ export type TreatmentConsumptionReportData = {
     itemName: string;
     unit: string;
     actualQuantity: string;
+    plannedCost: string | null;
     totalCost: string;
     lineCount: number;
   }>;
   totalRows: number;
   totalActualQuantity: string;
+  totalPlannedCost: string | null;
   totalCost: string;
   page: number;
   pageSize: number;

@@ -1,12 +1,7 @@
 node_modules
 .next
-.next-doctor-*
 .env
 coverage
 *.log
 *.tsbuildinfo
-*.db
-*.db-journal
 
-.env.development.local
-.env.production.local

@@ -1,5 +1,2 @@
-import { redirect } from 'next/navigation';
-
-export default function ReceptionRedirectPage() {
-  redirect('/letan/reception');
-}
+import { ReceptionPanel } from '@/features/reception';
+export default function Page(){return <main><h1>Reception</h1><ReceptionPanel /></main>}

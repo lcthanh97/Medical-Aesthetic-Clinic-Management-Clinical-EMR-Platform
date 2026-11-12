@@ -13,7 +13,7 @@ import type {
 
 export const PRESCRIPTION_READ = 'PRESCRIPTION_READ';
 export const PRESCRIPTION_WRITE = 'PRESCRIPTION_WRITE';
-export const PRESCRIPTION_DRAFT_TEST_STATUS = 'DRAFT';
+export const PRESCRIPTION_DRAFT_STATUS = 'DRAFT';
 
 export function hasPrescriptionPermission(actor: AuthActor, permissionCode: string): boolean {
   if (!actor.accountId || !actor.employeeId || !actor.sessionId) return false;
@@ -56,7 +56,7 @@ export class PrescriptionsService implements IPrescriptionsService {
     const record = await this.repository.findByIdForEmployee(id, actor.employeeId);
     if (!record) throw new Error('PRESCRIPTION_NOT_FOUND');
     const canEdit = record.employeeId === actor.employeeId &&
-      record.status === PRESCRIPTION_DRAFT_TEST_STATUS &&
+      record.status === PRESCRIPTION_DRAFT_STATUS &&
       hasPrescriptionWriteRole(actor);
     return PrescriptionsMapper.toView(record, canEdit);
   }
@@ -67,7 +67,7 @@ export class PrescriptionsService implements IPrescriptionsService {
     return {
       prescriptions: records.map((record) => {
         const canEdit = record.employeeId === actor.employeeId &&
-          record.status === PRESCRIPTION_DRAFT_TEST_STATUS &&
+          record.status === PRESCRIPTION_DRAFT_STATUS &&
           hasPrescriptionPermission(actor, PRESCRIPTION_WRITE);
         return PrescriptionsMapper.toView(record, canEdit);
       }),
