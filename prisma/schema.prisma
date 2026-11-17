@@ -71,6 +71,7 @@ model AuditLog {
   ipAddress String?
   createdAt DateTime @default(now())
   account   Account? @relation(fields: [accountId], references: [id])
+  metadata Json?
 }
 
 // 2. CƠ SỞ & NHÂN SỰ
@@ -123,6 +124,8 @@ model Employee {
   treatmentConsumptions TreatmentConsumption[]
   inventoryTransactions InventoryTransaction[]
   consentsSigned        SignedConsent[]             @relation("ConsentSignedByEmployee")
+  followUpPlans FollowUpPlan[] @relation("FollowUpDoctor")
+  aftercareTemplates AftercareTemplate[] @relation("AftercareTemplateOwner")
 }
 
 model WorkSchedule {
@@ -147,6 +150,7 @@ model Patient {
   visits         Visit[]
   treatmentPlans TreatmentPlan[]
   consents       SignedConsent[]  @relation("ConsentSignedByPatient")
+  followUpPlans FollowUpPlan[]
 }
 
 model Allergy {
@@ -183,6 +187,9 @@ model Appointment {
   employee         Employee?         @relation(fields: [employeeId], references: [id])
   service          ServiceCatalog?   @relation(fields: [serviceId], references: [id])
   treatmentSession TreatmentSession? @relation(fields: [treatmentSessionId], references: [id])
+  followUpPlanId String?
+  followUpPlan FollowUpPlan? @relation(fields: [followUpPlanId], references: [id], onDelete: SetNull)
+  @@index([followUpPlanId])
 }
 
 model Visit {
@@ -207,6 +214,7 @@ model Visit {
   equipmentUsages   EquipmentUsage[]
   consents          SignedConsent[]
   interactionAlerts InteractionAlert[]
+  followUpPlan FollowUpPlan?
 }
 
 model MedicalRecord {
@@ -453,6 +461,7 @@ model TreatmentSession {
   images          TreatmentImage[]
   equipmentUsages EquipmentUsage[]
   appointments    Appointment[]
+  followUpPlans FollowUpPlan[]
 }
 
 model TreatmentImage {
@@ -785,6 +794,10 @@ model Notification {
   scheduledAt DateTime?
 
   deliveries NotificationDelivery[]
+  followUpPlanId String?
+  followUpPlan FollowUpPlan? @relation(fields: [followUpPlanId], references: [id], onDelete: SetNull)
+  dedupeKey String? @unique
+  @@index([followUpPlanId])
 }
 
 model NotificationDelivery {
@@ -798,4 +811,81 @@ model NotificationDelivery {
   errorMessage      String?
 
   notification Notification @relation(fields: [notificationId], references: [id])
+}
+
+enum FollowUpDecision {
+  SCHEDULED
+  NOT_NEEDED
+  ON_SYMPTOMS
+}
+
+enum FollowUpStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+enum FollowUpPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum AftercareTemplateScope {
+  PERSONAL
+  DEPARTMENT
+  CLINIC
+}
+
+model FollowUpPlan {
+  id String @id @default(cuid())
+  visitId String @unique
+  patientId String
+  doctorId String
+  decision FollowUpDecision
+  status FollowUpStatus @default(DRAFT)
+  targetDate DateTime?
+  windowDays Int?
+  priority FollowUpPriority @default(NORMAL)
+  reason String?
+  preparation String?
+  homeCare String?
+  avoid String?
+  warningSigns String?
+  patientMessage String?
+  hideDiagnosis Boolean @default(true)
+  templateId String?
+  templateVersion Int?
+  treatmentSessionId String?
+  version Int @default(1)
+  cancelReason String?
+  confirmedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  visit Visit @relation(fields: [visitId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor Employee @relation("FollowUpDoctor", fields: [doctorId], references: [id])
+  template AftercareTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  treatmentSession TreatmentSession? @relation(fields: [treatmentSessionId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+  notifications Notification[]
+
+  @@index([doctorId, status])
+  @@index([targetDate])
+}
+
+model AftercareTemplate {
+  id String @id @default(cuid())
+  name String
+  scope AftercareTemplateScope
+  appliesTo String?
+  homeCare String?
+  avoid String?
+  warningSigns String?
+  version Int @default(1)
+  isActive Boolean @default(true)
+  ownerId String?
+  createdAt DateTime @default(now())
+  owner Employee? @relation("AftercareTemplateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  followUpPlans FollowUpPlan[]
 }
