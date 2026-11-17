@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { 
@@ -8,7 +8,8 @@ import {
   createSupply, 
   updateSupply, 
   deleteSupply,
-  getInventoryTransactions
+  getInventoryTransactions,
+  getTreatmentConsumptionReport,
 } from '../actions';
 import { 
   Package, 
@@ -39,13 +40,43 @@ export function InventoryPanel({
   equipments: any[],
   transactions?: any[]
 }) {
-  const [activeTab, setActiveTab] = useState<'medicines' | 'supplies' | 'transactions'>('medicines');
+  const [activeTab, setActiveTab] = useState<'medicines' | 'supplies' | 'transactions' | 'treatment-costs'>('medicines');
   const [medicines, setMedicines] = useState(initialMedicines);
   const [supplies, setSupplies] = useState(initialSupplies);
   const [transactions, setTransactions] = useState(initialTransactions);
   const [isRefreshingTx, setIsRefreshingTx] = useState(false);
-  const [txTypeFilter, setTxTypeFilter] = useState<'ALL' | 'TREATMENT_USAGE' | 'IMPORT' | 'EXPORT'>('ALL');
+  const [txTypeFilter, setTxTypeFilter] = useState<'ALL' | 'TREATMENT_USAGE' | 'PRESCRIPTION_ISSUE' | 'IMPORT' | 'EXPORT'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [report, setReport] = useState<any>(null);
+  const [reportError, setReportError] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportSessionId, setReportSessionId] = useState('');
+  const [reportPlanId, setReportPlanId] = useState('');
+  const [reportFrom, setReportFrom] = useState('');
+  const [reportTo, setReportTo] = useState('');
+  const [reportPage, setReportPage] = useState(0);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  const loadTreatmentConsumptionReport = async (page = reportPage) => {
+    setReportLoading(true);
+    setReportError('');
+    try {
+      const result = await getTreatmentConsumptionReport({
+        sessionId: reportSessionId,
+        planId: reportPlanId,
+        from: reportFrom,
+        to: reportTo,
+        search: searchTerm,
+        page,
+      });
+      if (result.success) setReport(result.data);
+      else setReportError(result.error);
+    } catch {
+      setReportError('Không thể tải báo cáo tiêu hao lúc này.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   // State cho Thêm mới (Form ở trên)
   const [showAddForm, setShowAddForm] = useState(false);
@@ -200,6 +231,24 @@ export function InventoryPanel({
 
     return matchesSearch && matchesFilter;
   });
+
+  const reportCases = Object.values((report?.rows ?? []).reduce((groups: Record<string, any>, row: any) => {
+    const group = groups[row.sessionId] ??= { sessionId: row.sessionId, sessionNo: row.sessionNo, patientName: row.patientName, patientCode: row.patientCode, planId: row.planId, planName: row.planName, visitId: row.visitId, rows: [], plannedCost: 0, hasPlannedCost: false, actualCost: 0 };
+    group.rows.push(row);
+    group.actualCost += Number(row.totalCost) || 0;
+    if (row.plannedCost !== null && row.plannedCost !== undefined) {
+      group.plannedCost += Number(row.plannedCost) || 0;
+      group.hasPlannedCost = true;
+    }
+    return groups;
+  }, {}));
+  const formatVnd = (amount: number | null) => amount === null ? 'Chưa có định mức' : `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(amount)} ₫`;
+  const formatQuantity = (value: string | number, maximumFractionDigits = 6) => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue)
+      ? new Intl.NumberFormat('vi-VN', { maximumFractionDigits }).format(numericValue)
+      : String(value);
+  };
 
   const renderTable = (data: any[], type: 'medicines' | 'supplies') => (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -421,6 +470,8 @@ export function InventoryPanel({
           ) : filteredTransactions.map((tx: any) => {
             const isTreatmentUsage = tx.transactionType === 'TREATMENT_USAGE' || tx.transactionType === 'TREATMENT_USE';
             const isImport = tx.transactionType === 'IMPORT';
+            const isPrescriptionIssue = tx.transactionType === 'PRESCRIPTION_ISSUE';
+            const isStockDeduction = isTreatmentUsage || isPrescriptionIssue;
             const itemName = tx.medicine?.name || tx.supply?.name || 'Mặt hàng';
             const isMedicine = !!tx.medicine;
             const formattedDate = tx.createdAt 
@@ -445,6 +496,10 @@ export function InventoryPanel({
                   {isTreatmentUsage ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
                       <ArrowDownRight size={12} className="text-purple-600" /> Trừ kho điều trị
+                    </span>
+                  ) : isPrescriptionIssue ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                      <ArrowDownRight size={12} className="text-blue-600" /> Trừ kho theo đơn thuốc
                     </span>
                   ) : isImport ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -472,9 +527,9 @@ export function InventoryPanel({
                 {/* Số lượng */}
                 <td className="py-3 px-4 text-center whitespace-nowrap">
                   <span className={`inline-flex items-center font-bold px-2 py-0.5 rounded text-xs ${
-                    isTreatmentUsage ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
+                    isStockDeduction ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
                   }`}>
-                    {isTreatmentUsage ? '-' : '+'}{tx.quantity} {tx.unit}
+                    {isStockDeduction ? '-' : '+'}{tx.quantity} {tx.unit}
                   </span>
                 </td>
 
@@ -498,7 +553,7 @@ export function InventoryPanel({
                   <div className="space-y-0.5">
                     {tx.referenceId && (
                       <div className="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
-                        <FileText size={11} /> Ca điều trị: #{tx.referenceId.slice(0, 8)}
+                        <FileText size={11} /> {isPrescriptionIssue ? 'Đơn thuốc' : 'Ca điều trị'}: #{tx.referenceId.slice(0, 8)}
                       </div>
                     )}
                     <div className="truncate text-gray-600" title={tx.notes || ''}>
@@ -551,6 +606,13 @@ export function InventoryPanel({
         >
           <History size={16} /> Lịch sử xuất nhập & Trừ kho ({transactions.length})
         </button>
+        <button
+          type="button"
+          onClick={() => { setActiveTab('treatment-costs'); setShowAddForm(false); setEditingId(null); void loadTreatmentConsumptionReport(0); setReportPage(0); }}
+          className={`flex-1 py-4 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeTab === 'treatment-costs' ? 'text-amber-700 border-b-2 border-amber-600 bg-white shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <FileText size={16} /> Định mức & Giá vốn
+        </button>
       </div>
 
       <div className="p-6">
@@ -563,7 +625,9 @@ export function InventoryPanel({
                 type="text" 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder={
+                placeholder={activeTab === 'treatment-costs'
+                  ? 'Tìm theo tên/mã bệnh nhân hoặc thuốc/vật tư'
+                  :
                   activeTab === 'transactions' 
                     ? 'Tìm thuốc, vật tư, ca, người thực hiện...' 
                     : `Tìm kiếm ${activeTab === 'medicines' ? 'thuốc' : 'vật tư'}...`
@@ -581,6 +645,7 @@ export function InventoryPanel({
                 >
                   <option value="ALL">Tất cả biến động</option>
                   <option value="TREATMENT_USAGE">Chỉ trừ kho ca điều trị</option>
+                  <option value="PRESCRIPTION_ISSUE">Trừ kho theo đơn thuốc</option>
                   <option value="IMPORT">Nhập kho</option>
                   <option value="EXPORT">Xuất kho</option>
                 </select>
@@ -596,9 +661,14 @@ export function InventoryPanel({
                 </button>
               </div>
             )}
+            {activeTab === 'treatment-costs' && (
+              <button type="button" onClick={() => { setReportPage(0); void loadTreatmentConsumptionReport(0); }} disabled={reportLoading} className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50" title="Làm mới báo cáo">
+                <RefreshCw size={16} className={reportLoading ? 'animate-spin' : ''} />
+              </button>
+            )}
           </div>
 
-          {activeTab !== 'transactions' && (
+          {activeTab !== 'transactions' && activeTab !== 'treatment-costs' && (
             <button 
               type="button"
               onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); }}
@@ -612,7 +682,7 @@ export function InventoryPanel({
         </div>
 
         {/* Form Thêm mới (Chỉ hiển thị khi nhấn '+ Thêm mới' ở tab thuốc/vật tư) */}
-        {showAddForm && activeTab !== 'transactions' && (
+        {showAddForm && activeTab !== 'transactions' && activeTab !== 'treatment-costs' && (
           <div className="mb-8 p-5 bg-gray-50 border border-gray-200 rounded-xl relative animate-in fade-in slide-in-from-top-4 shadow-sm">
             <button 
               type="button" 
@@ -660,6 +730,61 @@ export function InventoryPanel({
         {activeTab === 'medicines' && renderTable(filteredMedicines, 'medicines')}
         {activeTab === 'supplies' && renderTable(filteredSupplies, 'supplies')}
         {activeTab === 'transactions' && renderTransactionsTable()}
+        {activeTab === 'treatment-costs' && (
+          <section className="space-y-5" aria-label="Định mức và giá vốn điều trị">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">Chi phí theo ca điều trị</h2>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Định mức & Giá vốn</span>
+            </header>
+
+            <form className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-gray-50/70 p-4 md:grid-cols-5" onSubmit={(event) => { event.preventDefault(); setReportPage(0); void loadTreatmentConsumptionReport(0); }}>
+              <label className="text-xs font-medium text-gray-600">Mã ca điều trị<input value={reportSessionId} onChange={(event) => setReportSessionId(event.target.value)} placeholder="Tất cả ca" className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" maxLength={128} /></label>
+              <label className="text-xs font-medium text-gray-600">Mã phác đồ<input value={reportPlanId} onChange={(event) => setReportPlanId(event.target.value)} placeholder="Tất cả phác đồ" className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" maxLength={128} /></label>
+              <label className="text-xs font-medium text-gray-600">Từ ngày<input type="date" value={reportFrom} onChange={(event) => setReportFrom(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
+              <label className="text-xs font-medium text-gray-600">Đến ngày<input type="date" value={reportTo} onChange={(event) => setReportTo(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
+              <div className="flex items-end"><button type="submit" disabled={reportLoading} className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">Áp dụng bộ lọc</button></div>
+            </form>
+
+            {reportError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{reportError}</div>}
+            {reportLoading && <div role="status" className="flex items-center gap-2 py-8 text-sm text-gray-600"><Loader2 className="animate-spin" size={18} />Đang tải báo cáo…</div>}
+            {!reportLoading && report && (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div className="text-xs font-medium text-gray-500">Số dòng tiêu hao</div><strong className="mt-1 block text-lg text-gray-900">{report.totalRows}</strong></article>
+                  <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div className="text-xs font-medium text-gray-500">Định mức nguyên liệu</div><strong className="mt-1 block text-lg text-gray-900">{report.totalPlannedCost !== null ? formatVnd(Number(report.totalPlannedCost)) : 'Chưa có dữ liệu'}</strong></article>
+                  <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div className="text-xs font-medium text-gray-500">Giá vốn thực tế</div><strong className="mt-1 block text-lg text-gray-900">{formatVnd(Number(report.totalCost))}</strong></article>
+                </div>
+
+                {report.rows.length === 0 ? <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">Không có dòng tiêu hao trong phạm vi được phép hoặc bộ lọc hiện tại.</div> : (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                    <table className="w-full min-w-[900px] text-left text-sm">
+                      <thead className="border-b border-gray-200 bg-gray-50/80 font-medium text-gray-600"><tr><th className="px-4 py-3">Ca điều trị / bệnh nhân</th><th className="px-4 py-3">Phác đồ</th><th className="px-4 py-3">Định mức</th><th className="px-4 py-3">Thực tế</th><th className="px-4 py-3">Chênh lệch</th><th className="px-4 py-3">Chi tiết</th></tr></thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {reportCases.map((treatmentCase: any) => {
+                          const plannedCost = treatmentCase.hasPlannedCost ? treatmentCase.plannedCost : null;
+                          const variance = plannedCost === null ? null : treatmentCase.actualCost - plannedCost;
+                          const expanded = expandedSessionId === treatmentCase.sessionId;
+                          return <React.Fragment key={treatmentCase.sessionId}>
+                            <tr className="transition-colors hover:bg-blue-50/30">
+                              <td className="px-4 py-3 font-medium text-gray-800">Ca #{treatmentCase.sessionNo}<div className="mt-1 text-xs font-normal text-gray-500">{treatmentCase.patientName} · {treatmentCase.patientCode}</div><div className="text-xs font-normal text-gray-500">Visit {treatmentCase.visitId}</div></td>
+                              <td className="px-4 py-3 text-gray-700">{treatmentCase.planName}<div className="mt-1 text-xs text-gray-500">{treatmentCase.planId}</div></td>
+                              <td className="px-4 py-3 font-medium text-gray-700">{formatVnd(plannedCost)}</td>
+                              <td className="px-4 py-3 font-medium text-gray-700">{formatVnd(treatmentCase.actualCost)}</td>
+                              <td className={`px-4 py-3 font-semibold ${variance === null ? 'text-gray-500' : variance > 0 ? 'text-rose-700' : variance < 0 ? 'text-emerald-700' : 'text-gray-700'}`}>{variance === null ? 'Chưa đủ dữ liệu' : `${variance > 0 ? '+' : ''}${formatVnd(variance)}`}</td>
+                              <td className="px-4 py-3"><button type="button" onClick={() => setExpandedSessionId(expanded ? null : treatmentCase.sessionId)} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50">{expanded ? 'Thu gọn' : `Xem ${treatmentCase.rows.length} dòng`}</button></td>
+                            </tr>
+                            {expanded && <tr><td colSpan={6} className="bg-gray-50 p-4"><div className="overflow-x-auto rounded-xl border border-gray-200 bg-white"><table className="min-w-full text-left text-sm"><thead className="border-b border-gray-200 bg-gray-50/80 text-xs font-medium text-gray-600"><tr><th className="px-4 py-3">Thuốc / vật tư</th><th className="px-4 py-3">Định mức</th><th className="px-4 py-3">Thực tế dùng</th><th className="px-4 py-3">Đơn giá vốn</th><th className="px-4 py-3">Chi phí định mức</th><th className="px-4 py-3">Chi phí thực tế</th><th className="px-4 py-3">Ghi nhận bởi</th></tr></thead><tbody className="divide-y divide-gray-100">{treatmentCase.rows.map((row: any) => <tr key={row.id} className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-800">{row.itemName}<div className="mt-1 text-xs font-normal text-gray-500">{row.itemType}</div></td><td className="px-4 py-3 text-gray-700">{row.plannedQuantity === null ? 'Chưa có' : formatQuantity(row.plannedQuantity)} {row.plannedQuantity === null ? '' : row.unit}</td><td className="px-4 py-3 text-gray-700">{formatQuantity(row.actualQuantity)} {row.unit}<div className="mt-1 text-xs text-gray-500">{row.quantityVariance === null ? 'Chưa đủ dữ liệu so sánh' : `Lệch ${formatQuantity(row.quantityVariance)} (${formatQuantity(row.variancePercent, 2)}%)`}</div></td><td className="px-4 py-3 text-gray-700">{formatVnd(Number(row.unitCost))}</td><td className="px-4 py-3 text-gray-700">{row.plannedCost ? formatVnd(Number(row.plannedCost)) : 'Chưa có'}</td><td className="px-4 py-3 text-gray-700">{formatVnd(Number(row.totalCost))}</td><td className="px-4 py-3 text-gray-700">{row.recordedBy}<div className="mt-1 text-xs text-gray-500">{new Date(row.createdAt).toLocaleString('vi-VN')}</div></td></tr>)}</tbody></table></div></td></tr>}
+                          </React.Fragment>;
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm text-gray-600"><span>Trang {report.page + 1} · tối đa {report.pageSize} dòng/trang</span><div className="flex gap-2"><button type="button" disabled={report.page === 0 || reportLoading} onClick={() => { const next = report.page - 1; setReportPage(next); void loadTreatmentConsumptionReport(next); }} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40">Trước</button><button type="button" disabled={(report.page + 1) * report.pageSize >= report.totalRows || reportLoading} onClick={() => { const next = report.page + 1; setReportPage(next); void loadTreatmentConsumptionReport(next); }} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40">Sau</button></div></div>
+              </>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

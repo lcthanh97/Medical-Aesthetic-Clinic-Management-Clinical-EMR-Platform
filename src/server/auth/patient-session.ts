@@ -27,8 +27,16 @@ function decode(token?: string): PatientSession | null {
 }
 export async function getPatientSession() { return decode((await cookies()).get(PATIENT_SESSION_COOKIE)?.value); }
 export async function authenticatePatient(patientCode: string, phone: string) {
+  const code = patientCode.trim();
+  const upperCode = code.toUpperCase();
   const normalizedPhone = phone.replace(/\D/g, '');
-  const patient = await prisma.patient.findUnique({ where: { patientCode: patientCode.trim().toUpperCase() } });
+  if (!code || !normalizedPhone) return null;
+
+  let patient = await prisma.patient.findUnique({ where: { patientCode: code } });
+  if (!patient && code !== upperCode) {
+    patient = await prisma.patient.findUnique({ where: { patientCode: upperCode } });
+  }
+
   if (!patient?.phone || patient.phone.replace(/\D/g, '') !== normalizedPhone) return null;
   return { patientId: patient.id, patientCode: patient.patientCode, fullName: patient.fullName };
 }

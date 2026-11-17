@@ -466,7 +466,7 @@ model TreatmentSession {
 
 model TreatmentImage {
   id           String   @id @default(cuid())
-  planId       String
+  planId       String?
   sessionId    String?
   visitId      String
   imageUrl     String
@@ -478,7 +478,7 @@ model TreatmentImage {
   capturedById String?
   createdAt    DateTime @default(now())
 
-  plan       TreatmentPlan     @relation(fields: [planId], references: [id])
+  plan       TreatmentPlan?    @relation(fields: [planId], references: [id])
   session    TreatmentSession? @relation(fields: [sessionId], references: [id])
   visit      Visit             @relation(fields: [visitId], references: [id])
   capturedBy Employee?         @relation("ImageCapturedBy", fields: [capturedById], references: [id])

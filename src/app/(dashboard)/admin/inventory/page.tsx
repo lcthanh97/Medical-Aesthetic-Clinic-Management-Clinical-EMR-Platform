@@ -9,6 +9,20 @@ export default async function AdminInventoryPage() {
     getInventoryTransactions(100)
   ]);
 
+  const inventoryError = !medRes.success ? medRes.error
+    : !supRes.success ? supRes.error
+      : !txRes.success ? txRes.error
+        : null;
+  if (inventoryError) {
+    return (
+      <main className="space-y-4">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800" role="alert">
+          Không tải được dữ liệu kho từ cơ sở dữ liệu. Dữ liệu vẫn được giữ nguyên. Chi tiết: {inventoryError}
+        </div>
+      </main>
+    );
+  }
+
   const medicines = JSON.parse(JSON.stringify(medRes.success && medRes.data ? medRes.data : []));
   const supplies = JSON.parse(JSON.stringify(supRes.success && supRes.data ? supRes.data : []));
   const equipments = JSON.parse(JSON.stringify(eqRes.success && eqRes.data ? eqRes.data : []));
