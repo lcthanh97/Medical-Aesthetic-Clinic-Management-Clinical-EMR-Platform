@@ -23,6 +23,7 @@ export function PatientDetailView({ patient }: PatientDetailViewProps) {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return 'Chưa cập nhật';
     return d.toLocaleDateString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
