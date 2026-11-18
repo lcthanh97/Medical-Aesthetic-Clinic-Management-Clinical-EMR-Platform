@@ -13,6 +13,8 @@ const consultation = z.object({
   is_urgent: z.boolean(),
   is_dermatology: z.boolean(),
   provider: z.enum(['local', 'gemini']).optional(),
+  // Mã ICD-10 của các mục tri thức đã dùng để trả lời → giao diện hiển thị thẻ bệnh minh họa.
+  references: z.array(z.string().regex(/^[A-Z][0-9]{2}(\.[A-Z0-9]{1,5})?$/)).max(5).optional().catch(undefined),
 })
 
 const windowMs = 10 * 60_000
@@ -31,7 +33,7 @@ function respond(body: object, status = 200) {
   return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 }
 
-async function allowRequest(accountId: string, secret: string) {
+export async function allowRequest(accountId: string, secret: string) {
   const redisUrl = process.env.DERMA_REDIS_URL
   const redisToken = process.env.DERMA_REDIS_TOKEN
   if (redisUrl && redisToken) {
