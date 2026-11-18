@@ -70,7 +70,7 @@ export default async function LetanDashboardPage() {
           [appointments, 'Lịch hẹn hôm nay', CalendarDays],
           [waiting, 'Bệnh nhân chờ khám', Users],
           [invoices, 'Hóa đơn chờ thu', CreditCard],
-          [consents, 'Cam kết đã ký', ClipboardSignature],
+          [consents, 'Cam kết ký hôm nay', ClipboardSignature],
         ].map(([value, label, Icon]: any) => (
           <article key={String(label)} className="rounded-[9px] border border-[#dce5ef] bg-white p-4 shadow-2xs">
             <div className="flex items-center justify-between">
