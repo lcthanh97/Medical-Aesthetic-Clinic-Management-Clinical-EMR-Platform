@@ -108,12 +108,15 @@ export class PrismaClinicalServicesRepository implements IClinicalServicesReposi
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!linkLog || !linkLog.accountId) {
+    // Mã hóa đơn nằm trong nội dung action ("CLS_INVOICE_LINK: Invoice <id>").
+    // Không đọc từ accountId: cột này là khóa ngoại tới Account nên không thể chứa mã hóa đơn.
+    const invoiceId = linkLog?.action.match(/^CLS_INVOICE_LINK: Invoice (\S+)$/)?.[1];
+    if (!invoiceId) {
       return null;
     }
 
     const invoice = await prisma.invoice.findUnique({
-      where: { id: linkLog.accountId },
+      where: { id: invoiceId },
       include: { payments: true },
     });
 
@@ -148,7 +151,8 @@ export class PrismaClinicalServicesRepository implements IClinicalServicesReposi
     return prisma.auditLog.findFirst({
       where: {
         entity,
-        entityId,
+        // entityId rỗng = tra theo action (vd. tìm lệnh CLS từ mã hóa đơn), giống PrismaBillingRepository.
+        entityId: entityId || undefined,
         action: {
           startsWith: actionPrefix,
         },

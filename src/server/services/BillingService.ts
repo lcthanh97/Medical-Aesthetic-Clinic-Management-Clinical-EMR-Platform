@@ -255,7 +255,7 @@ export class BillingService implements IBillingService {
       action: `FINAL_VISIT_INVOICE_LINK: Invoice ${createdInvoice.id}`,
       entity: 'Visit',
       entityId: visitId,
-      accountId: createdInvoice.id,
+      accountId,
     });
 
     // 4. Lưu snapshot bảng kê chi tiết vào AuditLog
@@ -560,7 +560,7 @@ export class BillingService implements IBillingService {
       action: `CLS_INVOICE_LINK: Invoice ${createdInvoice.id}`,
       entity: 'ClinicalOrder',
       entityId: orderId,
-      accountId: createdInvoice.id,
+      accountId,
     });
 
     await this.billingRepository.createAudit({

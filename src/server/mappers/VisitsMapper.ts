@@ -45,7 +45,8 @@ export class VisitsMapper {
       visitType,
       reason,
       receptionNote: receptionNote || null,
-      status: (visit.status as VisitQueueStatus) || 'WAITING',
+      // Bác sĩ ghi IN_PROGRESS khi bắt đầu khám; phía lễ tân hiển thị là EXAMINING.
+      status: (visit.status === 'IN_PROGRESS' ? 'EXAMINING' : visit.status as VisitQueueStatus) || 'WAITING',
       visitDate: d.toISOString(),
       checkInTime,
     };

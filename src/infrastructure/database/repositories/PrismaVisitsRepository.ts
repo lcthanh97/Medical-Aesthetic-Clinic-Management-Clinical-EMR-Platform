@@ -1,6 +1,9 @@
 import { prisma } from '@/infrastructure/database/prisma';
 import type { IVisitsRepository, DirectVisitInput, VisitFilter } from '@/server/repositories/IVisitsRepository';
 
+/** Các trạng thái "đang khám": lễ tân dùng EXAMINING, phân hệ bác sĩ ghi IN_PROGRESS. */
+const EXAMINING_STATUSES = ['EXAMINING', 'IN_PROGRESS'];
+
 export class PrismaVisitsRepository implements IVisitsRepository {
   async createDirectVisit(input: DirectVisitInput): Promise<{ visit: any; queueNumber: number }> {
     return prisma.$transaction(async (tx) => {
@@ -28,6 +31,7 @@ export class PrismaVisitsRepository implements IVisitsRepository {
         data: {
           patientId: input.patientId,
           roomId: input.roomId,
+          employeeId: input.employeeId,
           visitDate: input.visitDate,
           status: input.status,
           medicalRecord: {
@@ -160,11 +164,12 @@ export class PrismaVisitsRepository implements IVisitsRepository {
     }
 
     if (status) {
-      where.status = status;
+      // Phân hệ bác sĩ ghi trạng thái đang khám là IN_PROGRESS; lễ tân lọc theo EXAMINING.
+      where.status = status === 'EXAMINING' ? { in: EXAMINING_STATUSES } : status;
     } else {
       // Mặc định hiển thị các ca đang chờ hoặc đang khám trước
       where.status = {
-        in: ['WAITING', 'EXAMINING', 'COMPLETED', 'CANCELLED'],
+        in: ['WAITING', ...EXAMINING_STATUSES, 'COMPLETED', 'CANCELLED'],
       };
     }
 
@@ -210,7 +215,7 @@ export class PrismaVisitsRepository implements IVisitsRepository {
 
     const totalVisits = visits.length;
     const waitingCount = visits.filter((v) => v.status === 'WAITING').length;
-    const examiningCount = visits.filter((v) => v.status === 'EXAMINING').length;
+    const examiningCount = visits.filter((v) => EXAMINING_STATUSES.includes(v.status)).length;
     const completedCount = visits.filter((v) => v.status === 'COMPLETED').length;
 
     return {
@@ -268,7 +273,7 @@ export class PrismaVisitsRepository implements IVisitsRepository {
           lte: endOfDay,
         },
         status: {
-          in: ['WAITING', 'EXAMINING'],
+          in: ['WAITING', ...EXAMINING_STATUSES],
         },
       },
       include: {

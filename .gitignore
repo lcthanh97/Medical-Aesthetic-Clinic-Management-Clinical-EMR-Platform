@@ -20,3 +20,6 @@ pnpm-workspace.yaml
 .pnpm-debug.log*
 .vercel
 .env*
+
+# Database backups (contain personal data)
+backups/
