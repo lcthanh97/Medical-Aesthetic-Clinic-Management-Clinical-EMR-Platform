@@ -38,6 +38,7 @@ export class VisitsService implements IVisitsService {
     const { visit, queueNumber } = await this.repository.createDirectVisit({
       patientId: dto.patientId,
       roomId: dto.roomId,
+      employeeId: dto.employeeId,
       visitDate,
       status: 'WAITING',
       reason: dto.reason,

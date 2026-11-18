@@ -1,6 +1,10 @@
-import type { IInventoryRepository } from '@/server/repositories/IInventoryRepository';
+﻿import type { IInventoryRepository } from '@/server/repositories/IInventoryRepository';
 import type { IInventoryService } from './IInventoryService';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import type {
+  InventoryReportActor,
+  TreatmentConsumptionReportFilters,
+} from '@/server/repositories/IInventoryRepository';
 
 export class InventoryService implements IInventoryService {
   constructor(private readonly repository: IInventoryRepository) {}
@@ -41,5 +45,28 @@ export class InventoryService implements IInventoryService {
 
   getTreatmentConsumptionsBySessionId(sessionId: string) {
     return this.repository.getTreatmentConsumptionsBySessionId(sessionId);
+  }
+
+  async getTreatmentConsumptionReport(actor: InventoryReportActor, filters: TreatmentConsumptionReportFilters) {
+    const report = await this.repository.getTreatmentConsumptionReport(actor, filters);
+    return {
+      ...report,
+      rows: report.rows.map((row) => {
+        if (row.plannedQuantity === null) {
+          return { ...row, quantityVariance: null, variancePercent: null };
+        }
+        const planned = new Prisma.Decimal(row.plannedQuantity);
+        if (planned.isZero()) {
+          return { ...row, quantityVariance: null, variancePercent: null };
+        }
+        const actual = new Prisma.Decimal(row.actualQuantity);
+        const variance = actual.minus(planned);
+        return {
+          ...row,
+          quantityVariance: variance.toString(),
+          variancePercent: variance.div(planned).mul(100).toString(),
+        };
+      }),
+    };
   }
 }

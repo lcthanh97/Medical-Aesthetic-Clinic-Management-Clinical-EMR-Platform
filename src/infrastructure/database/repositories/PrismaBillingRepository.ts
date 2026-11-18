@@ -243,8 +243,10 @@ export class PrismaBillingRepository implements IBillingRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (linkLog && linkLog.accountId) {
-      return this.findInvoiceById(linkLog.accountId);
+    if (linkLog) {
+      const invoiceId = linkLog.action.match(/^FINAL_VISIT_INVOICE_LINK: Invoice (\S+)$/)?.[1];
+      const invoice = invoiceId ? await this.findInvoiceById(invoiceId) : null;
+      if (invoice?.visitId === visitId) return invoice;
     }
 
     // 2. Fallback: Lấy hóa đơn của visit mà KHÔNG phải là hóa đơn CLS

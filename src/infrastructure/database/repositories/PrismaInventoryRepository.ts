@@ -1,10 +1,15 @@
-import type { 
-  IInventoryRepository, 
-  CompleteSessionDeductInventoryInput, 
-  DeductInventoryResult 
+﻿import type {
+  IInventoryRepository,
+  CompleteSessionDeductInventoryInput,
+  DeductInventoryResult
 } from '@/server/repositories/IInventoryRepository';
 import { prisma } from '@/infrastructure/database/prisma';
-import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
+import { Prisma, type Medicine, type Supply, type Equipment, type EquipmentUsage } from '@prisma/client';
+import type {
+  InventoryReportActor,
+  TreatmentConsumptionRepositoryData,
+  TreatmentConsumptionReportFilters,
+} from '@/server/repositories/IInventoryRepository';
 
 export class PrismaInventoryRepository implements IInventoryRepository {
   // Medicine
@@ -396,5 +401,186 @@ export class PrismaInventoryRepository implements IInventoryRepository {
         minStock: Number(c.supply.minStock)
       } : null
     }));
+  }
+
+  async getTreatmentConsumptionReport(
+    actor: InventoryReportActor,
+    filters: TreatmentConsumptionReportFilters,
+  ): Promise<TreatmentConsumptionRepositoryData> {
+    const pageSize = 50;
+    const page = Math.max(0, Math.min(200, Math.floor(filters.page ?? 0)));
+    const now = new Date();
+    const absoluteSessionStart = new Date(now.getTime() - 8 * 60 * 60 * 1000);
+    const conditions: Prisma.Sql[] = [
+      ...(actor.isAdmin ? [] : [Prisma.sql`v."employeeId" = ${actor.employeeId}`]),
+      Prisma.sql`(ts."stepId" IS NULL OR step.id IS NOT NULL)`,
+      Prisma.sql`((tc."medicineId" IS NOT NULL AND tc."supplyId" IS NULL) OR (tc."medicineId" IS NULL AND tc."supplyId" IS NOT NULL))`,
+      actor.isAdmin ? Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "Account" account
+        JOIN "Employee" actor_employee ON actor_employee."accountId" = account.id
+        WHERE account.id = ${actor.accountId}
+          AND account.status = 'ACTIVE'
+          AND actor_employee.id = ${actor.employeeId}
+      )` : Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "RefreshToken" rt
+        JOIN "Account" account ON account.id = rt."accountId"
+        JOIN "Employee" actor_employee ON actor_employee."accountId" = account.id
+        JOIN "AccountRole" account_role ON account_role."accountId" = account.id
+        JOIN "RolePermission" inventory_role_permission ON inventory_role_permission."roleId" = account_role."roleId"
+        JOIN "Permission" inventory_permission ON inventory_permission.id = inventory_role_permission."permissionId" AND inventory_permission.code = 'INVENTORY_READ'
+        JOIN "RolePermission" treatment_role_permission ON treatment_role_permission."roleId" = account_role."roleId"
+        JOIN "Permission" treatment_permission ON treatment_permission.id = treatment_role_permission."permissionId" AND treatment_permission.code = 'TREATMENT_READ'
+        WHERE rt.id = ${actor.sessionId}
+          AND rt."accountId" = ${actor.accountId}
+          AND rt."revokedAt" IS NULL
+          AND rt."expiresAt" > ${now}
+          AND rt."createdAt" > ${absoluteSessionStart}
+          AND account.status = 'ACTIVE'
+          AND actor_employee.id = ${actor.employeeId}
+      )`,
+    ];
+    if (filters.sessionId) conditions.push(Prisma.sql`ts.id = ${filters.sessionId}`);
+    if (filters.planId) conditions.push(Prisma.sql`plan.id = ${filters.planId}`);
+    if (filters.from) conditions.push(Prisma.sql`tc."createdAt" >= ${new Date(filters.from)}`);
+    if (filters.to) conditions.push(Prisma.sql`tc."createdAt" <= ${new Date(filters.to)}`);
+    if (filters.search) {
+      const pattern = `%${filters.search}%`;
+      conditions.push(Prisma.sql`(
+        medicine.name ILIKE ${pattern}
+        OR supply.name ILIKE ${pattern}
+        OR patient."fullName" ILIKE ${pattern}
+        OR patient."patientCode" ILIKE ${pattern}
+      )`);
+    }
+
+    const fromAndJoins = Prisma.sql`
+      FROM "TreatmentConsumption" tc
+      JOIN "TreatmentSession" ts ON ts.id = tc."sessionId"
+      JOIN "Visit" v ON v.id = ts."visitId"
+      JOIN "Patient" patient ON patient.id = v."patientId"
+      JOIN "TreatmentStage" stage ON stage.id = ts."stageId"
+      JOIN "TreatmentPlan" plan ON plan.id = stage."planId"
+        AND plan."visitId" = ts."visitId"
+        AND plan."patientId" = v."patientId"
+      LEFT JOIN "TreatmentStep" step ON step.id = ts."stepId" AND step."stageId" = ts."stageId"
+      LEFT JOIN "Medicine" medicine ON medicine.id = tc."medicineId"
+      LEFT JOIN "Supply" supply ON supply.id = tc."supplyId"
+      JOIN "Employee" recorder ON recorder.id = tc."recordedById"
+      LEFT JOIN LATERAL (
+        SELECT sum(material."plannedQuantity") AS "plannedQuantity"
+        FROM "ProtocolStageTemplate" protocol_stage
+        JOIN "ProtocolStepTemplate" protocol_step ON protocol_step."stageTemplateId" = protocol_stage.id
+        JOIN "ProtocolStepMaterial" material ON material."stepTemplateId" = protocol_step.id
+        WHERE protocol_stage."protocolId" = plan."protocolTemplateId"
+          AND protocol_stage."orderNo" = stage."orderNo"
+          AND protocol_step."orderNo" = step."orderNo"
+          AND protocol_step."procedureId" = step."procedureId"
+          AND material.unit = tc.unit
+          AND ((tc."medicineId" IS NOT NULL AND material."medicineId" = tc."medicineId")
+            OR (tc."supplyId" IS NOT NULL AND material."supplyId" = tc."supplyId"))
+      ) standard ON true
+    `;
+    const where = Prisma.join(conditions, ' AND ');
+
+    return prisma.$transaction(async (tx) => {
+      const [rows, summary, itemSummaries] = await Promise.all([
+        tx.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
+          SELECT
+            tc.id,
+            tc."sessionId" AS "sessionId",
+            ts."sessionNo" AS "sessionNo",
+            ts."visitId" AS "visitId",
+            patient."patientCode" AS "patientCode",
+            patient."fullName" AS "patientName",
+            plan.id AS "planId",
+            plan.name AS "planName",
+            tc."medicineId" AS "medicineId",
+            tc."supplyId" AS "supplyId",
+            CASE WHEN tc."medicineId" IS NOT NULL THEN 'MEDICINE' ELSE 'SUPPLY' END AS "itemType",
+            COALESCE(medicine.name, supply.name) AS "itemName",
+            tc."actualQuantity"::text AS "actualQuantity",
+            COALESCE(tc."plannedQuantity", standard."plannedQuantity")::text AS "plannedQuantity",
+            CASE WHEN COALESCE(tc."plannedQuantity", standard."plannedQuantity") IS NULL THEN NULL
+              ELSE (COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text END AS "plannedCost",
+            tc.unit,
+            tc."unitCost"::text AS "unitCost",
+            tc."totalCost"::text AS "totalCost",
+            recorder."fullName" AS "recordedBy",
+            tc."createdAt" AS "createdAt"
+          ${fromAndJoins}
+          WHERE ${where}
+          ORDER BY tc."createdAt" DESC, tc.id DESC
+          LIMIT ${pageSize + 1} OFFSET ${page * pageSize}
+        `),
+        tx.$queryRaw<Array<{ totalRows: string; totalActualQuantity: string; totalPlannedCost: string | null; totalCost: string }>>(Prisma.sql`
+          SELECT
+            count(*)::text AS "totalRows",
+            COALESCE(sum(tc."actualQuantity"), 0)::text AS "totalActualQuantity",
+            sum(COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text AS "totalPlannedCost",
+            COALESCE(sum(tc."totalCost"), 0)::text AS "totalCost"
+          ${fromAndJoins}
+          WHERE ${where}
+        `),
+        tx.$queryRaw<Array<{ itemType: 'MEDICINE' | 'SUPPLY'; itemId: string; itemName: string; unit: string; actualQuantity: string; plannedCost: string | null; totalCost: string; lineCount: string }>>(Prisma.sql`
+          SELECT
+            CASE WHEN tc."medicineId" IS NOT NULL THEN 'MEDICINE' ELSE 'SUPPLY' END AS "itemType",
+            COALESCE(tc."medicineId", tc."supplyId") AS "itemId",
+            COALESCE(medicine.name, supply.name) AS "itemName",
+            tc.unit,
+            sum(tc."actualQuantity")::text AS "actualQuantity",
+            sum(COALESCE(tc."plannedQuantity", standard."plannedQuantity") * tc."unitCost")::text AS "plannedCost",
+            sum(tc."totalCost")::text AS "totalCost",
+            count(*)::text AS "lineCount"
+          ${fromAndJoins}
+          WHERE ${where}
+          GROUP BY tc."medicineId", tc."supplyId", medicine.name, supply.name, tc.unit
+          ORDER BY COALESCE(medicine.name, supply.name) ASC
+        `),
+      ]);
+      const totals = summary[0] ?? { totalRows: '0', totalActualQuantity: '0', totalPlannedCost: null, totalCost: '0' };
+      return {
+        rows: rows.slice(0, pageSize).map((row) => ({
+          ...row,
+          id: String(row.id),
+          sessionId: String(row.sessionId),
+          sessionNo: Number(row.sessionNo),
+          visitId: String(row.visitId),
+          patientCode: String(row.patientCode),
+          patientName: String(row.patientName),
+          planId: String(row.planId),
+          planName: String(row.planName),
+          medicineId: row.medicineId === null ? null : String(row.medicineId),
+          supplyId: row.supplyId === null ? null : String(row.supplyId),
+          itemType: row.itemType as 'MEDICINE' | 'SUPPLY',
+          itemName: String(row.itemName),
+          actualQuantity: String(row.actualQuantity),
+          plannedQuantity: row.plannedQuantity === null ? null : String(row.plannedQuantity),
+          plannedCost: row.plannedCost === null ? null : String(row.plannedCost),
+          unit: String(row.unit),
+          unitCost: String(row.unitCost),
+          totalCost: String(row.totalCost),
+          recordedBy: String(row.recordedBy),
+          createdAt: row.createdAt as Date,
+        })),
+        items: itemSummaries.map((item) => ({
+          itemType: item.itemType,
+          itemId: item.itemId,
+          itemName: item.itemName,
+          unit: item.unit,
+          actualQuantity: item.actualQuantity,
+          plannedCost: item.plannedCost,
+          totalCost: item.totalCost,
+          lineCount: Number(item.lineCount),
+        })),
+        totalRows: Number(totals.totalRows),
+        totalActualQuantity: totals.totalActualQuantity,
+        totalPlannedCost: totals.totalPlannedCost,
+        totalCost: totals.totalCost,
+        page,
+        pageSize,
+      };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 }

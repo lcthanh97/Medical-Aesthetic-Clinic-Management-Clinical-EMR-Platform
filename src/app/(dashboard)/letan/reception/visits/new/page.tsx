@@ -1,6 +1,9 @@
 import { WalkInVisitForm } from '@/features/reception/visits';
 import { ArrowLeft, Users } from 'lucide-react';
 import Link from 'next/link';
+import { getReceptionDoctors } from '@/server/auth/reception-doctors';
+import { getStaffSession } from '@/server/auth/staff-session';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +17,9 @@ interface NewVisitPageProps {
 }
 
 export default async function LetanNewVisitPage({ searchParams }: NewVisitPageProps) {
+  if (!await getStaffSession('letan')) redirect('/letan/dang-nhap');
   const { patientId } = await searchParams;
+  const doctors = await getReceptionDoctors();
 
   return (
     <main className="max-w-[1180px] mx-auto text-[#20334b] space-y-5">
@@ -57,7 +62,7 @@ export default async function LetanNewVisitPage({ searchParams }: NewVisitPagePr
       </header>
 
       <div className="pt-1">
-        <WalkInVisitForm initialPatientId={patientId} />
+        <WalkInVisitForm initialPatientId={patientId} doctors={doctors} />
       </div>
     </main>
   );

@@ -3,15 +3,17 @@ import { prisma } from '@/infrastructure/database/prisma';
 import type { Prisma, Appointment } from '@prisma/client';
 
 export class PrismaAppointmentsRepository implements IAppointmentsRepository {
+  constructor(private readonly db: Pick<Prisma.TransactionClient, 'appointment'> = prisma) {}
+
   async findById(id: string): Promise<Appointment | null> {
-    return prisma.appointment.findUnique({
+    return this.db.appointment.findUnique({
       where: { id },
       include: { patient: true, room: true, employee: true, service: true },
     });
   }
 
   async findMany(): Promise<Appointment[]> {
-    return prisma.appointment.findMany({
+    return this.db.appointment.findMany({
       include: { patient: true, room: true, employee: true, service: true },
       orderBy: { scheduledAt: 'desc' },
     });
@@ -22,7 +24,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
     const start = new Date(target.getTime() - windowMinutes * 60 * 1000);
     const end = new Date(target.getTime() + windowMinutes * 60 * 1000);
 
-    return prisma.appointment.findMany({
+    return this.db.appointment.findMany({
       where: {
         scheduledAt: {
           gt: start,
@@ -38,14 +40,14 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
   }
 
   async create(input: Prisma.AppointmentUncheckedCreateInput): Promise<Appointment> {
-    return prisma.appointment.create({
+    return this.db.appointment.create({
       data: input,
       include: { patient: true, room: true, employee: true, service: true },
     });
   }
 
   async update(id: string, input: Prisma.AppointmentUpdateInput): Promise<Appointment> {
-    return prisma.appointment.update({
+    return this.db.appointment.update({
       where: { id },
       data: input,
       include: { patient: true, room: true, employee: true, service: true },
@@ -53,7 +55,7 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
   }
 
   async delete(id: string): Promise<Appointment> {
-    return prisma.appointment.delete({
+    return this.db.appointment.delete({
       where: { id },
     });
   }

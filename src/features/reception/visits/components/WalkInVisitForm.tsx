@@ -11,10 +11,11 @@ import type { PatientItem } from '@/features/reception/types/reception.types';
 
 interface WalkInVisitFormProps {
   initialPatientId?: string;
+  doctors: { id: string; fullName: string }[];
   onSuccess?: (visit: VisitItem) => void;
 }
 
-export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitFormProps) {
+export function WalkInVisitForm({ initialPatientId, doctors, onSuccess }: WalkInVisitFormProps) {
   // Patient search state
   const [patientQuery, setPatientQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PatientItem[]>([]);
@@ -23,6 +24,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
 
   // Form inputs
   const [roomId, setRoomId] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [visitType, setVisitType] = useState('NEW');
   const [reason, setReason] = useState('');
   const [receptionNote, setReceptionNote] = useState('');
@@ -140,6 +142,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
       const res = await visitsApi.createWalkInVisit({
         patientId: selectedPatient.id,
         roomId,
+        employeeId: employeeId || undefined,
         visitType,
         reason: reason.trim(),
         receptionNote: receptionNote.trim() || undefined,
@@ -335,7 +338,7 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
               </select>
             </div>
 
-            {/* 2. Phòng khám - TUYỆT ĐỐI CHỈ CHỌN PHÒNG, KHÔNG CHỌN BÁC SĨ */}
+            {/* 2. Phòng khám */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Phòng khám tiếp nhận <span className="text-rose-500">*</span>
@@ -361,6 +364,14 @@ export function WalkInVisitForm({ initialPatientId, onSuccess }: WalkInVisitForm
               </p>
             </div>
           </div>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            Bác sĩ phụ trách
+            <select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+              <option value="">Chưa phân công</option>
+              {doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.fullName}</option>)}
+            </select>
+          </label>
 
           {/* 3. Lý do khám */}
           <div>

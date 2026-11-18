@@ -1,25 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-clinic-bg: #f4f8fd;
+  --color-clinic-bg: #f8fafc;
   --color-clinic-navy: #0e3a78;
   --color-clinic-navy-dark: #092652;
-  --color-clinic-blue: #185adb;
-  --color-clinic-blue-light: #e8f1fc;
+  --color-clinic-blue: #0284c7;
+  --color-clinic-blue-light: #eff6ff;
+  --color-clinic-teal: #0d9488;
+  --color-clinic-orange: #f97316;
+  --color-clinic-red: #ef4444;
   --color-clinic-card: #ffffff;
   --color-clinic-border: #e2ebf5;
   --color-clinic-muted: #64748b;
   --color-clinic-status-bg: #e6f9f0;
   --color-clinic-status-text: #059669;
+  --font-heading: var(--font-plus-jakarta), "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --font-body: var(--font-inter), "Inter", "Segoe UI", "Noto Sans", sans-serif;
 }
 
 body {
   background-color: var(--color-clinic-bg);
   color: #1e293b;
-  font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+  font-family: var(--font-body);
   font-kerning: normal;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+.font-body {
+  font-family: var(--font-body);
 }
 
 .font-serif {

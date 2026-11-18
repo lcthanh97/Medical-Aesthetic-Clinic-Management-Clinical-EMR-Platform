@@ -28,6 +28,7 @@ describe('InventoryService - Trừ kho tự động theo ca điều trị', () =
       deductInventoryForTreatment: vi.fn(),
       getInventoryTransactions: vi.fn(),
       getTreatmentConsumptionsBySessionId: vi.fn(),
+      getTreatmentConsumptionReport: vi.fn(),
     };
     service = new InventoryService(mockRepository);
   });

@@ -8,6 +8,11 @@ export interface AppointmentConflictCandidate {
   roomId?: string | null;
 }
 
+type ConflictingAppointment = Pick<Appointment, 'id' | 'scheduledAt' | 'status' | 'patientId' | 'employeeId' | 'roomId'> & {
+  room?: { name: string } | null;
+  employee?: { fullName: string } | null;
+};
+
 export class AppointmentsValidator {
   static readonly MIN_GAP_MINUTES = 30;
 
@@ -19,7 +24,7 @@ export class AppointmentsValidator {
    */
   static checkConflict(
     candidate: AppointmentConflictCandidate,
-    existingAppointments: (Appointment & { patient?: any; room?: any; employee?: any })[],
+    existingAppointments: ConflictingAppointment[],
     excludeAppointmentId?: string
   ): string | null {
     const candidateTime = new Date(candidate.scheduledAt).getTime();
@@ -46,6 +51,7 @@ export class AppointmentsValidator {
       // Trùng giờ hoặc khoảng cách nhỏ hơn 30 phút (< 30 minutes)
       if (diffMs < minGapMs) {
         const timeStr = new Date(appt.scheduledAt).toLocaleTimeString('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
           hour: '2-digit',
           minute: '2-digit',
           day: '2-digit',

@@ -1,3 +1,4 @@
+import { getStaffSession } from '@/server/auth/staff-session';
 import { NextRequest, NextResponse } from 'next/server';
 import { visitsController } from '@/server/common/container';
 
@@ -6,6 +7,9 @@ interface RouteProps {
 }
 
 export async function PATCH(req: NextRequest, props: RouteProps) {
+  if (!await getStaffSession('letan')) {
+    return Response.json({ success: false, message: 'Yêu cầu đăng nhập nhân viên.' }, { status: 401 });
+  }
   try {
     const { visitId } = await props.params;
     let body = {};

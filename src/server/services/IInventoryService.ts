@@ -1,7 +1,12 @@
-import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
+﻿import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
 import type { 
   CompleteSessionDeductInventoryInput, 
   DeductInventoryResult 
+} from '@/server/repositories/IInventoryRepository';
+import type {
+  InventoryReportActor,
+  TreatmentConsumptionReportData,
+  TreatmentConsumptionReportFilters,
 } from '@/server/repositories/IInventoryRepository';
 
 export interface IInventoryService {
@@ -32,6 +37,10 @@ export interface IInventoryService {
 
   // Auto Deduct Inventory for Treatment
   deductInventoryForTreatment(input: CompleteSessionDeductInventoryInput): Promise<DeductInventoryResult>;
+  getTreatmentConsumptionReport(
+    actor: InventoryReportActor,
+    filters: TreatmentConsumptionReportFilters
+  ): Promise<TreatmentConsumptionReportData>;
   getInventoryTransactions(limit?: number): Promise<any[]>;
   getTreatmentConsumptionsBySessionId(sessionId: string): Promise<any[]>;
 }

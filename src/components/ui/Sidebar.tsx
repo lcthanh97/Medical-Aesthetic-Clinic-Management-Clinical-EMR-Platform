@@ -78,6 +78,7 @@ export const ROLE_GROUPS: RoleGroup[] = [
     badge: 'Hệ thống',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     items: [
+      { href: '/admin/reports', icon: CreditCard, label: 'Báo cáo thống kê', description: 'Báo cáo & phân tích số liệu' },
       { href: '/admin/inventory', icon: Package, label: 'Kho dược & Vật tư', description: 'Quản lý thuốc & thiết bị' },
       { href: '/admin/administration', icon: Settings, label: 'Quản trị phòng khám', description: 'Phân quyền & Cấu hình' },
       { href: '/admin/audit', icon: ShieldAlert, label: 'Nhật ký hệ thống', description: 'Audit logs' },
@@ -209,6 +210,7 @@ export function Sidebar() {
       { href: '/letan', icon: LayoutDashboard, label: 'Tổng quan lễ tân' },
       { href: '/letan/reception', icon: Users, label: 'Tiếp đón bệnh nhân' },
       { href: '/letan/appointments', icon: CalendarDays, label: 'Quản lý lịch hẹn' },
+      { href: '/letan/follow-ups', icon: CalendarDays, label: 'Tái khám' },
       { href: '/letan/billing', icon: CreditCard, label: 'Thanh toán & viện phí' },
       { href: '/letan/consents', icon: ClipboardSignature, label: 'Biểu mẫu & cam kết' },
     ]
@@ -221,6 +223,9 @@ export function Sidebar() {
   }
 
   if (pathname?.startsWith('/admin')) {
+    const showReportLinks = pathname === '/admin/reports'
+      || pathname?.startsWith('/admin/reports/')
+      || pathname?.startsWith('/admin/finance-report')
     const adminItems = [
       { href: '/admin', icon: LayoutDashboard, label: 'Tổng quan quản trị' },
       { href: '/admin/inventory', icon: Package, label: 'Kho dược & vật tư' },
@@ -233,7 +238,7 @@ export function Sidebar() {
     return <aside className="hidden h-screen w-[224px] shrink-0 flex-col border-r border-amber-100 bg-[#fffaf0] px-[14px] pb-5 pt-[26px] text-[#473616] md:flex">
       <Link href="/admin" className="flex items-center gap-2.5 px-2"><span className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-amber-500 text-xl font-semibold text-white">+</span><span><strong className="block text-[18px] leading-5">Clinic EMR</strong><small className="text-[9px] font-semibold text-amber-700">QUẢN TRỊ HỆ THỐNG</small></span></Link>
       <p className="mb-3 mt-6 px-2 text-[10px] font-semibold tracking-wide text-[#8b7957]">VẬN HÀNH & CẤU HÌNH</p>
-      <nav className="space-y-1.5">{adminItems.map(item=>{const active=item.href==='/admin'?pathname==='/admin':pathname.startsWith(item.href);return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-amber-100 font-semibold text-amber-900':'hover:bg-white/80'}`}><item.icon size={17}/><span>{item.label}</span></Link>})}</nav>
+      <nav className="space-y-1.5">{adminItems.map(item=>{const active=item.href==='/admin'?pathname==='/admin':item.href==='/admin/reports'?showReportLinks:pathname.startsWith(item.href);return <div key={item.href}><Link href={item.href} className={`flex h-11 items-center gap-2.5 rounded-[7px] px-2.5 text-[12px] ${active?'bg-amber-100 font-semibold text-amber-900':'hover:bg-white/80'}`}><item.icon size={17}/><span>{item.label}</span></Link>{item.href==='/admin/reports' && showReportLinks && <div className="ml-4 space-y-1 border-l border-amber-200 py-1 pl-2">{[{href:'/admin/finance-report',label:'Báo cáo tài chính'},{href:'/admin/reports/treatment',label:'Báo cáo điều trị'}].map(child=>{const childActive=pathname.startsWith(child.href);return <Link key={child.href} href={child.href} className={`flex h-9 items-center rounded-[7px] px-2 text-[11px] ${childActive?'bg-amber-100 font-semibold text-amber-900':'text-[#6b5b3b] hover:bg-white/80'}`}>{child.label}</Link>})}</div>}</div>})}</nav>
       <div className="mt-auto rounded-[10px] bg-white p-3 text-[10px]"><strong className="block text-[11px]">Phiên quản trị viên</strong><span className="mt-1 block text-[#8b7957]">Chỉ hiển thị nghiệp vụ quản trị</span><span className="mt-2 block text-emerald-600">● Đã xác thực</span><form action="/api/staff-auth/logout?portal=admin" method="post"><button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-amber-200 py-2 font-semibold text-amber-800"><LogOut size={13}/>Đăng xuất</button></form></div>
     </aside>
   }

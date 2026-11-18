@@ -1,4 +1,4 @@
-import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
+﻿import type { Prisma, Medicine, Supply, Equipment, EquipmentUsage } from '@prisma/client';
 
 export interface ConsumeItemInput {
   type: 'MEDICINE' | 'SUPPLY';
@@ -40,6 +40,71 @@ export interface DeductInventoryResult {
   }>;
 }
 
+export type TreatmentConsumptionReportFilters = {
+  sessionId?: string;
+  planId?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+  page?: number;
+};
+
+export type InventoryReportActor = { accountId: string; employeeId: string | null; sessionId: string; isAdmin?: boolean };
+
+export type TreatmentConsumptionReportRow = {
+  id: string;
+  sessionId: string;
+  sessionNo: number;
+  visitId: string;
+  patientCode: string;
+  patientName: string;
+  planId: string;
+  planName: string;
+  medicineId: string | null;
+  supplyId: string | null;
+  itemType: 'MEDICINE' | 'SUPPLY';
+  itemName: string;
+  actualQuantity: string;
+  plannedQuantity: string | null;
+  quantityVariance: string | null;
+  variancePercent: string | null;
+  plannedCost: string | null;
+  unit: string;
+  unitCost: string;
+  totalCost: string;
+  recordedBy: string;
+  createdAt: Date;
+};
+
+export type TreatmentConsumptionReportData = {
+  rows: TreatmentConsumptionReportRow[];
+  items: Array<{
+    itemType: 'MEDICINE' | 'SUPPLY';
+    itemId: string;
+    itemName: string;
+    unit: string;
+    actualQuantity: string;
+    plannedCost: string | null;
+    totalCost: string;
+    lineCount: number;
+  }>;
+  totalRows: number;
+  totalActualQuantity: string;
+  totalPlannedCost: string | null;
+  totalCost: string;
+  page: number;
+  pageSize: number;
+};
+
+export type TreatmentConsumptionRepositoryRow = Omit<
+  TreatmentConsumptionReportRow,
+  'quantityVariance' | 'variancePercent'
+>;
+
+export type TreatmentConsumptionRepositoryData = Omit<TreatmentConsumptionReportData, 'rows'> & {
+  rows: TreatmentConsumptionRepositoryRow[];
+};
+
 export interface IInventoryRepository {
   // Medicine
   getMedicines(): Promise<Medicine[]>;
@@ -58,7 +123,7 @@ export interface IInventoryRepository {
   createEquipment(input: Prisma.EquipmentUncheckedCreateInput): Promise<Equipment>;
   updateEquipment(id: string, input: Prisma.EquipmentUpdateInput): Promise<Equipment>;
   deleteEquipment(id: string): Promise<Equipment>;
-  
+
   // Equipment Usage
   getEquipmentUsagesByEquipmentId(equipmentId: string): Promise<EquipmentUsage[]>;
   getEquipmentUsagesByVisitId(visitId: string): Promise<EquipmentUsage[]>;
@@ -68,6 +133,10 @@ export interface IInventoryRepository {
 
   // Auto Deduct Inventory for Treatment
   deductInventoryForTreatment(input: CompleteSessionDeductInventoryInput): Promise<DeductInventoryResult>;
+  getTreatmentConsumptionReport(
+    actor: InventoryReportActor,
+    filters: TreatmentConsumptionReportFilters
+  ): Promise<TreatmentConsumptionRepositoryData>;
   getInventoryTransactions(limit?: number): Promise<any[]>;
   getTreatmentConsumptionsBySessionId(sessionId: string): Promise<any[]>;
 }

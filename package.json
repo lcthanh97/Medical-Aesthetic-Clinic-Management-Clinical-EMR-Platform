@@ -15,10 +15,14 @@
     "@prisma/adapter-libsql": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",
+    "@types/three": "^0.187.0",
+    "aws4fetch": "^1.0.20",
+    "gsap": "^3.15.1",
     "lucide-react": "^1.69.0",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "three": "^0.187.0",
     "zod": "latest"
   },
   "devDependencies": {

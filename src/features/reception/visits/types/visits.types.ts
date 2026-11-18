@@ -13,6 +13,7 @@ export interface RoomQueueItem {
 export interface WalkInVisitDto {
   patientId: string;
   roomId: string;
+  employeeId?: string;
   visitType?: VisitType | string;
   reason: string;
   receptionNote?: string;

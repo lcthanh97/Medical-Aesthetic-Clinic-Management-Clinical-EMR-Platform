@@ -8,6 +8,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const connectionString = process.env.DATABASE_URL;
+const connectTimeout = Number(process.env.DATABASE_CONNECT_TIMEOUT_MS ?? 5000);
 
 const pool = globalForPrisma.pool ?? new Pool({ 
   connectionString,
@@ -15,7 +16,7 @@ const pool = globalForPrisma.pool ?? new Pool({
   idleTimeoutMillis: 30000,
   // Fail fast when a sleeping/unreachable Neon compute cannot be resumed.
   // Pages can then render their safe empty states instead of hanging for 15s.
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: Number.isInteger(connectTimeout) && connectTimeout > 0 ? connectTimeout : 5000,
 });
 const adapter = new PrismaPg(pool);
 

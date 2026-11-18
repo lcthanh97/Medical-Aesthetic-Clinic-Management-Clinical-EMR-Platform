@@ -1,6 +1,7 @@
 .git
 .next
 node_modules
+dermatology_ai_system/
 output
 tools
 tmp

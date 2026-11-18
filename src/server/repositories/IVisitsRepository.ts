@@ -10,6 +10,7 @@ export interface VisitFilter {
 export interface DirectVisitInput {
   patientId: string;
   roomId: string;
+  employeeId?: string;
   visitDate: Date;
   status: string;
   reason: string;

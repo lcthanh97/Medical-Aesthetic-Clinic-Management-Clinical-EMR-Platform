@@ -1,29 +1,400 @@
-import Link from 'next/link'
-import { ArrowRight, CalendarDays, Heart, Stethoscope, UsersRound } from 'lucide-react'
-import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData'
-import { HomeBookingForm } from '@/components/client/HomeBookingForm'
+import Link from 'next/link';
+import {
+  Activity,
+  ArrowDown,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Layers,
+  HeartPulse,
+  Stethoscope,
+  ScanLine,
+  ShieldCheck,
+  UsersRound,
+} from 'lucide-react';
+import { HomeBookingForm } from '@/components/client/HomeBookingForm';
+import { KhachHang3DAiSection } from '@/components/client/KhachHang3DAiSection';
+import { getClientPublicData } from '@/features/client-portal/server/getClientPublicData';
+import styles from './Home.module.css';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
+
+const heroImage =
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1400&q=85';
 
 const serviceImages = [
- 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85',
- 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=900&q=85',
- 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=85',
- 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=85',
-]
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=900&q=85',
+  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=85',
+  'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=85',
+  'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=85',
+];
 
-export default async function ClientHome(){
- const data=await getClientPublicData();const services=data.services.slice(0,5);const doctors=data.doctors.slice(0,4)
- return <main className="bg-white">
-  {!data.connected&&<div className="border-b border-amber-300 bg-amber-50 px-5 py-3 text-center text-sm text-amber-900">Neon đang mất kết nối. Trang không thay thế bằng dữ liệu mẫu.</div>}
-  <section className="border-b border-[#dbe8f4] bg-[#eef7ff]"><div className="mx-auto max-w-[1440px]">
-   <div className="relative min-h-[520px] overflow-hidden"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt="Chăm sóc da tại DERMACARE" className="absolute inset-y-0 right-0 h-full w-[52%] object-cover"/><div className="absolute inset-0 bg-gradient-to-r from-[#eef7ff] via-[#eef7ff] via-55% to-transparent"/><div className="relative z-10 max-w-[760px] px-7 py-14 md:px-12 md:py-20"><span className="inline-flex rounded-full border border-[#c9dfef] bg-white px-4 py-2 text-xs font-extrabold text-[#1664b3]">◎ PHÒNG KHÁM CHUYÊN KHOA DA LIỄU & THẨM MỸ</span><h1 className="mt-6 font-serif text-5xl font-black leading-[.98] tracking-[-.04em] text-[#0c3865] md:text-7xl">Làn da khỏe mạnh<br/><span className="text-[#176cce]">Khởi nguồn tự tin</span><br/>mỗi ngày</h1><p className="mt-6 max-w-[590px] leading-8 text-[#60778d]">DERMACARE đồng hành cùng bạn với quy trình thăm khám, dữ liệu bệnh án điện tử và phác đồ điều trị được quản lý xuyên suốt.</p><div className="mt-7 flex flex-wrap gap-3"><Link href="#dat-lich" className="inline-flex items-center gap-3 rounded-xl bg-[#0963bb] px-6 py-4 text-sm font-extrabold text-white shadow-lg shadow-blue-200"><CalendarDays size={17}/>Đặt lịch khám ngay <ArrowRight size={16}/></Link><Link href="/khachhang/services" className="rounded-xl border border-[#1370c7] bg-white px-7 py-4 text-sm font-extrabold text-[#145a99]">Tìm hiểu dịch vụ</Link></div><div className="mt-7 flex flex-wrap gap-5 text-xs font-semibold text-[#516e88]"><span>◇ An toàn y khoa</span><span>♙ Bác sĩ trong hệ thống</span><span>◉ Hồ sơ điện tử</span><span>♡ Theo dõi xuyên suốt</span></div></div></div>
-   <HomeBookingForm services={data.services} doctors={data.doctors} rooms={data.rooms}/>
-  </div></section>
-  <section className="border-b border-[#dbe8f4]"><div className="mx-auto grid max-w-[1280px] grid-cols-2 md:grid-cols-4">{[[UsersRound,data.stats.patients,'Hồ sơ bệnh nhân'],[Stethoscope,data.stats.doctors,'Bác sĩ da liễu'],[CalendarDays,data.stats.appointments,'Lịch hẹn'],[Heart,data.stats.visits,'Lượt khám']].map(([Icon,value,label]:any)=><div key={label} className="flex items-center justify-center gap-4 border-r border-[#dbe8f4] px-5 py-6 last:border-0"><span className="grid h-12 w-12 place-items-center rounded-full bg-[#eaf5ff] text-[#176cce]"><Icon size={19}/></span><div><strong className="font-serif text-2xl text-[#0c3865]">{Number(value).toLocaleString('vi-VN')}</strong><span className="block text-xs text-[#7a8fa3]">{label}</span></div></div>)}</div></section>
-  <section className="mx-auto max-w-[1280px] px-7 py-14"><div className="flex flex-wrap items-end gap-5"><h2 className="font-serif text-4xl font-black text-[#0c3865]">Dịch vụ nổi bật</h2><p className="mb-1 flex-1 text-xs text-[#73899e]">Tên, nhóm và giá được đồng bộ trực tiếp từ ServiceCatalog.</p><Link href="/khachhang/services" className="rounded-full border border-[#cbddeb] px-5 py-2 text-xs font-bold text-[#145a99]">Xem tất cả dịch vụ →</Link></div>{services.length?<div className="mt-6 grid gap-4 md:grid-cols-5">{services.map((service,index)=><Link href={`/khachhang/services/${service.id}`} key={service.id} className="overflow-hidden rounded-2xl border border-[#dbe8f4] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"><img src={serviceImages[index%serviceImages.length]} alt="" className="h-32 w-full object-cover"/><div className="p-4"><small className="font-bold text-[#176cce]">{service.code}</small><h3 className="mt-1 text-sm font-extrabold text-[#15528d]">{service.name}</h3><p className="mt-2 text-xs text-[#71869a]">{service.category} · {service.price.toLocaleString('vi-VN')}₫</p></div></Link>)}</div>:<div className="mt-6 rounded-2xl border border-dashed p-8 text-center text-[#71869a]">Không có dịch vụ thật để hiển thị.</div>}</section>
-  <section className="bg-[#f5f9fd] py-14"><div className="mx-auto max-w-[1280px] px-7"><div className="flex items-end justify-between"><div><p className="text-xs font-extrabold tracking-[.18em] text-[#2779c4]">DỮ LIỆU NHÂN SỰ THẬT</p><h2 className="mt-2 font-serif text-4xl font-black text-[#0c3865]">Đội ngũ bác sĩ</h2></div><Link href="/khachhang/doctors" className="text-sm font-bold text-[#176cce]">Xem tất cả bác sĩ →</Link></div>{doctors.length?<div className="mt-7 grid gap-5 md:grid-cols-4">{doctors.map((doctor)=><article key={doctor.id} className="overflow-hidden rounded-2xl border border-[#b9cee0] bg-white"><div className="grid h-52 place-items-center bg-gradient-to-br from-[#d9eafa] to-[#8db9df]"><span className="grid h-24 w-24 place-items-center rounded-full border-4 border-white/70 text-3xl font-black text-white">{doctor.name.split(' ').slice(-2).map((part)=>part[0]).join('')}</span></div><div className="p-4"><h3 className="font-extrabold text-[#0c3865]">{doctor.name}</h3><p className="mt-1 text-xs font-bold text-[#2779c4]">{doctor.department}</p><p className="mt-3 text-xs text-[#71869a]">{doctor.visits} lượt khám · {doctor.appointments} lịch hẹn</p><Link href={`/khachhang/doctors/${doctor.id}`} className="mt-4 inline-flex text-sm font-bold text-[#176cce]">Xem hồ sơ →</Link></div></article>)}</div>:<div className="mt-7 rounded-2xl border border-dashed p-8 text-center text-[#71869a]">Không có bác sĩ thật để hiển thị.</div>}</div></section>
-  <section className="mx-auto max-w-[1280px] px-7 py-10"><div className="relative overflow-hidden rounded-3xl border border-[#cbddeb] bg-[#eef7ff] p-7"><img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=85" alt="Không gian phòng khám" className="absolute inset-y-0 right-0 h-full w-2/5 object-cover opacity-30"/><div className="relative"><h2 className="font-serif text-4xl font-black text-[#0c3865]">Hành trình chăm sóc da tại DERMACARE</h2><p className="mt-2 text-sm text-[#71869a]">Quy trình thăm khám và điều trị được quản lý xuyên suốt bằng bệnh án điện tử.</p><div className="mt-7 grid gap-5 md:grid-cols-4">{[['Đặt hẹn khám','Chọn bác sĩ và thời gian phù hợp.'],['Thăm khám cùng bác sĩ','Tạo lượt khám và bệnh án điện tử.'],['Nhận phác đồ cá nhân hóa','Theo dõi từng giai đoạn điều trị.'],['Theo dõi điều trị','Lưu kết quả, hình ảnh và đơn thuốc.']].map((item,index)=><div key={item[0]} className="flex gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white font-serif font-black text-[#0963bb] shadow-sm">{index+1}</span><div><h3 className="text-sm font-bold text-[#0c3865]">{item[0]}</h3><p className="mt-1 text-xs leading-5 text-[#71869a]">{item[1]}</p></div></div>)}</div></div></div></section>
-  <section className="mx-auto max-w-[1280px] px-7 pb-14"><div className="flex items-end gap-4"><h2 className="font-serif text-4xl font-black text-[#0c3865]">Hoạt động chăm sóc</h2><p className="mb-1 text-xs text-[#71869a]">Số liệu thật đang có trong hệ thống DERMACARE.</p></div><div className="mt-5 grid gap-4 md:grid-cols-3">{[[data.stats.patients,'Hồ sơ bệnh nhân được quản lý','Dữ liệu hành chính và lịch sử khám được liên kết xuyên suốt.'],[data.stats.appointments,'Lịch hẹn đã ghi nhận','Lịch hẹn được tạo trực tiếp vào hệ thống phòng khám.'],[data.stats.visits,'Lượt khám trong bệnh án','Kết quả khám, chỉ định và phác đồ được lưu theo từng lượt.']].map(([value,title,desc])=><article className="rounded-2xl border border-[#cbddeb] bg-white p-6" key={String(title)}><strong className="font-serif text-3xl text-[#176cce]">{Number(value).toLocaleString('vi-VN')}+</strong><h3 className="mt-2 font-bold text-[#0c3865]">{title}</h3><p className="mt-2 text-sm italic leading-6 text-[#71869a]">“{desc}”</p></article>)}</div></section>
- </main>
+const doctorPortraits = [
+  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=700&q=85',
+  'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=700&q=85',
+  'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=700&q=85',
+  'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=700&q=85',
+];
+
+const clinicalGallery = [
+  {
+    src: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85',
+    tag: 'DA LIỄU',
+    title: 'Phân tích Vi cấu trúc Sắc tố & Biểu bì',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=85',
+    tag: 'DERMOSCOPY 10×',
+    title: 'Hệ thống Soi da Quang học Phân cực',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=900&q=85',
+    tag: 'LASER CLINICAL',
+    title: 'Điều trị & Tái tạo Hàng rào Bảo vệ Da',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=900&q=85',
+    tag: 'EMR DIGITAL',
+    title: 'Hội chẩn Bác sĩ & Hồ sơ Bệnh án Số',
+  },
+];
+
+const careSteps = [
+  {
+    icon: Stethoscope,
+    title: '1. Hỏi về da liễu',
+    description:
+      'Mô tả triệu chứng và hỏi thêm về cách chăm sóc hoặc thời điểm nên đi khám.',
+  },
+  {
+    icon: CalendarDays,
+    title: '2. Đặt lịch khám chuyên khoa',
+    description: 'Chọn dịch vụ, bác sĩ da liễu và khung giờ phù hợp ngay trên hệ thống.',
+  },
+  {
+    icon: Stethoscope,
+    title: '3. Bác sĩ thăm khám & Phác đồ',
+    description:
+      'Bác sĩ thăm khám và xây dựng phác đồ phù hợp với tình trạng da.',
+  },
+  {
+    icon: ShieldCheck,
+    title: '4. Theo dõi hồ sơ điều trị số',
+    description:
+      'Xem lại hình ảnh tiến triển, đơn thuốc và kết quả cận lâm sàng trực tuyến.',
+  },
+];
+
+export default async function ClientHome() {
+  const data = await getClientPublicData();
+  const featuredServices = new Map<string, (typeof data.services)[number]>();
+  for (const service of data.services) {
+    const name = service.name.trim().toLocaleLowerCase('vi-VN');
+    if (!featuredServices.has(name)) featuredServices.set(name, service);
+    if (featuredServices.size === 5) break;
+  }
+  const services = [...featuredServices.values()];
+  const doctors = data.doctors.slice(0, 4);
+  const stats = [
+    { icon: UsersRound, count: data.stats.patients, label: 'Hồ sơ bệnh nhân' },
+    { icon: Stethoscope, count: data.stats.doctors, label: 'Bác sĩ da liễu' },
+    { icon: CalendarDays, count: data.stats.appointments, label: 'Lịch hẹn' },
+    { icon: Activity, count: data.stats.visits, label: 'Lượt khám lâm sàng' },
+  ];
+
+  return (
+    <main className={styles.home} data-client-home>
+      {!data.connected && (
+        <p className={styles.notice} role="status">
+          Một số thông tin phòng khám hiện chưa tải được. Vui lòng thử lại sau.
+        </p>
+      )}
+
+      {/* 3D BIO-TECH CLINICAL HERO */}
+      <section className={styles.hero} aria-labelledby="home-heading">
+        <div className={styles.heroGrid}>
+          <div className={styles.heroCopy} data-client-intro>
+            <p className={styles.eyebrow}>
+              <ShieldCheck size={15} aria-hidden="true" /> Phòng khám chuyên khoa Da liễu &amp; Thẩm mỹ
+            </p>
+            <h1 id="home-heading">
+              Làn da khỏe.
+              <br />
+              <em>Hỏi đáp da liễu dễ dàng.</em>
+            </h1>
+            <p className={styles.heroDescription}>
+              Trò chuyện với trợ lý da liễu để được giải đáp ban đầu và đặt lịch với bác sĩ chuyên khoa khi cần.
+            </p>
+            <div className={styles.actions}>
+              <a href="#ai-chan-doan" className={styles.primary} data-client-cta>
+                <Stethoscope size={18} aria-hidden="true" />
+                Hỏi về da liễu <ArrowDown size={16} aria-hidden="true" />
+              </a>
+              <a href="#dat-lich" className={styles.secondary} data-client-cta>
+                Đặt lịch bác sĩ <ArrowUpRight size={17} aria-hidden="true" />
+              </a>
+              <Link href="/khachhang/ai-chan-doan" className={styles.tertiaryBtn}>
+                Mở trang trợ lý ↗
+              </Link>
+            </div>
+
+            <div className={styles.heroBadges}>
+              <div className={styles.heroBadgeItem}>
+                <Layers size={15} className="text-[#0D9488]" />
+                <span>
+                  <strong>Hỏi đáp</strong> · Da, tóc và móng
+                </span>
+              </div>
+              <div className={styles.heroBadgeItem}>
+                <ScanLine size={15} className="text-[#0284C7]" />
+                <span>
+                  <strong>Đặt lịch</strong> · Theo giờ Việt Nam
+                </span>
+              </div>
+              <div className={styles.heroBadgeItem}>
+                <HeartPulse size={15} className="text-[#F97316]" />
+                <span>
+                  <strong>Cảnh báo sớm</strong> · Red Flags
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.heroArt} data-client-hero-image aria-hidden="true">
+            <div className={styles.holoFrame}>
+              <div className={styles.holoHeader}>
+                <span className={styles.holoDot} />
+                <span>MINH HỌA THĂM KHÁM</span>
+                <span className={styles.holoCode}>DERMACARE</span>
+              </div>
+              <div className={styles.photo}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={heroImage}
+                  alt=""
+                  fetchPriority="high"
+                  width={1400}
+                  height={1600}
+                />
+                <div className={styles.heroLaserBeam} />
+              </div>
+              <div className={styles.photoCaption}>
+                <ShieldCheck size={22} className="text-[#0D9488] shrink-0" />
+                <span>
+                  Trợ lý da liễu &amp; Bác sĩ chuyên khoa
+                  <br />
+                  <strong>Đồng bộ Hồ sơ Bệnh án Điện tử EMR</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* EMBEDDED FULL 3D AI DERMATOLOGY DIAGNOSIS & CRUD SECTION */}
+      <KhachHang3DAiSection />
+
+      {/* CLINICAL IMAGING GALLERY */}
+      <section className={styles.section} aria-label="Công nghệ và không gian lâm sàng">
+        <div className={styles.sectionHeading}>
+          <div>
+            <p className={styles.eyebrow}>Hệ sinh thái Chẩn đoán &amp; Điều trị</p>
+            <h2>Không gian Lâm sàng &amp; Công nghệ AI</h2>
+          </div>
+          <Link href="/khachhang/ai-chan-doan" className={styles.textLink}>
+            Mở trợ lý da liễu <ArrowUpRight size={17} aria-hidden="true" />
+          </Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {clinicalGallery.map((item) => (
+            <div
+              key={item.title}
+              data-client-card
+              className="group relative overflow-hidden rounded-3xl border border-white bg-slate-900 shadow-sm"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.src}
+                alt={item.title}
+                loading="lazy"
+                className="h-56 w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-900/45 to-transparent p-4 text-white">
+                <span className="inline-block rounded-md bg-[#0D9488] px-2 py-0.5 text-[10px] font-bold tracking-wider">
+                  {item.tag}
+                </span>
+                <h3 className="mt-1.5 font-heading text-sm font-bold leading-snug">
+                  {item.title}
+                </h3>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3D GLASS BOOKING SECTION */}
+      <div className={styles.booking} data-client-card>
+        <div className={styles.bookingNote}>
+          <CalendarDays size={32} aria-hidden="true" />
+          <p>Đặt lịch khám trực tiếp cùng Bác sĩ Chuyên khoa</p>
+          <span className="text-xs font-medium opacity-90">
+            Kết nối trực tiếp từ kết quả sàng lọc AI Da liễu
+          </span>
+          <ArrowDownRight className={styles.bookingArrow} size={28} aria-hidden="true" />
+        </div>
+        <HomeBookingForm
+          services={data.services}
+          doctors={data.doctors}
+          rooms={data.rooms}
+        />
+      </div>
+
+      {/* 3D CLINIC STATS */}
+      {data.connected && (
+        <dl className={styles.stats} aria-label="Hoạt động của phòng khám">
+          {stats.map(({ icon: Icon, count, label }) => (
+            <div key={label} data-client-card className={styles.statCard}>
+              <span className={styles.statIcon}>
+                <Icon size={22} aria-hidden="true" />
+              </span>
+              <div>
+                <dd>{count.toLocaleString('vi-VN')}</dd>
+                <dt>{label}</dt>
+              </div>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {/* 3D FEATURED SERVICES */}
+      <section id="dich-vu" className={styles.section}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <p className={styles.eyebrow}>Khám &amp; điều trị công nghệ cao</p>
+            <h2>Dịch vụ Chuyên khoa Nổi bật</h2>
+          </div>
+          <Link href="/khachhang/services" className={styles.textLink}>
+            Xem tất cả dịch vụ <ArrowUpRight size={18} aria-hidden="true" />
+          </Link>
+        </div>
+        {services.length ? (
+          <div className={styles.serviceGrid}>
+            {services.map((service, index) => (
+              <Link
+                key={service.id}
+                href={`/khachhang/services/${service.id}`}
+                data-client-card
+                className={
+                  index === 0
+                    ? `${styles.serviceCard} ${styles.featured}`
+                    : styles.serviceCard
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={serviceImages[index % serviceImages.length]}
+                  alt=""
+                  loading="lazy"
+                  width={900}
+                  height={600}
+                />
+                <div className={styles.serviceContent}>
+                  <p>{service.category}</p>
+                  <h3>{service.name}</h3>
+                  <strong>{service.price.toLocaleString('vi-VN')} ₫</strong>
+                </div>
+                <span className={styles.cardArrow} aria-hidden="true">
+                  <ArrowUpRight size={20} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.empty}>Hiện chưa có dịch vụ để hiển thị.</p>
+        )}
+      </section>
+
+      {/* 3D DOCTORS TEAM WITH REAL CLINICAL PORTRAITS */}
+      <section className={styles.doctors}>
+        <div className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Chuyên môn lâm sàng</p>
+              <h2>Đội ngũ Bác sĩ Da liễu</h2>
+            </div>
+            <Link href="/khachhang/doctors" className={styles.textLink}>
+              Xem tất cả bác sĩ <ArrowUpRight size={18} aria-hidden="true" />
+            </Link>
+          </div>
+          {doctors.length ? (
+            <div className={styles.doctorGrid}>
+              {doctors.map((doctor, idx) => (
+                <Link
+                  href={`/khachhang/doctors/${doctor.id}`}
+                  key={doctor.id}
+                  className={styles.doctorCard}
+                  data-client-card
+                >
+                  <div className="relative h-52 w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={doctorPortraits[idx % doctorPortraits.length]}
+                      alt={doctor.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 font-heading text-xs font-extrabold text-[#0D9488] shadow-xs">
+                      {doctor.name
+                        .trim()
+                        .split(/\s+/)
+                        .slice(-2)
+                        .map((part) => part[0])
+                        .join('')}
+                    </span>
+                  </div>
+                  <div className={styles.doctorDetails}>
+                    <p>{doctor.department}</p>
+                    <h3>{doctor.name}</h3>
+                    <span>
+                      Xem hồ sơ bác sĩ <ArrowRight size={15} aria-hidden="true" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.empty}>Hiện chưa có thông tin bác sĩ để hiển thị.</p>
+          )}
+        </div>
+      </section>
+
+      {/* 3D CARE JOURNEY */}
+      <section className={styles.journey}>
+        <div className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Chu trình khép kín AI &amp; Lâm sàng</p>
+              <h2>Hành trình Chăm sóc Làn da</h2>
+            </div>
+            <a href="#ai-chan-doan" className={styles.primary} data-client-cta>
+              Hỏi về da liễu <ArrowUpRight size={18} aria-hidden="true" />
+            </a>
+          </div>
+          <ol className={styles.steps}>
+            {careSteps.map(({ icon: Icon, title, description }) => (
+              <li key={title} data-client-card>
+                <span className={styles.stepIconWrap}>
+                  <Icon size={22} aria-hidden="true" />
+                </span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    </main>
+  );
 }

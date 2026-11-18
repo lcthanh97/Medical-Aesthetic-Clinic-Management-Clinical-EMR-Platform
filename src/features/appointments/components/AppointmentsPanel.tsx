@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
-import { getAppointmentsMetadata, createCustomerAppointment } from '../actions';
+import { getAppointmentsMetadata, createReceptionAppointment } from '../actions';
+import { useCustomerAppointmentSlots } from '../hooks/useCustomerAppointmentSlots';
+import { clinicDate, clinicSlotDate } from '../utils/timeSlots';
 
 export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: string }) {
   const [rooms, setRooms] = useState<any[]>([]);
@@ -21,11 +23,10 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
     scheduledAt: ''
   });
 
-  const [minDateTime] = useState(() => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  });
+  const [minDate] = useState(() => clinicDate());
+  const date = formData.scheduledAt.slice(0, 10);
+  const time = formData.scheduledAt.slice(11, 16);
+  const availability = useCustomerAppointmentSlots(date, formData.employeeId, formData.roomId);
 
   useEffect(() => {
     getAppointmentsMetadata().then(res => {
@@ -45,12 +46,9 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
       return;
     }
 
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const currentMin = now.toISOString().slice(0, 16);
-
-    if (formData.scheduledAt < currentMin) {
-      setErrorMessage('Thời gian hẹn không được nhỏ hơn thời gian hiện tại.');
+    const scheduledAt = clinicSlotDate(date, time);
+    if (!scheduledAt || !availability.slots.some((slot) => slot.time === time && slot.status === 'available')) {
+      setErrorMessage('Vui lòng chọn khung giờ còn trống.');
       return;
     }
 
@@ -66,11 +64,11 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
       dateOfBirth: formData.dateOfBirth || undefined,
       roomId: formData.roomId || undefined,
       employeeId: formData.employeeId || undefined,
-      scheduledAt: new Date(formData.scheduledAt).toISOString(),
+      scheduledAt: scheduledAt.toISOString(),
       status: 'SCHEDULED'
     };
 
-    const res = await createCustomerAppointment(payload);
+    const res = await createReceptionAppointment(payload);
     setIsLoading(false);
     
     if (res.success) {
@@ -178,7 +176,21 @@ export function AppointmentsPanel({ initialDoctorId = '' }: { initialDoctorId?: 
 
             <div>
               <label className="block text-[12px] font-medium text-[#6c7e93] mb-1.5">Thời gian hẹn <span className="text-red-500">*</span></label>
-              <input required type="datetime-local" suppressHydrationWarning min={minDateTime || undefined} value={formData.scheduledAt} onChange={e=>{setFormData({...formData, scheduledAt: e.target.value}); if (errorMessage) setErrorMessage(null);}} className="w-full bg-white border border-[#dce5ef] rounded-[7px] p-2.5 text-xs text-[#20334b] focus:border-[#246dce] outline-none transition-all shadow-2xs" />
+              <div className="grid grid-cols-2 gap-2">
+                <input required aria-label="Ngày hẹn" type="date" min={minDate} value={date}
+                  onChange={event => setFormData({...formData, scheduledAt: event.target.value})}
+                  className="w-full rounded-[7px] border border-[#dce5ef] bg-white p-2.5 text-xs" />
+                <select required aria-label="Khung giờ hẹn (giờ Việt Nam)" value={time}
+                  disabled={!date || availability.loading || Boolean(availability.error)}
+                  onChange={event => setFormData({...formData, scheduledAt: `${date}T${event.target.value}`})}
+                  className="w-full rounded-[7px] border border-[#dce5ef] bg-white p-2.5 text-xs">
+                  <option value="">{availability.loading ? 'Đang kiểm tra…' : 'Chọn giờ Việt Nam'}</option>
+                  {availability.slots.map(slot => <option key={slot.time} value={slot.time} disabled={slot.status !== 'available'}>
+                    {slot.time}{slot.status === 'booked' ? ' · Đã đặt' : slot.status === 'past' ? ' · Đã qua' : ''}
+                  </option>)}
+                </select>
+              </div>
+              {availability.error && <p role="status" className="mt-2 text-xs text-red-700">{availability.error} <button type="button" className="underline" onClick={availability.reload}>Thử lại</button></p>}
             </div>
 
             <div className="flex items-center gap-2 p-3 bg-[#edf5ff] border border-[#dce5ef] rounded-[7px] text-[#235f9e] text-[11px] leading-relaxed">
