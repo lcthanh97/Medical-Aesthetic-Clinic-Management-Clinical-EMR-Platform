@@ -132,14 +132,19 @@ export class VNPayService {
     return sorted;
   }
 
+  /**
+   * VNPay yêu cầu yyyyMMddHHmmss theo giờ Việt Nam (GMT+7).
+   * Không dùng getHours() vì server (Vercel) chạy UTC → giao dịch bị coi là hết hạn ngay.
+   */
   private static formatDate(date: Date): string {
+    const vn = new Date(date.getTime() + 7 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    const MM = pad(date.getMonth() + 1);
-    const dd = pad(date.getDate());
-    const HH = pad(date.getHours());
-    const mm = pad(date.getMinutes());
-    const ss = pad(date.getSeconds());
+    const yyyy = vn.getUTCFullYear();
+    const MM = pad(vn.getUTCMonth() + 1);
+    const dd = pad(vn.getUTCDate());
+    const HH = pad(vn.getUTCHours());
+    const mm = pad(vn.getUTCMinutes());
+    const ss = pad(vn.getUTCSeconds());
     return `${yyyy}${MM}${dd}${HH}${mm}${ss}`;
   }
 }
