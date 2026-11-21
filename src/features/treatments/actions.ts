@@ -5,6 +5,7 @@ import { TreatmentsService } from '@/server/services/TreatmentsService';
 import { revalidatePath } from 'next/cache';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/infrastructure/database/prisma';
+import { getDoctorSession } from '@/server/auth/doctor-session';
 
 const repository = new PrismaTreatmentsRepository();
 const service = new TreatmentsService(repository);
@@ -264,5 +265,91 @@ export async function completeStepWithInventoryDeduction(input: {
     return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function createPlanFromTemplate(input: { visitId: string; templateId: string }) {
+  try {
+    const session = await getDoctorSession();
+    if (!session) throw new Error('Phiên đăng nhập bác sĩ đã hết hạn.');
+
+    const visit = await prisma.visit.findFirst({
+      where: { id: input.visitId, employeeId: session.employeeId },
+      select: { id: true, patientId: true },
+    });
+    if (!visit) throw new Error('Không tìm thấy lượt khám được phân công cho bác sĩ này.');
+
+    const template = await prisma.treatmentProtocolTemplate.findUnique({
+      where: { id: input.templateId },
+      include: {
+        stages: {
+          include: { steps: { orderBy: { orderNo: 'asc' } } },
+          orderBy: { orderNo: 'asc' },
+        },
+      },
+    });
+    if (!template) throw new Error('Không tìm thấy phác đồ chuẩn.');
+    if (template.stages.length === 0) throw new Error('Phác đồ chuẩn chưa có giai đoạn điều trị.');
+
+    const now = new Date();
+    let elapsedDays = 0;
+    const stages = template.stages.map((stage, index) => {
+      const duration = Math.max(stage.durationDays ?? 0, 0);
+      const plannedStartDate = new Date(now);
+      plannedStartDate.setDate(plannedStartDate.getDate() + elapsedDays);
+      const plannedEndDate = duration > 0 ? new Date(plannedStartDate) : null;
+      if (plannedEndDate) plannedEndDate.setDate(plannedEndDate.getDate() + duration - 1);
+      elapsedDays += duration;
+
+      return {
+        stageType: stage.stageType,
+        name: stage.name,
+        orderNo: stage.orderNo,
+        goal: stage.goal,
+        plannedStartDate,
+        plannedEndDate,
+        status: index === 0 ? 'Đang thực hiện' : 'Lên kế hoạch',
+        notes: stage.notes,
+        steps: {
+          create: stage.steps.map((step) => ({
+            orderNo: step.orderNo,
+            content: step.instruction,
+            repeatCount: step.repeatCount,
+            intervalDays: step.intervalDays,
+            plannedDurationMinutes: step.plannedDurationMinutes,
+            ...(step.defaultParameters === null
+              ? {}
+              : { defaultParameters: step.defaultParameters as Prisma.InputJsonValue }),
+            status: 'Lên kế hoạch',
+          })),
+        },
+      };
+    });
+
+    const expectedEndDate = elapsedDays > 0 ? new Date(now) : null;
+    if (expectedEndDate) expectedEndDate.setDate(expectedEndDate.getDate() + elapsedDays - 1);
+
+    const plan = await prisma.treatmentPlan.create({
+      data: {
+        visitId: visit.id,
+        patientId: visit.patientId,
+        protocolTemplateId: template.id,
+        name: template.name,
+        diagnosisSummary: template.indication,
+        goal: template.description,
+        status: 'Đang thực hiện',
+        version: 1,
+        createdById: session.employeeId,
+        startDate: now,
+        expectedEndDate,
+        stages: { create: stages },
+      },
+    });
+
+    revalidatePath('/bacsi/treatments');
+    revalidatePath('/bacsi/protocols');
+    return { success: true, data: { id: plan.id, visitId: plan.visitId } };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Không thể tạo phác đồ từ mẫu.' };
   }
 }

@@ -462,7 +462,6 @@ export class PrismaInventoryRepository implements IInventoryRepository {
       JOIN "Patient" patient ON patient.id = v."patientId"
       JOIN "TreatmentStage" stage ON stage.id = ts."stageId"
       JOIN "TreatmentPlan" plan ON plan.id = stage."planId"
-        AND plan."visitId" = ts."visitId"
         AND plan."patientId" = v."patientId"
       LEFT JOIN "TreatmentStep" step ON step.id = ts."stepId" AND step."stageId" = ts."stageId"
       LEFT JOIN "Medicine" medicine ON medicine.id = tc."medicineId"

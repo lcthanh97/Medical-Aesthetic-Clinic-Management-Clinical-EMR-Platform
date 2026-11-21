@@ -1,14 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { BillingService } from '../../../src/server/services/BillingService';
 import type { IBillingRepository } from '../../../src/server/repositories/IBillingRepository';
 import type { IClinicalServicesRepository } from '../../../src/server/repositories/IClinicalServicesRepository';
 import { PaymentStatus, OrderStatus } from '../../../src/domain/enums';
-import { VNPayService } from '../../../src/server/common/vnpay';
+import { VNPAY_CONFIG, VNPayService } from '../../../src/server/common/vnpay';
 
 describe('BIL-01 & BIL-02: BillingService Unit Tests (Final Invoice & Multi-channel Payments)', () => {
   let mockBillingRepo: IBillingRepository;
   let mockClsRepo: IClinicalServicesRepository;
   let billingService: BillingService;
+
+  beforeAll(() => {
+    VNPAY_CONFIG.tmnCode = '2QXUI4B4';
+    VNPAY_CONFIG.hashSecret = 'test-only-vnpay-signing-secret';
+    VNPAY_CONFIG.paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    VNPAY_CONFIG.returnUrl = 'http://localhost:3000/api/payments/vnpay/return';
+  });
 
   beforeEach(() => {
     mockBillingRepo = {
